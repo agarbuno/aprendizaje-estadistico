@@ -12,16 +12,16 @@
 % \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
 
 %>>>>>>> LECTURE NUMBER AND TITLE
-\title{Lecture 0:               % UPDATE LECTURE NUMBER
-    EST-25134: Aprendizaje Estadístico}	% UPDATE TITLE
+\title{Clase 0:               % UPDATE LECTURE NUMBER
+    Aprendizaje Estadístico}	% UPDATE TITLE
 % TIP:  Use "\\" to break the title into more than one line.
 
 %>>>>>>> DATE OF LECTURE
-\date{January 1, 2019} % Hard-code lecture date. Don't use "\today"
+\date{Enero 14, 2021} % Hard-code lecture date. Don't use "\today"
 
 %>>>>>>> NAME OF SCRIBE(S)
 \author{%
-  Scribe:&
+  Responsable:&
   Mr Bean  % >>>>> SCRIBE NAME(S)
 }
 
@@ -35,7 +35,7 @@
 \section{Introduction}
 \label{sec:introduction}
 
-Welcome to ACM 256.  This document will help you get started writing up the lecture notes. Remember, these notes will be used by you and your classmates, so please work to make them clear and concise.  Below, you will find some rules designed to ensure consistency in the course notes as well as some tips for getting the most from this file.
+This document will help you get started writing up the lecture notes. Remember, these notes will be used by you and your classmates, so please work to make them clear and concise.  Below, you will find some rules designed to ensure consistency in the course notes as well as some tips for getting the most from this file.
 
 \subsection{The basics}
 
@@ -79,7 +79,7 @@ In order to make the notes as consistent as possible, we are going to enforce a 
 The most important part of your notes is, of course, the content. But even the best content will fail to impress in the face of haphazard style and inconsistent notation.
 
 \begin{description}\setlength{\itemsep}{0pt} % Compact description list
-\item[English] Use complete, grammatically correct English sentences using American spelling. Consult dictionaries and style guides for proper spelling and usage. For specific guidelines on mathematical writing, see~\cite{Che:,Hal:70,Hig:98}.
+\item[Spanish] Use complete, grammatically correct Spanish sentences. Consult dictionaries and style guides for proper spelling and usage. For specific guidelines on mathematical writing, see~\cite{Che:,Hal:70,Hig:98}.
 \item[Sections] Use \LaTeX's built-in commands for defining sections, subsections, subsubsections, etc.  Whenever possible, use the  section breaks presented in class and their corresponding  titles.  Use common sense when adding and naming additional sections.
 \item[Equations] Only number equations that are referenced later in the text.
 Refer to Michael Downes's \href{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} for available equation environments.
@@ -123,15 +123,11 @@ Refer to Michael Downes's \href{https://math.mit.edu/~dav/short-math-guide.pdf}{
           \\
           Norms & $\| \cdot \|$
           \\
-          Dual, double dual of $X$ & $X^*$, $X^{**}$
+          Inner Product & $ \langle \cdot, \cdot \rangle$
           \\
-          Norm convergence & $x_n \to x$
+          Expectations & $\Expect_{z \sim \D}[f(z)]$
           \\
-          Weak convergence & $x_n \wto x$, $x_n \wwto x$
-          \\
-          Weak-* convergence & $ x_n \wsto x$, $x_n \wwsto x$
-          \\
-          Probability measures with marginals $\mu$ and $\nu$ &   $\Pi(\mu,\nu)$
+          Limits & $\underset{\theta \in \Theta}{\sup} \,\, \mathcal{L}_n(\theta)$
           \\
           \bottomrule
         \end{tabu}

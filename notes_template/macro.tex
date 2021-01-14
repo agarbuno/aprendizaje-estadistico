@@ -11,9 +11,9 @@
 
 
 % Makes ligatured fonts searchable and copyable in pdf readers
-\usepackage{cmap} % Load before fontenc 
+\usepackage{cmap} % Load before fontenc
 
-% Always include these font encodings in your document 
+% Always include these font encodings in your document
 % unless you have a very good reason.
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -44,7 +44,7 @@
 %=============
 % AMS Packages and fonts
 %=============
-\usepackage{amsmath,amsbsy,amsgen,amscd,amsthm,amsfonts,amssymb} 
+\usepackage{amsmath,amsbsy,amsgen,amscd,amsthm,amsfonts,amssymb}
 
 %=============
 % Margins and paper size
@@ -70,8 +70,8 @@
 
 \predate{\noindent%
   \small\sffamily\itshape\begin{tabular}[t]{l}%
-    ACM 256, Winter 2019 \\ %
-    Dr.\ Franca Hoffmann \\ %
+    EST-25134, Primavera 2021 \\ %
+    Dr.\ Alfredo Garbuno Iñigo \\ %
   }
   \postdate{
   \end{tabular}\par}
@@ -90,7 +90,7 @@
 
 
 \usepackage{enumitem}
-\setitemize{itemsep=0pt} 
+\setitemize{itemsep=0pt}
 \setenumerate{itemsep=0pt}
 \setlist{labelindent=\parindent,%  % Recommended by enumitem package
   font=\sffamily}
@@ -108,14 +108,14 @@
 
 \usepackage{url}
 \usepackage[colorlinks=true]{hyperref}
-\hypersetup{linkcolor=dkblue}    
-\hypersetup{citecolor=rust}      
-\hypersetup{urlcolor=rust}     
+\hypersetup{linkcolor=dkblue}
+\hypersetup{citecolor=rust}
+\hypersetup{urlcolor=rust}
 
 %=============
 % Microtype
 %=============
-\usepackage[final]{microtype} 
+\usepackage[final]{microtype}
 
 %=============
 % Theorems, etc.
@@ -151,7 +151,7 @@
     {}  % Theorem head spec (can be left empty, meaning ‘normal’)
 
 \theoremstyle{myThm}
-\newtheorem{theorem}{Theorem}[section]
+\newtheorem{theorem}{Teorema}[section]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
@@ -197,7 +197,7 @@
 \mathtoolsset{centercolon}  % Makes := typeset correctly for definitions
 
 %%% Equation numbering
-%\numberwithin{equation}{section} 
+%\numberwithin{equation}{section}
 
 %%% Annotations
 \newcommand{\notate}[1]{\textcolor{red}{\textbf{[#1]}}}
@@ -224,7 +224,7 @@
 %==============
 
 % Set constants upright
-\newcommand{\cnst}[1]{\mathrm{#1}}  
+\newcommand{\cnst}[1]{\mathrm{#1}}
 \newcommand{\econst}{\mathrm{e}}
 \newcommand{\rd}{\mathrm{d}}
 \newcommand{\dist}{\mathrm{dist}}
@@ -251,9 +251,10 @@
 %==============
 \newcommand{\Prob}{\operatorname{\mathbbm{P}}}
 \newcommand{\Expect}{\operatorname{\mathbb{E}}}
+\newcommand{\D}{\operatorname{\mathcal{D}}}
 
 %==============
-% Vectors and matrices 
+% Vectors and matrices
 %==============
 \newcommand{\vct}[1]{\mathbold{#1}}
 \newcommand{\mtx}[1]{\mathbold{#1}}
@@ -263,4 +264,3 @@
 %=============
 \newcommand{\B}{\mathcal{B}}
 \newcommand{\op}[1]{\mathbold{#1}}
-
