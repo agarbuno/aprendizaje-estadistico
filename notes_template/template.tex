@@ -1,6 +1,4 @@
 \documentclass[11pt,reqno,twoside]{article}
-\usepackage[spanish]{babel}
-
 %>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
 % E.g., "lecture_01.tex"
 
@@ -32,25 +30,34 @@
 %>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
 % This is the body of your document.
 
-\section{Introduction}
+\section{Introducción}
 \label{sec:introduction}
 
-This document will help you get started writing up the lecture notes. Remember, these notes will be used by you and your classmates, so please work to make them clear and concise.  Below, you will find some rules designed to ensure consistency in the course notes as well as some tips for getting the most from this file.
+La idea de este documento es proporcionar una guía para escribir las notas de la
+clase. Recuerda todos en la clase usarán las notas así que que cuida que sean
+claras y concisas. A continuación, se encuentran algunas reglas diseñadas para
+garantizar la coherencia en las notas del curso, así como algunos consejos para
+aprovechar al máximo este archivo.
 
-\subsection{The basics}
+\subsection{Básicos}
 
-In order to typeset this file, you need to have a reasonably up-to-date copy of \LaTeX\ installed on your system.  This free software is available from \url{http://tug.org}.   See Section~\ref{sec:need-help} for information on where to get more help setting up \LaTeX, typesetting math, and other technical issues.
+Para componer este archivo, necesitas tener una copia razonablemente actualizada
+de \LaTeX\ instalada en tu computadora. Este software es gratuito y está
+disponible en \url{http://tug.org}. Consulte la Sección~\ref{sec:need-help}
+para obtener información sobre dónde obtener más ayuda para configurar \LaTeX,
+componer matemáticas y otros problemas técnicos.
 
-To get started, download and extract the \texttt{template.zip} file from Piazza. This compressed folder contains the following files.
+Para comenzar, descargue y extraiga el archivo \texttt{notas-template.zip} del
+repositorio del curso. Esta carpeta comprimida contiene los siguientes archivos.
 \begin{description}
   \setlength{\itemsep}{0pt} \setlength{\topsep}{0pt} % Make list compact
-\item[\texttt{template.pdf}] \emph{This formatted document.}
-\item[\texttt{template.tex}] \emph{Contains the source code for this document.} The comments indicate the changes that you need to make to start your document. For example, you  need to add the lecture number and title, include the name(s) of the scribe(s), and hardcode the date of the lecture.
-\item[\texttt{template.bib}] \emph{Provides BibTeX references.}
-\item[\texttt{macro.tex}] \emph{Defines layout and provides shortcuts.}
-\item[\texttt{bell\_curve\_hand.jpg}, \texttt{bell\_curve\_matlab.pdf}]  \emph{The image files for Figure~\ref{fig:bell-curve}.}
+\item[\texttt{template.pdf}] \emph{Este documento.}
+\item[\texttt{template.tex}] \emph{Contiene el código fuente de este documento.} Los comentarios indican los cambios que se deben realizar para iniciar. Por ejemplo, debes agregar el número y el título de la clase, incluir tu nombre y la fecha de la clase que estás transcribiendo.
+\item[\texttt{template.bib}] \emph{Archivo con las referencia en formato BibTeX.}
+\item[\texttt{macro.tex}] \emph{Define el estilo y los shortcuts.}
+\item[\texttt{bell\_curve\_hand.jpg}, \texttt{bell\_curve\_matlab.pdf}]  \emph{Las imágenes \Cref{fig:bell-curve}.}
 \end{description}
-To compile this document from a UNIX command line, run the following four commands.
+Para compilar desde una terminal utiliza los comandos
 \begin{center}
   \begin{minipage}[c]{0.3\linewidth}
 \begin{verbatim}
@@ -62,116 +69,138 @@ To compile this document from a UNIX command line, run the following four comman
   \end{minipage}
 \end{center}
 
-\subsection{Setting up your lecture notes}
+\subsection{Configurando tus notas de clase}
 \label{sec:setting-up-your}
 
-Rename all \texttt{template.*} files to \texttt{lecture\_XX.*}, where \texttt{XX} is the lecture number. For example, the source file for the first lecture will be  named \texttt{lecture\_01.tex}.  If  you need to include references,  include the appropriately formatted BibTeX entries in your \texttt{lecture\_XX.bib} file.  You will submit these files, as well as any figures required to compile the notes.
+Cambia el nombre de todos los archivos \texttt{template.*} a
+\texttt{lecture\_XX.*}, donde \texttt{XX} es el número de la clase. Por ejemplo,
+el archivo fuente de la primera se llamará \texttt{lecture\_01.tex}. Si se
+necesitan incluir referencias, incluye las entradas BibTeX con el formato
+apropiado en su archivo \texttt{lecture\_XX.bib}.
 
-\section{Rules \& regulations}
+\section{Reglas}
 \label{sec:rules}
-In order to make the notes as consistent as possible, we are going to enforce a few ground rules.  These rules are meant as guides, but whenever common sense and these rules conflict, the former prevails.
+Para que las notas sean lo más coherentes posible, vamos a hacer cumplir algunas reglas básicas. Estas reglas están pensadas como guías, sin embargo cuando el sentido común y las reglas entren en conflicto, le daremos preferencia al primero.
 
-
-
-\subsection{Style}
+\subsection{Estilo}
 \label{sec:style}
 
-The most important part of your notes is, of course, the content. But even the best content will fail to impress in the face of haphazard style and inconsistent notation.
+El contenido es la parte mas importante de las notas. Sin embargo, es importante mantener consitstencia en la notación.
 
 \begin{description}\setlength{\itemsep}{0pt} % Compact description list
-\item[Spanish] Use complete, grammatically correct Spanish sentences. Consult dictionaries and style guides for proper spelling and usage. For specific guidelines on mathematical writing, see~\cite{Che:,Hal:70,Hig:98}.
-\item[Sections] Use \LaTeX's built-in commands for defining sections, subsections, subsubsections, etc.  Whenever possible, use the  section breaks presented in class and their corresponding  titles.  Use common sense when adding and naming additional sections.
-\item[Equations] Only number equations that are referenced later in the text.
-Refer to Michael Downes's \href{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} for available equation environments.
-\item[Theorems, definitions, etc.] Several environments are available for stating formal mathematical results and theorems. For example, the \texttt{theorem} environment typesets theorems:
+\item[Idioma] Utiliza oraciones en español completas y gramaticalmente correctas. Consulta diccionarios y guías de estilo para conocer la ortografía y uso adecuados. Para obtener pautas específicas sobre escritura matemática, consulta~\cite{Che:,Hal:70,Hig:98}.
+\item[Secciones] Usa los comandos de  \LaTeX para definir secciones, subsecciones, subsubsecciones, etc.  Trata de utilizar la numeración y títulos que seguimos en clase para las secciones. Para secciones adicionales por favor utiliza el sentido común.
+\item[Ecuaciones] Las ecuaciones sólo se enumerarán cuando son referenciadas en el texto. Consulta la guía de Michael Downes \href{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} para tener una idea de los ambientes de ecuaciones.
+\item[Teoremas, definiciones, etc.] Hay distintos ambientes para escribir resultados formales. Por ejemplo, el ambiente de teoremas, \texttt{theorem}, se utiliza como:
   \begin{center}
     \begin{minipage}[c]{0.7\linewidth}
       \begin{theorem}[Fermat, Wiles]\label{thm:FermatWiles}
-        For any integer \(n\ge 3\) and all \(a,b,c \in \N\), it holds that \(a^n + b^n \ne c^n\).
+        Para cualquier $n \ge 3$, y cualquier $a,b,c \in \N,$ se tiene que
+        $a^n + b^n \ne c^n.$
       \end{theorem}
       \begin{proof}
-        Somewhat too long for this note.
+        Bastante larga para estas notas.
       \end{proof}
     \end{minipage}
   \end{center}
-  Other environments include \texttt{lemma}, \texttt{proposition}, \texttt{corollary}, \texttt{fact}, \texttt{remark}, \texttt{definition}, and \texttt{example}.
-    \item[Figures] Please include figures when appropriate.  Neatly hand-drawn and scanned figures are acceptable, but you are welcome to use computer-generated figures as well. All figures should have appropriate captions. Since we compile using \texttt{pdflatex}, the files must be one of \texttt{.pdf} (for vector graphics), \texttt{.png} (simple diagrams and raster vectors), or \texttt{.jpg} (for pictures). See Figure~\ref{fig:bell-curve} for an example.
+  Ejemplos de otros ambientes son \texttt{lemma}, \texttt{proposition}, \texttt{corollary}, \texttt{fact}, \texttt{remark}, \texttt{definition}, y \texttt{example}.
+\item[Figuras] Por favor incluye figuras cuando sea apropiado. Imágenes escaneadas son aceptables siempre y cuando sean legibles, pero también no duddes en incorporar figuras hechas con software. Todas las figuras deben de tener leyendas adecuadas. El compilar \texttt{pdflatex} sólo acepta figuras en formato \texttt{.pdf} (para imágenes por vectores), \texttt{.png} (diagramas simples y figuras rasterizadas), o \texttt{.jpg} (para fotos). Ve la \cref{fig:bell-curve} como ejemplo.
     \begin{figure}[h!]
       \centering
       \includegraphics[width=0.4\columnwidth]{bell_curve_hand.jpg}
       \includegraphics[width=0.55\columnwidth]{bell_curve_matlab.pdf}
-      \caption{{\textsf{Example figures.}}  Legible hand-drawn figures [left] are appropriate for the notes, but make sure to adjust the color of scanned images to remove as much gray region as possible.  If you prefer to generate vector-graphics figures [right] using computer software, please adjust the font size so that the labels are legible.  }\label{fig:bell-curve}
+      \caption{{\textsf{Figuras de ejemplo.}}  Figuras hechas a mano [izquierda] son aceptables para las notas, pero asegurate de quitar cualquier espacio muerto alrededor.   Si prefieres usar algún software para generar las imágenes [derecha] cuida que los ejes y las anotaciones sean suficientemente grandes}\label{fig:bell-curve}
     \end{figure}
-    \item[Tombstones] Do not let your equations or text extend perceptibly beyond the right margin.  The typesetting system of \LaTeX\ takes care of most tombstones in the text, although on occasion you may need to rephrase a sentence to avoid a dangling word. Equations require more work.  If an equation is too long to fit on a single line, either use the \texttt{multline} or \texttt{align} environments to break long equations into appropriate pieces, or reconsider the way you present the mathematics.
- \item[Punctuation] A mathematical document should follow the standard rules of punctuation, this includes putting commas/periods at the end of equations and mathematical expressions. A good rule of thumb is to place punctuation where you would expect it if the mathematics you write would be read out as words. If a comma/period is at the end of an equation (e.g. in \texttt{equation}, \texttt{align} or \texttt{multiline} environments), it is preceded by \verb|\,| to create a small space. For example, the equation $a^n + b^n \ne c^n$ from Theorem \ref{thm:FermatWiles} on a separate line should be displayed as
-  \begin{equation*}
+
+\item[Márgenes] No dejes que los ecuaciones o el texto invada el margen a la derecha.  \LaTeX\ muchas veces es suficiente para manejar este detalle, pero habrá situaciones en las que tendrás que parafrasear para evitar esta invesión. Las ecuaciones requirirán de mayor trabajo. Si una ecuación es muy larga usa los ambientes \texttt{multline} o \texttt{align} para ajustar al tamaño de línea.
+\item[Puntuación] Un documento matemático también reglas de puntuación usuales. Esto incluye commas y puntos despues de escribir una ecuación o expresiones matemáticas. Un buen principio es colocar la puntuación donde lo esperarías si las matemáticas que escribes se leyeran como palabras. Si una coma/punto está al final de una ecuación (por ejemplo, en entornos \texttt{equation}, \texttt{align} o \texttt{multiline}), está precedido por \verb|\,| para crear un espacio pequeño. Por ejemplo, la ecuación $ a ^ n + b ^ n \ ne c ^ n $ del \cref{thm:FermatWiles} en una línea separada debe mostrarse como
+  \begin{equation}
       a^n + b^n \ne c^n \,.
-  \end{equation*}
-\item[Notation] Stick to the notation used in class whenever possible.  For consistency, we defined the following notation using macros.
+  \end{equation}
+\item[Notación] Mantén la notación que usemos en clase. Por consistencia, considera la notación siguiente
 
     \begin{minipage}[c]{\linewidth}
       \begin{center}
         \begin{tabu}{ccc}
           \toprule
-          \textbf{Purpose} &  \textbf{Example} \\
+          \textbf{Propósito} &  \textbf{Ejemplo} \\
           \midrule
-          Naturals, integers  & $\N$, $\Z$
+          Naturales, enteros  & $\N$, $\Z$
           \\
-          Reals, complex  & $\R$, $\C$
+          Reales, complejos  & $\R$, $\C$
           \\
-          Fields (reals or complex) & $\F$
+          Campos (reales o complejos) & $\F$
           \\
-          Norms & $\| \cdot \|$
+          Normas & $\| \cdot \|$
           \\
-          Inner Product & $ \langle \cdot, \cdot \rangle$
+          Producto interior & $ \langle \cdot, \cdot \rangle$
           \\
-          Expectations & $\Expect_{z \sim \D}[f(z)]$
+          Valores esperados & $\Expect_{z \sim \D}[f(z)]$
           \\
-          Limits & $\underset{\theta \in \Theta}{\sup} \,\, \mathcal{L}_n(\theta)$
+          Límites & $\underset{\theta \in \Theta}{\sup} \,\, \mathcal{L}_n(\theta)$
           \\
           \bottomrule
         \end{tabu}
       \end{center}
     \end{minipage}
 
-    Consult the source file \texttt{template.tex} for the commands used to create this table. In addition, we use the convention of a straight $\rd$ for integrals, preceded by \verb|\,| to create a small space, see the command for $\int f(x)\, \rd x$ in the source file.
-  \item[Cross-references] Use \LaTeX's built-in facility to label and cross-reference sections, theorems, tables, figures, and equations. For example, this text is in Section~\ref{sec:style}, which begins on Page~\pageref{sec:style}. Hardcoding references makes your document fragile. It also does not take advantage of the PDF hyperlinking provided by the \texttt{hyperref} package.
-  \item[Bibliography] If you need to cite an article, use the \texttt{bibtex} program with  bibliography style \texttt{alpha}.  Format the entries according to the AMS style, including the correct \href{http://www.ams.org/msnhtml/serials.pdf}{abbreviations of the names of serials}. For many published mathematics articles, you can download reviewed and correctly formatted \texttt{bibtex} citations from the AMS MathSciNet website~\cite{mathscinet}. Include the BibTeX references in your \texttt{lecture\_XX.bib} file when you submit your work.
+    Consulta el archivo fuente \texttt{template.tex} para ver los comandos que se utilizaron para construir esta tabla. Adicionalmente, utiliza el símbolo $\rd$ para las integrales, precedido por \verb|\,| para incorporar un pequeño espacio. Aqui un ejemplo $\int f(x)\, \rd x.$
+  \item[Referencias cruzadas ] Usa la funcionalidad de \LaTeX para hacer referencia a secciones, teoremas, tablas, figurass y ecuaciones. Por ejemplo, este texto se encuentra en la Seccion~\ref{sec:style}, que empieza en la página~\pageref{sec:style}. Escribir los números hace tu documento frágil y susceptible a mucho trabajo adicional. De igual forma, no puedes incluir ligas útiles como las que provee el paquete \texttt{hyperref}.
+  \item[Bibliografía] Si necesitas citar un trabajo, utiliza \texttt{bibtex} con estilo \texttt{siam}. Las entradas se necesitan llenar de acuerdo al formato  AMS, incluyendo \href{http://www.ams.org/msnhtml/serials.pdf}{las abreviaciones y número de serie} correctos. Para muchos textos publicados puedes descargar el formato \texttt{bibtex} aceptado de la página de la AMS~\cite{mathscinet}. Por favor, incluye las referencias BibTeX en un archivo con nombre \texttt{lecture\_XX.bib}.
 
 \end{description}
 
-\subsection{Editing}
+\subsection{Edición}
 \label{sec:editing}
 
-No written document is complete without a thorough editing, and a number of tools are available to help you edit your \LaTeX\ files.  A quick search on the web turns up several spell-checkers.  Unfortunately, automatic grammar checkers prove  useless for mathematical documents because of the large number of equations. Thus, you must check the grammar by hand.
+Ningún documento escrito está completo sin una edición completa, y hay varias
+herramientas disponibles para ayudarte a editar tus archivos \LaTeX. Una
+búsqueda rápida en la web muestra varios correctores ortográficos.
+Desafortunadamente, los correctores gramaticales automáticos resultan inútiles
+para los documentos matemáticos debido a la gran cantidad de ecuaciones. Por lo
+tanto, debes revisar la gramática tú mismo.
 
-Several useful tools are available for collaborative editing of \LaTeX\ documents.  We often use the \texttt{\textbackslash notate} macro that \notate{highlights text in red}.  Some utilities included in the  \TeX\ distribution include \texttt{latexdiff}, which shows differences between \TeX\ files, and \textit{Excalibur},  a \LaTeX-aware spell-checker.
+Hay varias herramientas útiles disponibles para la edición colaborativa de documentos \LaTeX. Podemos utilizar \texttt{\textbackslash notate} que \notate {resalta el texto en rojo}. Algunas utilidades incluidas en la distribución \TeX\ incluyen \texttt{latexdiff}, que muestra las diferencias entre los archivos \TeX, y \textit{Excalibur}, un corrector ortográfico compatible con \LaTeX.
 
-\subsection{You have your \emph{own} macros, you say?}
+También podemos hacer uso de la plataforma de Github para hacer las revisiones
+necesarias.
+
+\subsection{¿En verdad necesitas atajos?}
 \label{sec:macros}
 
-Our goal is to obtain a consistent set of lecture notes for the benefit of the whole class.  Ideally, we will compile them into a single paginated document with a table of contents.  This is impossible if scribes change the macros or add their own.
+El objetivo es tener un conjunto coherente de notas de clase para el beneficio de todos. En especial, como material de referencia. Idealmente, los compilaremos en un solo documento con una tabla de contenido. Esto será imposible si los escribas cambian las macros.
 
-To that end, please use the macros that are defined in \texttt{macro.tex}.  Do not redefine these macros.  Do not use \texttt{\textbackslash renewcommand}.  If you must have your own macros, please put them in a separate file named \texttt{lecture\_XX\_macros.tex} where \texttt{XX} is the lecture number.  Make sure there are no collisions with existing macros.
+Es por esto que es importante mantener las macros en \texttt{macro.tex}. Por
+favor no las cambies.  No uses el commando \texttt{\textbackslash renewcommand}.
+Si te es mas útil tener las propias, por favor incluyelas en un archivo separado
+\texttt{lecture\_XX\_macros.tex} donde \texttt{XX} es el número de la clase que
+estás transcribiendo.  Asegúrate que no haya porblemas con las preexistentes.
 
 
-\section{Need help?}
+\section{Ayuda}
 \label{sec:need-help}
 
-For information on typesetting mathematics using \LaTeX, we recommend Michael Downes's \href{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} and the references therein.
-Numerous additional resources for \LaTeX\ are available on the web, including the \href{http://tex.stackexchange.com/}{\TeX\ StackExchange} website,
-and we encourage you to search for answers to any problems that arise online \emph{before} contacting the instructor or the TA.
+Para obtener información sobre composición usando \LaTeX, se recomienda \href
+{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} de
+Michael Downes y las referencias que contiene. Numerosos recursos adicionales
+para \LaTeX\ están disponibles en internet, incluido el sitio
+\href{http://tex.stackexchange.com/}{\TeX\ StackExchange}. Antes de contactar al
+profesor trata de resolver tu duda buscando en dichos foros.
 
-If you find an error in the template or macro file, please email a description of the problem, and any fix that you have in mind, to \href{mailto:fkoh@caltech.edu}{fkoh@caltech.edu}.
+
+Si encuentra un error en la plantilla o en el archivo de macro, envíame un
+mensaje por canvas con la descripción del problema y la solución que tengas en
+mente.
 
 
 %>>>>>> END OF YOUR CONTENT
 
 %>>>>>>>>>> take acknowledgements out
-\section*{Acknowledgements} This template has been adapted from a lecture note template for ACM 204 (Fall 2017) by Prof Joel Tropp.
+\section*{Agradecimientos} Este {\emph template} se ha adaptado y traducido del
+provisto en la clase ACM 204 (Otoño 2017) por el profesor Joel Tropp.
 
 
-\bibliographystyle{alpha} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
 \bibliography{template} % <<< RENAME TO "lecture_XX"
 
 
