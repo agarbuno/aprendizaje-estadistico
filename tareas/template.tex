@@ -1,0 +1,207 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 0:               % UPDATE LECTURE NUMBER
+    Aprendizaje Estadístico}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Enero 14, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Mr Bean  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\section{Introducción}
+\label{sec:introduction}
+
+La idea de este documento es proporcionar una guía para escribir las notas de la
+clase. Recuerda todos en la clase usarán las notas así que que cuida que sean
+claras y concisas. A continuación, se encuentran algunas reglas diseñadas para
+garantizar la coherencia en las notas del curso, así como algunos consejos para
+aprovechar al máximo este archivo.
+
+\subsection{Básicos}
+
+Para componer este archivo, necesitas tener una copia razonablemente actualizada
+de \LaTeX\ instalada en tu computadora. Este software es gratuito y está
+disponible en \url{http://tug.org}. Consulte la Sección~\ref{sec:need-help}
+para obtener información sobre dónde obtener más ayuda para configurar \LaTeX,
+componer matemáticas y otros problemas técnicos.
+
+Para comenzar, descargue y extraiga el archivo \texttt{notas-template.zip} del
+repositorio del curso. Esta carpeta comprimida contiene los siguientes archivos.
+\begin{description}
+  \setlength{\itemsep}{0pt} \setlength{\topsep}{0pt} % Make list compact
+\item[\texttt{template.pdf}] \emph{Este documento.}
+\item[\texttt{template.tex}] \emph{Contiene el código fuente de este documento.} Los comentarios indican los cambios que se deben realizar para iniciar. Por ejemplo, debes agregar el número y el título de la clase, incluir tu nombre y la fecha de la clase que estás transcribiendo.
+\item[\texttt{template.bib}] \emph{Archivo con las referencia en formato BibTeX.}
+\item[\texttt{macro.tex}] \emph{Define el estilo y los shortcuts.}
+\item[\texttt{bell\_curve\_hand.jpg}, \texttt{bell\_curve\_matlab.pdf}]  \emph{Las imágenes \Cref{fig:bell-curve}.}
+\end{description}
+Para compilar desde una terminal utiliza los comandos
+\begin{center}
+  \begin{minipage}[c]{0.3\linewidth}
+\begin{verbatim}
+ pdflatex template.tex
+ bibtex template
+ pdflatex template.tex
+ pdflatex template.tex
+\end{verbatim}
+  \end{minipage}
+\end{center}
+
+\subsection{Configurando tus notas de clase}
+\label{sec:setting-up-your}
+
+Cambia el nombre de todos los archivos \texttt{template.*} a
+\texttt{lecture\_XX.*}, donde \texttt{XX} es el número de la clase. Por ejemplo,
+el archivo fuente de la primera se llamará \texttt{lecture\_01.tex}. Si se
+necesitan incluir referencias, incluye las entradas BibTeX con el formato
+apropiado en su archivo \texttt{lecture\_XX.bib}.
+
+\section{Reglas}
+\label{sec:rules}
+Para que las notas sean lo más coherentes posible, vamos a hacer cumplir algunas reglas básicas. Estas reglas están pensadas como guías, sin embargo cuando el sentido común y las reglas entren en conflicto, le daremos preferencia al primero.
+
+\subsection{Estilo}
+\label{sec:style}
+
+El contenido es la parte mas importante de las notas. Sin embargo, es importante mantener consitstencia en la notación.
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+\item[Idioma] Utiliza oraciones en español completas y gramaticalmente correctas. Consulta diccionarios y guías de estilo para conocer la ortografía y uso adecuados. Para obtener pautas específicas sobre escritura matemática, consulta~\cite{Che:,Hal:70,Hig:98}.
+\item[Secciones] Usa los comandos de  \LaTeX para definir secciones, subsecciones, subsubsecciones, etc.  Trata de utilizar la numeración y títulos que seguimos en clase para las secciones. Para secciones adicionales por favor utiliza el sentido común.
+\item[Ecuaciones] Las ecuaciones sólo se enumerarán cuando son referenciadas en el texto. Consulta la guía de Michael Downes \href{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} para tener una idea de los ambientes de ecuaciones.
+\item[Teoremas, definiciones, etc.] Hay distintos ambientes para escribir resultados formales. Por ejemplo, el ambiente de teoremas, \texttt{theorem}, se utiliza como:
+  \begin{center}
+    \begin{minipage}[c]{0.7\linewidth}
+      \begin{theorem}[Fermat, Wiles]\label{thm:FermatWiles}
+        Para cualquier $n \ge 3$, y cualquier $a,b,c \in \N,$ se tiene que
+        $a^n + b^n \ne c^n.$
+      \end{theorem}
+      \begin{proof}
+        Bastante larga para estas notas.
+      \end{proof}
+    \end{minipage}
+  \end{center}
+  Ejemplos de otros ambientes son \texttt{lemma}, \texttt{proposition}, \texttt{corollary}, \texttt{fact}, \texttt{remark}, \texttt{definition}, y \texttt{example}.
+\item[Figuras] Por favor incluye figuras cuando sea apropiado. Imágenes escaneadas son aceptables siempre y cuando sean legibles, pero también no duddes en incorporar figuras hechas con software. Todas las figuras deben de tener leyendas adecuadas. El compilar \texttt{pdflatex} sólo acepta figuras en formato \texttt{.pdf} (para imágenes por vectores), \texttt{.png} (diagramas simples y figuras rasterizadas), o \texttt{.jpg} (para fotos). Ve la \cref{fig:bell-curve} como ejemplo.
+    \begin{figure}[h!]
+      \centering
+      \includegraphics[width=0.4\columnwidth]{bell_curve_hand.jpg}
+      \includegraphics[width=0.55\columnwidth]{bell_curve_matlab.pdf}
+      \caption{{\textsf{Figuras de ejemplo.}}  Figuras hechas a mano [izquierda] son aceptables para las notas, pero asegurate de quitar cualquier espacio muerto alrededor.   Si prefieres usar algún software para generar las imágenes [derecha] cuida que los ejes y las anotaciones sean suficientemente grandes}\label{fig:bell-curve}
+    \end{figure}
+
+\item[Márgenes] No dejes que los ecuaciones o el texto invada el margen a la derecha.  \LaTeX\ muchas veces es suficiente para manejar este detalle, pero habrá situaciones en las que tendrás que parafrasear para evitar esta invasión. Las ecuaciones requirirán de mayor trabajo. Si una ecuación es muy larga usa los ambientes \texttt{multline} o \texttt{align} para ajustar al tamaño de línea.
+\item[Puntuación] Un documento matemático también reglas de puntuación usuales. Esto incluye commas y puntos despues de escribir una ecuación o expresiones matemáticas. Un buen principio es colocar la puntuación donde lo esperarías si las matemáticas que escribes se leyeran como palabras. Si una coma/punto está al final de una ecuación (por ejemplo, en entornos \texttt{equation}, \texttt{align} o \texttt{multiline}), está precedido por \verb|\,| para crear un espacio pequeño. Por ejemplo, la ecuación $ a ^ n + b ^ n \ne c ^ n $ del \cref{thm:FermatWiles} en una línea separada debe mostrarse como
+  \begin{equation}
+      a^n + b^n \ne c^n \,.
+  \end{equation}
+\item[Notación] Mantén la notación que usemos en clase. Por consistencia, considera la notación siguiente
+
+    \begin{minipage}[c]{\linewidth}
+      \begin{center}
+        \begin{tabu}{ccc}
+          \toprule
+          \textbf{Propósito} &  \textbf{Ejemplo} \\
+          \midrule
+          Naturales, enteros  & $\N$, $\Z$
+          \\
+          Reales, complejos  & $\R$, $\C$
+          \\
+          Campos (reales o complejos) & $\F$
+          \\
+          Normas & $\| \cdot \|$
+          \\
+          Producto interior & $ \langle \cdot, \cdot \rangle$
+          \\
+          Valores esperados & $\Expect_{z \sim \D}[f(z)]$
+          \\
+          Límites & $\underset{\theta \in \Theta}{\sup} \,\, \mathcal{L}_n(\theta)$
+          \\
+          \bottomrule
+        \end{tabu}
+      \end{center}
+    \end{minipage}
+
+    Consulta el archivo fuente \texttt{template.tex} para ver los comandos que se utilizaron para construir esta tabla. Adicionalmente, utiliza el símbolo $\rd$ para las integrales, precedido por \verb|\,| para incorporar un pequeño espacio. Aqui un ejemplo $\int f(x)\, \rd x.$
+  \item[Referencias cruzadas ] Usa la funcionalidad de \LaTeX para hacer referencia a secciones, teoremas, tablas, figurass y ecuaciones. Por ejemplo, este texto se encuentra en la Seccion~\ref{sec:style}, que empieza en la página~\pageref{sec:style}. Escribir los números hace tu documento frágil y susceptible a mucho trabajo adicional. De igual forma, no puedes incluir ligas útiles como las que provee el paquete \texttt{hyperref}.
+  \item[Bibliografía] Si necesitas citar un trabajo, utiliza \texttt{bibtex} con estilo \texttt{siam}. Las entradas se necesitan llenar de acuerdo al formato  AMS, incluyendo \href{http://www.ams.org/msnhtml/serials.pdf}{las abreviaciones y número de serie} correctos. Para muchos textos publicados puedes descargar el formato \texttt{bibtex} aceptado de la página de la AMS~\cite{mathscinet}. Por favor, incluye las referencias BibTeX en un archivo con nombre \texttt{lecture\_XX.bib}.
+
+\end{description}
+
+\subsection{Edición}
+\label{sec:editing}
+
+Ningún documento escrito está completo sin una edición completa, y hay varias
+herramientas disponibles para ayudarte a editar tus archivos \LaTeX. Una
+búsqueda rápida en la web muestra varios correctores ortográficos.
+Desafortunadamente, los correctores gramaticales automáticos resultan inútiles
+para los documentos matemáticos debido a la gran cantidad de ecuaciones. Por lo
+tanto, debes revisar la gramática tú mismo.
+
+Hay varias herramientas útiles disponibles para la edición colaborativa de documentos \LaTeX. Podemos utilizar \texttt{\textbackslash notate} que \notate {resalta el texto en rojo}. Algunas utilidades incluidas en la distribución \TeX\ incluyen \texttt{latexdiff}, que muestra las diferencias entre los archivos \TeX, y \textit{Excalibur}, un corrector ortográfico compatible con \LaTeX.
+
+También podemos hacer uso de la plataforma de Github para hacer las revisiones
+necesarias.
+
+\subsection{¿En verdad necesitas atajos?}
+\label{sec:macros}
+
+El objetivo es tener un conjunto coherente de notas de clase para el beneficio de todos. En especial, como material de referencia. Idealmente, los compilaremos en un solo documento con una tabla de contenido. Esto será imposible si los escribas cambian las macros.
+
+Es por esto que es importante mantener las macros en \texttt{macro.tex}. Por
+favor no las cambies.  No uses el commando \texttt{\textbackslash renewcommand}.
+Si te es mas útil tener las propias, por favor incluyelas en un archivo separado
+\texttt{lecture\_XX\_macros.tex} donde \texttt{XX} es el número de la clase que
+estás transcribiendo.  Asegúrate que no haya porblemas con las preexistentes.
+
+
+\section{Ayuda}
+\label{sec:need-help}
+
+Para obtener información sobre composición usando \LaTeX, se recomienda \href
+{https://math.mit.edu/~dav/short-math-guide.pdf}{Short Math Guide for \LaTeX} de
+Michael Downes y las referencias que contiene. Numerosos recursos adicionales
+para \LaTeX\ están disponibles en internet, incluido el sitio
+\href{http://tex.stackexchange.com/}{\TeX\ StackExchange}. Antes de contactar al
+profesor trata de resolver tu duda buscando en dichos foros.
+
+
+Si encuentra un error en la plantilla o en el archivo de macro, envíame un
+mensaje por canvas con la descripción del problema y la solución que tengas en
+mente.
+
+
+%>>>>>> END OF YOUR CONTENT
+
+%>>>>>>>>>> take acknowledgements out
+\section*{Agradecimientos} Este {\emph template} se ha adaptado y traducido del
+provisto en la clase ACM 204 (Otoño 2017) por el profesor Joel Tropp.
+
+
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliography{template} % <<< RENAME TO "lecture_XX"
+
+
+\end{document}
