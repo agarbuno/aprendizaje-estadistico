@@ -43,6 +43,8 @@ data %>%
 data <- data %>% 
     mutate(target = ifelse(species == 'setosa', 1, -1))
 
+data
+
 ```
 
 
@@ -81,7 +83,7 @@ data %>%
         geom_point(data = data %>% slice(id), 
                    aes(x = sepal, y = petal), 
                    size = 2, shape = 18) + 
-        geom_abline(slope = -w[1]/w[2], intercept = -1/w[2], color = 'black') + 
+        geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
         ylim(0, 10) + xlim(0, 10) + 
@@ -107,8 +109,8 @@ for (iter in seq(100)){
     
     
     if (length(dt.misclass) > 0){
-        # id <- dt.misclass[1]
-        id <- sample(dt.misclass, 1)
+        id <- dt.misclass[1]
+        # id <- sample(dt.misclass, 1)
         P_history  <- cbind(P_history, id)
     } else {
         break
@@ -123,7 +125,6 @@ for (iter in seq(100)){
 }
 
 W_history
-P_history
 ```
 
 ```{r}
@@ -131,7 +132,7 @@ P_history
 data %>% 
     ggplot(aes( x = sepal, y = petal)) + 
         geom_point(aes(color = species)) +
-        geom_abline(slope = -w[1]/w[2], intercept = -1/w[2], color = 'black') + 
+        geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
         ggtitle("Species vs sepal and petal lengths")

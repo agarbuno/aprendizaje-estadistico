@@ -43,12 +43,14 @@ data %>%
 data <- data %>% 
     mutate(target = ifelse(species == 'setosa', 1, -1))
 
+data
+
 ```
 
 
 ```{r}
 
-w <- c(w1 = 0, w2 = 0)
+w <- c(w1 = 0, w2 = 0, b = 0)
 w
 
 ```
@@ -56,20 +58,20 @@ w
 ```{r}
 
 dt.misclass <- data %>% 
-    mutate(yhat = sign(w[1] * sepal + w[2] * petal), 
+    mutate(yhat = sign(w[1] * sepal + w[2] * petal + w[3]), 
            loss = target * yhat) %>% 
     summarise(misclass = which(loss <= 0 )) %>% 
     pull(misclass)
 
 
 if (length(dt.misclass) > 0){
-    # id <- dt.misclass[1]
-    id <- sample(dt.misclass, 1)
+    id <- dt.misclass[1]
+    # id <- sample(dt.misclass, 1)
 } else {
     id <- NA
 }
 
-x <- simplify2array(data %>% select(sepal, petal) %>% slice(id))
+x <- c(simplify2array(data %>% select(sepal, petal) %>% slice(id)), 1)
 y <- simplify2array(data %>% select(target) %>% slice(id))
 
 dw <- y * x
@@ -81,10 +83,10 @@ data %>%
         geom_point(data = data %>% slice(id), 
                    aes(x = sepal, y = petal), 
                    size = 2, shape = 18) + 
-        geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
+        geom_abline(slope = -w[1]/w[2], intercept = -w[3]/w[2], color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
-        ylim(0, 5) + xlim(0, 7) +
+        ylim(0, 10) + xlim(0, 10) + 
         ggtitle("Species vs sepal and petal lengths")
 
 
@@ -94,13 +96,13 @@ data %>%
 
 ```{r}
 
-w <- c(w1 = 0, w2 = 0)
+w <- c(w1 = 0, w2 = 0, b = 0)
 W_history <- w
 P_history <- c(NULL)
 
-for (iter in seq(800)){
+for (iter in seq(1000)){
     dt.misclass <- data %>% 
-        mutate(yhat = sign(w[1] * sepal + w[2] * petal), 
+        mutate(yhat = sign(w[1] * sepal + w[2] * petal + w[3]), 
                loss = target * yhat) %>% 
         summarise(misclass = which(loss <= 0 )) %>% 
         pull(misclass)
@@ -114,7 +116,7 @@ for (iter in seq(800)){
         break
     }
     
-    x <- simplify2array(data %>% select(sepal, petal) %>% slice(id))
+    x <- c(simplify2array(data %>% select(sepal, petal) %>% slice(id)), 1)
     y <- simplify2array(data %>% select(target) %>% slice(id))
     
     dw <- y * x
@@ -130,18 +132,10 @@ W_history
 data %>% 
     ggplot(aes( x = sepal, y = petal)) + 
         geom_point(aes(color = species)) +
-        geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
+        geom_abline(slope = -w[1]/w[2], intercept = -w[3]/w[2], color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
         ggtitle("Species vs sepal and petal lengths")
-
-```
-
-```{r}
-data %>% 
-    mutate(yhat = sign(w[1] * sepal + w[2] * petal), 
-           loss = target * yhat)
-    filter(loss )
 
 ```
 
