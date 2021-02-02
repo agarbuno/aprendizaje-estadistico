@@ -50,7 +50,7 @@ data
 
 ```{r}
 
-w <- c(w1 = 0, w2 = 0, w3 = 0)
+w <- c(w1 = 0, w2 = 0, b = 0)
 w
 
 ```
@@ -86,7 +86,7 @@ data %>%
         geom_abline(slope = -w[1]/w[2], intercept = -w[3]/w[2], color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
-        ylim(0, 10) + xlim(0, 10) + 
+        # ylim(0, 10) + xlim(0, 10) + 
         ggtitle("Species vs sepal and petal lengths")
 
 
@@ -96,7 +96,7 @@ data %>%
 
 ```{r}
 
-w <- c(w1 = 0, w2 = 0, w3 = 0)
+w <- c(w1 = 0, w2 = 0, b = 0)
 W_history <- w
 P_history <- c(NULL)
 
@@ -109,8 +109,8 @@ for (iter in seq(100)){
     
     
     if (length(dt.misclass) > 0){
-        # id <- dt.misclass[1]
-        id <- sample(dt.misclass, 1)
+        id <- dt.misclass[1]
+        # id <- sample(dt.misclass, 1)
         P_history  <- cbind(P_history, id)
     } else {
         break
@@ -125,7 +125,6 @@ for (iter in seq(100)){
 }
 
 W_history
-P_history
 ```
 
 ```{r}
