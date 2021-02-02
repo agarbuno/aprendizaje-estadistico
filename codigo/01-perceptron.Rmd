@@ -1,0 +1,141 @@
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+
+```
+
+```{r}
+
+data(iris)
+
+data <- iris %>% 
+    mutate(sepal = Sepal.Length, 
+           petal = Petal.Length, 
+           species = Species) %>% 
+    select(sepal, petal, species) %>% 
+    filter(species %in% c("setosa", "versicolor"))
+
+data %>% 
+    ggplot(aes( x = sepal, y = petal)) + 
+        geom_point(aes(color = species)) + 
+        xlab("sepal length") + 
+        ylab("petal length") + 
+        ggtitle("Species vs sepal and petal lengths")
+
+```
+
+```{r}
+
+data <- data %>% 
+    mutate(target = ifelse(species == 'setosa', 1, -1))
+
+data
+
+```
+
+
+```{r}
+
+w <- c(w1 = 0, w2 = 0)
+w
+
+```
+
+```{r}
+
+dt.misclass <- data %>% 
+    mutate(yhat = sign(w[1] * sepal + w[2] * petal), 
+           loss = target * yhat) %>% 
+    summarise(misclass = which(loss <= 0 )) %>% 
+    pull(misclass)
+
+
+if (length(dt.misclass) > 0){
+    # id <- dt.misclass[1]
+    id <- sample(dt.misclass, 1)
+} else {
+    id <- NA
+}
+
+x <- simplify2array(data %>% select(sepal, petal) %>% slice(id))
+y <- simplify2array(data %>% select(target) %>% slice(id))
+
+dw <- y * x
+w <- w + dw
+
+data %>% 
+    ggplot(aes( x = sepal, y = petal)) + 
+        geom_point(aes(color = species)) + 
+        geom_point(data = data %>% slice(id), 
+                   aes(x = sepal, y = petal), 
+                   size = 2, shape = 18) + 
+        geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
+        xlab("sepal length") + 
+        ylab("petal length") + 
+        # ylim(0, 10) + xlim(0, 10) + 
+        ggtitle("Species vs sepal and petal lengths")
+
+
+```
+
+
+
+```{r}
+
+w <- c(w1 = 0, w2 = 0)
+W_history <- w
+P_history <- c(NULL)
+
+for (iter in seq(100)){
+    dt.misclass <- data %>% 
+        mutate(yhat = sign(w[1] * sepal + w[2] * petal), 
+               loss = target * yhat) %>% 
+        summarise(misclass = which(loss <= 0 )) %>% 
+        pull(misclass)
+    
+    
+    if (length(dt.misclass) > 0){
+        id <- dt.misclass[1]
+        # id <- sample(dt.misclass, 1)
+        P_history  <- cbind(P_history, id)
+    } else {
+        break
+    }
+    
+    x <- simplify2array(data %>% select(sepal, petal) %>% slice(id))
+    y <- simplify2array(data %>% select(target) %>% slice(id))
+    
+    dw <- y * x
+    w <- w + dw
+    W_history <- bind_rows(W_history, w)
+}
+
+W_history
+```
+
+```{r}
+
+data %>% 
+    ggplot(aes( x = sepal, y = petal)) + 
+        geom_point(aes(color = species)) +
+        geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
+        xlab("sepal length") + 
+        ylab("petal length") + 
+        ggtitle("Species vs sepal and petal lengths")
+
+```
+
