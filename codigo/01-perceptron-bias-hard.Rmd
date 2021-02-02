@@ -24,7 +24,7 @@ data(iris)
 
 data <- iris %>% 
     mutate(sepal = ifelse(Species == "setosa", Sepal.Length + 1, Sepal.Length), 
-           petal = ifelse(Species == "setosa", Petal.Length + 1.3, Petal.Length),
+           petal = ifelse(Species == "setosa", Petal.Length + 1.4, Petal.Length),
            species = Species) %>% 
     select(sepal, petal, species) %>% 
     filter(species %in% c("setosa", "versicolor"))
@@ -86,7 +86,7 @@ data %>%
         geom_abline(slope = -w[1]/w[2], intercept = -w[3]/w[2], color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
-        ylim(0, 10) + xlim(0, 10) + 
+        # ylim(0, 10) + xlim(0, 10) + 
         ggtitle("Species vs sepal and petal lengths")
 
 
@@ -109,8 +109,8 @@ for (iter in seq(1000)){
     
     
     if (length(dt.misclass) > 0){
-        id <- dt.misclass[1]
-        # id <- sample(dt.misclass, 1)
+        # id <- dt.misclass[1]
+        id <- sample(dt.misclass, 1)
         P_history  <- cbind(P_history, id)
     } else {
         break
