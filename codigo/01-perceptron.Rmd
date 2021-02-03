@@ -86,7 +86,7 @@ data %>%
         geom_abline(slope = -w[1]/w[2], intercept = 0, color = 'black') + 
         xlab("sepal length") + 
         ylab("petal length") + 
-        # ylim(0, 10) + xlim(0, 10) + 
+        ylim(0, 10) + xlim(0, 10) +
         ggtitle("Species vs sepal and petal lengths")
 
 

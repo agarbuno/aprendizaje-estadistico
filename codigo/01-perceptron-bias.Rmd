@@ -58,7 +58,7 @@ w
 ```{r}
 
 dt.misclass <- data %>% 
-    mutate(yhat = sign(w[1] * sepal + w[2] * petal + w[3]), 
+    mutate(yhat = sign(w[1] * sepal + w[2] * petal + w[3] * 1), 
            loss = target * yhat) %>% 
     summarise(misclass = which(loss <= 0 )) %>% 
     pull(misclass)

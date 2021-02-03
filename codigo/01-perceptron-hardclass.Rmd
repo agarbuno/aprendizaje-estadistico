@@ -107,8 +107,8 @@ for (iter in seq(800)){
     
     
     if (length(dt.misclass) > 0){
-        id <- dt.misclass[1]
-        # id <- sample(dt.misclass, 1)
+        # id <- dt.misclass[1]
+        id <- sample(dt.misclass, 1)
         P_history  <- cbind(P_history, id)
     } else {
         break
