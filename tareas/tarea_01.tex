@@ -38,7 +38,7 @@
     \item Sean $\X = \R^2,$ $\Y = \{0,1\}$ y sea $\H$ la clase de círculos concentricos en el plano. Esto es, $\H = \{h_r : r \in \R_+\},$ donde $h_r(x) =  \mathds{1}_{\|x\|\leq r}.$ Prueba que $\H$ es PAC aprendible (asume la hipotesis de realizabilidad), y que su complejidad muestral está acotada por
     $$ m_\H(\epsilon, \delta) \leq \Bigg\lceil \frac{\log 1/\delta}{\epsilon} \Bigg\rceil \, .$$
 
-    \item Sea $\X$ un dominio y sean $\D_1, \D_2, \ldots, \D_m$ una sucesión de distirbuciones sobre $\X.$ Sea $\H$ una clase finita de clasificadores binarios sobre $\X$ y sea $f \in \H.$ Supongamos que $S$ es el conjunto de $m$ muestras de tal forma que son independientes pero no son idénticamente distribuidas. La observación $i-$ésima se muestrea de $\D_i$ y se etiqueta de acuerdo a $f(x_i).$ Sea $\bar\D_m$ el promedio de las distribuciones.
+    \item Sea $\X$ un dominio y sean $\D_1, \D_2, \ldots, \D_m$ una sucesión de distribuciones sobre $\X.$ Sea $\H$ una clase finita de clasificadores binarios sobre $\X$ y sea $f \in \H.$ Supongamos que $S$ es el conjunto de $m$ muestras de tal forma que son independientes pero no son idénticamente distribuidas. La observación $i-$ésima se muestrea de $\D_i$ y se etiqueta de acuerdo a $f(x_i).$ Sea $\bar\D_m$ el promedio de las distribuciones.
 
     Muestra que dada $\epsilon\in (0,1)$ tenemos que la probabilidad de que exista una $h\in \H$ tal que su riesgo falle en satisfacer la condición de precisión, $L_{\bar \D_m, f} > \epsilon,$ y su riesgo empírico a su vez sea mínimo, $L_{S}(h) = 0,$ está acotada por $|\H| \, e^{-\epsilon m}\, .$
 
@@ -47,7 +47,7 @@
     \item Sea $\H$ una clase de hipótesis de clasificadores binarios. Muestra
     que si $\H$ es PAC aprendible de manera agnóstica, entonces $\H$ es PAC aprendible. Mejor aún, si $A$ es el algoritmo éxitoso en el escenario agnóstico, éste lo será en el escenario restringido (PAC--aprendible).
 
-    \item {\bf El predictor óptimo Bayesiano:} Muestra que para cualquier distirbución de probabilidad $\D,$ el predictor $f_\D$ es óptimo, en el sentido de que cualquier otro clasificador $g: \X \rightarrow \{0,1\},$ satisface $L_{\D}(f_{\D}) \leq L_{\D}(g).$
+    \item {\bf El predictor óptimo Bayesiano:} Muestra que para cualquier distribución de probabilidad $\D,$ el predictor $f_\D$ es óptimo, en el sentido de que cualquier otro clasificador $g: \X \rightarrow \{0,1\},$ satisface $L_{\D}(f_{\D}) \leq L_{\D}(g).$
 
 \end{enumerate}
 
