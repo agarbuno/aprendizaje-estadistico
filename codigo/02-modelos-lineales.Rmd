@@ -1,0 +1,324 @@
+---
+title: "Modelos lineales y extensiones"
+author: Alfredo Garbuno
+---
+
+
+
+```{r setup, include = FALSE}
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+Ejemplo tomado de una iteración anterior del curso en Aprendizaje Estadistico 
+impartido por Felipe Gonzalez.
+
+### Problema de regresión
+
+Consideramos el modelo
+$$Y=f(X) +\epsilon\,,$$
+donde 
+$$f(X)=\sin (2\pi X)+\cos(2\pi X)\,,$$
+y $\epsilon \sim N(0,\sigma^2)$, y finalmente $X\sim U(0,1)$. 
+
+Para generar datos de este modelo: 
+
+1. Generamos $x_i\sim U(0,1)$,
+1. Calculamos $f(x_i)$, 
+1. Generamos $\epsilon_i \sim N(0,\sigma^2)$ para
+obtener $y_i$. 
+
+Con esto tenemos una muestra de entrenamiento
+$$S =\{ (x_i,y_i)\}_{i = 1}^m \,.$$
+
+```{r }
+# Definimos la funcion
+f <- function(x){
+  sin(2*pi*x) + cos(2*pi*x)
+}
+
+# Procedimiento de simulacion
+simular  <- function(n_muestra, sigma){
+  x <- runif(n_muestra, 0, 1) 
+  y <- f(x) + rnorm(length(x), mean = 0, sd = sigma)
+  data.frame(x, y)
+}
+
+# Semilla para resultados reproducibles
+set.seed(108727) 
+
+# Simulamos
+sd_mod <- 0.5
+datos <- simular(20, sd_mod)
+datos %>% head()
+```
+
+Graficamos la función $f(x)$ para el modelo *real* y los datos de entrenamiento:
+
+```{r }
+x_plot <- seq(0,1,0.01)
+y_plot <- f(x_plot)
+ggplot(datos, aes(x=x, y=y), colour='red')+
+  geom_point() +
+  annotate("line", x=x_plot, y=y_plot, linetype="dotted")
+```
+
+### Aproximación polinomial
+
+En este ejemplo, intentaremos ajustar modelos polinomiales a estos datos. Es
+decir, nuestra familia está dada por polinomios de la forma
+$$p(x)=\sum_{i=0}^p \alpha_j x^j\,,$$
+que ajustamos por mínimos cuadrados resolviendo
+$$\underset{a_0, \ldots a_p}{\min} \frac{1}{m}\sum_{i=1}^m \left(y^{(i)} - \sum_{j=0}^p \alpha_j \, (x^{(i)})^j \right)^2,$$
+que nos da coeficientes $\hat{\alpha_0}, \hat{\alpha_1},\ldots, \hat{\alpha_p}$.
+De esta forma escribimos:
+$$\hat{p}_{S} (x) = \sum_{j=0}^p \hat{\alpha_j}x^j,$$
+que es nuestra función de predicción.
+
+Por ejemplo, supongamos que escogemos trabajar con polinomios de grado $p=6$:
+
+```{r}
+ajuste_mod <- function(datos, m){
+  lm(y ~ poly(x, degree=m, raw = TRUE), data = datos) 
+}
+```
+
+Las $\hat{\alpha_j}$ están dadas por:
+
+```{r}
+mod <- ajuste_mod(datos, m = 6)
+data.frame(coef = coef(mod))
+```
+
+Y podemos graficar los datos de entrenamiento, la verdadera $f$ y la
+$\hat{p}_{S} (x)$ ajustada:
+
+```{r}
+dat <- data.frame( x = x_plot, 
+                   prediccion = predict(mod, newdata = data.frame(x=x_plot)),
+                   verdadero  = y_plot)
+
+datos_graf <- dat %>% gather(tipo, valor, prediccion:verdadero)
+ggplot(datos_graf, aes(x=x, y=valor, linetype=tipo )) + 
+    geom_line() +
+    ylim(c(-3,3)) +
+    annotate("point",x=datos$x, y=datos$y, colour="red")
+```
+
+
+#### Riesgo empirico y riesgo teorico
+
+En la literatura usualmente encontraremos la distinción: 
+ 
+- Error de entrenamiento: riesgo empirico
+- Error de predicción: riesgo teorico
+
+¿Cuál es el error de entrenamiento? Simplemente calculamos
+```{r}
+ajustados <- predict(mod, newdata = datos)
+mean((datos$y - ajustados)^2)
+```
+
+¿Cómo estimamos el error de predicción? Podemos simular una muestra diferente:
+```{r}
+datos_prueba <- simular(1000, sd_mod)
+predicciones <- predict(mod, newdata = datos_prueba)
+mean((datos_prueba$y - predicciones)^2)
+```
+
+Nótese que el error de entrenamiento es bastante más chico que el error de
+predicción.
+
+- ¿Cuáles son los defectos que puedes ver en el modelo que ajustamos? ¿Por qué
+ocurren estos defectos?
+- ¿Es natural esperar que el error de entrenamiento tienda a ser menor que el de
+predicción?
+
+
+### Modelos de distinta complejidad
+
+Ahora veremos cómo se ve este problema cuando ajustamos polinomios de varios
+grados. Por ejemplo:
+
+```{r }
+modelos <- lapply(1:9, function(i) ajuste_mod(datos, i))
+modelos[[1]]
+modelos[[3]]
+modelos[[7]]
+```
+
+Graficaremos para ver qué modelos ajustamos y cómo van a ser sus predicciones.
+Nótese que tanto el modelo lineal como el modelo de grado 9 ajustan mal, pero
+por diferentes razones:
+
+- ¿Por qué ajustan mal los modelos de grado demasiado bajo?
+- ¿Por qué ajustan mal los modelos de grado muy alto?
+
+```{r fig.width = 8, fig.asp = .75, out.width = "99%"}
+datos_graf_lista <- lapply(1:9, function(i){
+   df <- data.frame(grado = i,  x=x_plot , 
+        prediccion = predict(modelos[[i]], newdata = data.frame(x=x_plot)),
+        verdadero  = y_plot)
+    df   
+})
+datos_graf <- bind_rows(datos_graf_lista)
+
+dat <- datos_graf %>% gather(tipo, valor, prediccion:verdadero)
+ggplot(dat, aes(x=x, y=valor, linetype=tipo )) + 
+    geom_line() +
+    facet_wrap(~grado) + 
+    ylim(c(-3,3)) + 
+    annotate("point",x=datos$x, y=datos$y, colour="black")
+```
+
+
+### Error de entrenamiento y error de prueba 
+
+Calculamos los errores de entrenamiento:
+
+```{r }
+errores_entrenamiento <- sapply(modelos, function(mod){ 
+    ajustados_entrenamiento <- fitted(mod)
+    mean((datos$y - ajustados_entrenamiento)^2)
+    })
+errores_entrenamiento
+```
+
+Y ahora estimamos el error de predicción con una muestra de prueba de tamaño 1000:
+
+```{r }
+datos_prueba <- simular(1000, sd_mod)
+errores_prueba <- sapply(modelos, function(mod){
+    ajustados_prueba <- predict(mod, newdata = data.frame(x=datos_prueba$x))
+    (mean( (datos_prueba$y - ajustados_prueba )^2))
+    })
+errores_prueba
+```
+
+
+Y comparamos los dos errores:
+
+```{r }
+errores <- data.frame(grado=1:9, entrenamiento=errores_entrenamiento, 
+    prueba = errores_prueba)
+errores.m <- errores %>% gather(var, valor, entrenamiento:prueba)
+graf.3 <- ggplot(errores.m, aes(x=grado, y=valor, linetype=var)) + geom_point()+
+    geom_line() + ylab("Error") 
+graf.3
+```
+
+En esta última gráfica vemos un patrón que resultará ser usual:
+
+
+- Modelos demasiado rígidos (en este caso de grado bajo) no capturan señal en
+los datos y por lo tanto son malos en la predicción, mientras que
+- Modelos demasiado flexibles (grado alto en este caso) sobreajustan fácilmente
+los datos, y también son malos en la predicción.
+- Modelos más complejos siempre ajustan mejor a los datos de **entrenamiento**
+que modelos más simples (el error de entrenamiento siempre disminuye cuando
+aumentamos complejidad).
+- Pero modelos más complejos no necesariamente son mejores en la predicción.
+- Estas dos curvas dependen de las particularidades de los datos que usamos para
+ajustar o entrenar los polinomios, pero las afirmaciones de arriba siempre se
+cumplen.
+
+
+
+### Algunas conclusiones
+
+- <span style="color:purple"> **El mejor modelo no es el que reduce más el error de entrenamiento** </span>
+
+- <span style="color:purple"> **El error de entrenamiento es generalmente un estimador pobre del error de predicción de un modelo**</span>
+
+- <span style="color:purple"> **Los mejores modelos tienen el nivel de complejidad adecuada para el problema, incluyendo el tamaño de muestra**</span>
+
+
+
+
+
+
+### Error de entrenamiento y de prueba promediando sobre conjuntos de entrenamiento.
+
+ Como ejercicio adicional, podemos preguntarnos si este ejemplo particular se ve así por la muestra de entrenamiento específica que obtuvimos.
+ Abajo repetimos el 
+ proceso de arriba 300 veces: producimos  300 muestras de entrenamiento, ajustamos, y estimamos
+ el error de predicción con la misma muestra de tamaño 1000:
+
+
+
+
+```{r}
+# muestra de prueba fija.
+
+salida_lista <- lapply(1:500, function(i){
+    # simular muestra de entrenamiento
+    datos <- simular(20, sd_mod)
+    # ajustar polinomios
+    modelos <- lapply(1:9, function(m){
+            mod <- lm(y ~ poly(x, degree=m, raw = TRUE), data = datos)
+        mod
+    })
+    #calcular error de entrenamiento
+    error_entrenamiento <- sapply(modelos, function(mod){ 
+        ajustados_entrenamiento <- fitted(mod)
+        sqrt(mean( (datos$y - ajustados_entrenamiento)^2))
+    })
+
+    # calcular estimación de error de prueba con la muestra de arriba
+    error_prueba <- sapply(modelos, function(mod){
+        ajustados.prueba <- predict(mod, newdata = data.frame(x=datos_prueba$x))
+        sqrt(mean( (datos_prueba$y - ajustados.prueba )^2))
+    })
+    # regresar en un data.frame la evaluación de los modelos
+    data.frame(grado = 1:9, error_entrenamiento, error_prueba, id=i)
+})
+sims <- bind_rows(salida_lista)
+
+resumen_sims <- sims %>% 
+  group_by(grado) %>%
+  summarise(error_prueba = mean(error_prueba), 
+            error_entrenamiento = mean(error_entrenamiento)) %>%
+  gather(tipo, error, -grado)
+  
+ggplot(resumen_sims,
+     aes(x=grado, y=error, col=tipo, group=tipo)) + geom_line() +
+    geom_point()
+```
+
+En esta gráfica observamos claramente el patrón que discutimos arriba:
+
+- Estas últimas gráficas evalúan el método, no un modelo particular. En este sentido son gráficas teóricas.
+
+Podemos ver también estas curvas junto con los resultados para varias muestras de entrenamiento. En la siguiente gráfica, cada línea delgada corresponde a una muestra de entrenamiento distinta:
+
+
+```{r}
+salida_graf <- sims %>% 
+  gather(tipo, error, error_entrenamiento:error_prueba)
+
+ggplot(filter(salida_graf, id <= 100), 
+       aes(x = grado, y = error)) + 
+  geom_line(aes(group = interaction(id, tipo), colour = tipo), alpha = 0.5) +
+  scale_y_log10(breaks = c(0.25,0.5,1,2,4,8,16)) +
+  geom_line(data = resumen_sims, aes(group = tipo))
+```
+
+
