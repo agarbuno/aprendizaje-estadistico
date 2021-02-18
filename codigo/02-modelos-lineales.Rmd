@@ -1,6 +1,6 @@
 ---
 title: "Modelos lineales y extensiones"
-author: Alfredo Garbuno
+author: "Alfredo Garbuno"
 ---
 
 
