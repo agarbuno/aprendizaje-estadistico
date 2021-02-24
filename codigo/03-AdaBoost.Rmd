@@ -1,0 +1,296 @@
+---
+title: "Boosting"
+author: Alfredo Garbuno
+---
+
+
+
+```{r setup, include = FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+Usaremos la librería `rpart` para modelos de decisión basados en árboles. El
+modelo débil que vimos en clase no es más que un árbol de un solo nodo. 
+
+
+```{r, warning=FALSE, message=FALSE}
+library(rpart)
+```
+
+## Ideas
+
+```{r}
+datos <- tibble(x1 = c(2, 2.1, 4.5, 4, 3.5, 5, 5, 6, 8, 8), 
+       x2 = c(3, 2, 6, 3.5, 1, 7, 3, 5.5, 6, 2), 
+       label = c(1, 1, 1, -1, -1, 1, -1, 1, -1, -1), 
+       id = seq(1, 10))
+
+datos.prueba <- expand.grid( x1 = seq(2,8,by=1/50), 
+             x2 = seq(1,7,by=1/50))
+
+datos %>% 
+    group_by(label) %>% 
+    summarise(count = n()) %>% 
+    mutate(prop = count/sum(count))
+    
+
+ggplot(datos, aes(x = x1, y = x2, color = factor(label))) +
+    geom_point(size = 10) + ylim(1, 7) + xlim(2, 8)
+
+```
+
+Aplicamos el método de AdaBoost: 
+```{r}
+# Definimos el numero de iteraciones
+Tmax <- 3
+# Definimos el tamaño de muestra
+m <- nrow(datos)
+
+# Asignamos espacio para el calculo
+err <- rep(NA,Tmax)
+incorrectos_entrena <- rep(NA,Tmax)
+alpha <- rep(NA,Tmax)
+modelos <- list(rep(NA,Tmax))
+
+# Definimos el vector de pesos
+pesos <- rep(1, m)
+ws <- list(rep(NA, Tmax))
+
+y <- datos$label
+
+f_t <- 0
+f_prueba_t <- 0
+prediccion <- list(rep(NA, Tmax))
+prediccion.prueba <- list(rep(NA, Tmax))
+
+for(t in 1:Tmax){
+    # Ajustar árbol con pesos
+    modelos[[t]] <- rpart(label~x1 + x2, 
+                          data = datos, 
+                          weights = pesos, 
+                          method = "class",
+                          control = rpart.control(maxdepth=1, minsplit = 1))
+    
+    # Cálculo de error ponderado y peso alfa
+    g_t <- as.numeric(as.character(predict(modelos[[t]],type="class")))
+    pesos <- pesos/sum(pesos)
+    
+    ws[[t]] <- pesos
+    
+    err[t] <- sum(pesos*(y*g_t < 0))
+    alpha[t] <- 0.5 * log((1-err[t])/err[t])
+    # Actualizar predictor
+    f_t <- f_t + alpha[t] * g_t
+    
+    # Actualizar pesos
+    pesos <- pesos * exp(-alpha[t]*y*g_t)
+    
+    # Cálculo de proporción de incorrectos
+    incorrectos_entrena[t] <- mean(f_t*y<0)
+    
+    # Predicción sobre muestra de prueba
+    g_prueba_t <- as.numeric(as.character(predict(modelos[[t]], newdata=datos.prueba, type="class")))
+    f_prueba_t <- f_prueba_t + alpha[t] * g_prueba_t
+    
+    # Guardamos las predicciones de los modelos individuales y la prediccion 
+    # bajo la combinación lineal
+    prediccion[[t]] <- f_prueba_t
+    prediccion.prueba[[t]] <- g_prueba_t
+}
+
+```
+
+Empaquetamos todo para después hacer los gráficos. Para entender el código 
+consulta la ayuda de cada función y también corre línea por línea (quitando 
+los pipes `%>%` para no anidar las operaciones).
+
+La idea general es *juntar* dos tablas: 
+
+1. una con las predicciones en cada iteración del algoritmo, 
+1. otra con las coordenadas.
+
+```{r}
+
+predicciones <- tibble(pred = prediccion) %>% 
+    mutate(iter = seq(1,Tmax)) %>% 
+    unnest() %>% 
+    group_by(iter) %>% 
+    mutate(id = seq(1,nrow(datos.prueba))) %>% 
+    inner_join(datos.prueba %>% mutate(id = seq(1,nrow(datos.prueba))))
+
+predicciones.modelos <- tibble(pred = prediccion.prueba) %>% 
+    mutate(iter = seq(1,Tmax)) %>% 
+    unnest() %>% 
+    group_by(iter) %>% 
+    mutate(id = seq(1,nrow(datos.prueba))) %>% 
+    inner_join(datos.prueba %>% mutate(id = seq(1,nrow(datos.prueba))))
+
+```
+
+Graficamos para ver el comportamiento de cada modelo debil, los pesos de los
+datos, y las predicciones globales.
+
+```{r}
+
+g_modelo <- tibble(ws) %>% 
+    mutate(iter = seq(1, Tmax)) %>% 
+    unnest(ws) %>% 
+    group_by(iter) %>% 
+    mutate(id = seq(1,m)) %>% 
+    inner_join(datos) %>% 
+    ggplot(aes(x1, x2)) + 
+        geom_raster(data = predicciones.modelos, aes(x = x1, y= x2, fill = sign(pred)), alpha = .3) +
+        geom_point(aes(size = ws, color = factor(label))) +
+        facet_wrap(~iter, ncol = Tmax) + 
+        sin_leyenda + sin_lineas +
+        ggtitle("modelos individuales")
+
+
+g_adaboost <- tibble(ws) %>% 
+    mutate(iter = seq(1, Tmax)) %>% 
+    unnest(ws) %>% 
+    group_by(iter) %>% 
+    mutate(id = seq(1,m)) %>% 
+    inner_join(datos) %>% 
+    ggplot(aes(x1, x2)) + 
+        geom_raster(data = predicciones, aes(x = x1, y= x2, fill = sign(pred)), alpha = .3) +
+        geom_point(aes(size = ws, color = factor(label))) +
+        facet_wrap(~iter, ncol = Tmax) + 
+        sin_leyenda + sin_lineas + ggtitle("combinación lineal")
+
+g_modelo / g_adaboost
+
+```
+
+
+## Datos
+
+Los datos que usaremos para este ejemplo vienen de
+[aquí](https://www.openml.org/d/40). La descripción es la siguiente:
+
+The file "sonar.mines" contains 111 patterns obtained by bouncing sonar signals
+off a metal cylinder at various angles and under various conditions. The file
+"sonar.rocks" contains 97 patterns obtained from rocks under similar conditions.
+The transmitted sonar signal is a frequency-modulated chirp, rising in
+frequency. The data set contains signals obtained from a variety of different
+aspect angles, spanning 90 degrees for the cylinder and 180 degrees for the
+rock.
+ 
+Each pattern is a set of 60 numbers in the range 0.0 to 1.0. Each number
+represents the energy within a particular frequency band, integrated over a
+certain period of time. The integration aperture for higher frequencies occur
+later in time, since these frequencies are transmitted later during the chirp.
+ 
+The label associated with each record contains the letter "R" if the object is a
+rock and "M" if it is a mine (metal cylinder). The numbers in the labels are in
+increasing order of aspect angle, but they do not encode the angle directly.
+ 
+```{r}
+
+sonar_entrena <- read.table("codigo/datos/sonar/sonar_train.csv",sep=",")
+sonar_prueba <- read.table("codigo/datos/sonar/sonar_test.csv",sep=",")
+
+sonar_entrena %>% 
+    group_by(V61) %>% 
+    summarise(count = n()) %>% 
+    mutate(prop = count/sum(count))
+
+sonar_prueba %>% 
+    group_by(V61) %>% 
+    summarise(count = n()) %>% 
+    mutate(prop = count/sum(count))
+
+sonar_entrena %>% 
+    mutate(id = 1:n()) %>% 
+    pivot_longer(V1:V60, names_to = 'atributo', values_to = 'valor') %>% 
+    mutate(atributo = fct_inorder(atributo)) %>% 
+    ggplot(aes(x=atributo, y=valor, colour=factor(V61), group=id))+
+        geom_line() + 
+        sin_lineas + 
+        ggtitle("Coordenadas paralelas")
+
+```
+
+Haremos una implementación a mano de AdaBoost (normalmente es mejor usar un
+paquete de `R`, como `gbm`):
+
+```{r}
+# Definimos el numero de iteraciones
+Tmax <- 150
+# Definimos el tamaño de muestra
+m <- nrow(sonar_entrena)
+
+# Asignamos espacio para el calculo
+err <- rep(NA,Tmax)
+incorrectos_entrena <- rep(NA,Tmax)
+incorrectos_prueba <- rep(NA,Tmax)
+alpha <- rep(NA,Tmax)
+modelos <- list(rep(NA,m))
+
+# Definimos el vector de pesos
+pesos <- rep(1, m)
+
+y <- sonar_entrena$V61
+y_prueba <- sonar_prueba$V61
+
+f_t <- 0
+f_prueba_t <- 0
+
+for(t in 1:Tmax){
+    # Ajustar árbol con pesos
+    modelos[[t]] <- rpart(V61~., 
+                          data = sonar_entrena, 
+                          weights = pesos, 
+                          method = "class",
+                          control = rpart.control(maxdepth = 1, 
+                                                  minsplit = 10))
+    
+    # Cálculo de error ponderado y peso alfa
+    g_t <- as.numeric(as.character(predict(modelos[[t]],type="class")))
+    pesos <- pesos/sum(pesos)
+    err[t] <- sum(pesos*(y*g_t < 0))
+    alpha[t] <- log((1-err[t])/err[t])
+    # Actualizar predictor
+    f_t <- f_t + alpha[t] * g_t
+    # Actualizar pesos
+    pesos <- pesos * exp(alpha[t]*(y*g_t < 0))
+    
+    # Predicción sobre muestra de prueba
+    g_prueba_t <- as.numeric(as.character(predict(modelos[[t]], newdata=sonar_prueba, type="class")))
+    f_prueba_t <- f_prueba_t + alpha[t] * g_prueba_t
+    
+    # Cálculo de proporción de incorrectos
+    incorrectos_entrena[t] <- mean(f_t*y<0)
+    incorrectos_prueba[t] <- mean(f_prueba_t * y_prueba < 0)
+}
+```
+
+Ahora graficamos el error de entrenamiento junto con el error de prueba.
+
+```{r} 
+
+plot(incorrectos_prueba,ylim=c(0,0.50),type="l",col="red", xlab='Número de modelos débiles')
+lines(incorrectos_entrena)
+
+```
+
+
+
