@@ -28,6 +28,12 @@ sin_ejes <- theme(axis.ticks = element_blank(),
         axis.text = element_blank())
 ```
 
+<!-- [tidymodels book](https://www.tmwr.org/) -->
+<!-- [parsnip](https://www.tidyverse.org/blog/2018/11/parsnip-0-0-1/) -->
+<!-- [tidymodels](https://www.youtube.com/watch?v=sMdcjHNBsZM&t=606s) -->
+<!-- [search strategies](https://www.youtube.com/watch?v=qEeF-ErtUAU) -->
+<!-- [tuning](https://rstudio.com/resources/rstudioconf-2020/total-tidy-tuning-techniques/) -->
+
 ```{r}
 library(ISLR)
 
@@ -62,6 +68,8 @@ ggplot(datos_entrena, aes(x = displacement, y = mpg, group = year, colour = year
 
 
 ```{r}
+renv::snapshot()
+
 vmc_1 <- nearest_neighbor(neighbors = 25, weight_func = "rectangular") %>% 
   set_engine("kknn") %>% 
   set_mode("regression")
@@ -197,5 +205,20 @@ minimo_ee <- metricas_vc %>% select_by_one_std_err(metric = "mae", desc(neighbor
 g_1 +
   geom_vline(data= minimo, aes(xintercept = neighbors), colour = "salmon") +
   geom_vline(data = minimo_ee, aes(xintercept = neighbors), colour = "salmon")
+```
+
+```{r}
+
+modelo.final <- finalize_model(modelo, minimo)
+
+flujo.final <- workflow() %>% 
+    add_model(modelo.final) %>%  
+    add_recipe(receta_vmc)
+
+ajuste.final <- flujo.final %>% 
+    fit(datos_entrena)
+
+predict(ajuste.final, datos_prueba)
+
 ```
 
