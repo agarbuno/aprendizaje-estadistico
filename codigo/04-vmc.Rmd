@@ -1,0 +1,256 @@
+---
+title: "Modelos locales"
+author: Alfredo Garbuno
+---
+
+
+
+```{r setup, include = FALSE}
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+
+```{r}
+set.seed(280572)
+centros_negro <- data.frame(x.1=rnorm(10,0,1.5), x.2=rnorm(10,1,1.5))
+centros_rojo <- data.frame(x.1=rnorm(10,1,1.5), x.2=rnorm(10,0,1.5))
+
+simular <- function(n, centros_negro, centros_rojo){
+  sim_datos <- lapply(1:n, function(i){
+  	u <- runif(1)
+  	if (u > 0.5){
+  		centro <- centros_rojo[sample(1:10,1),]
+  		color <- -1
+  	} else {
+  		centro <- centros_negro[sample(1:10,1), ]		
+  		color <- 1
+  	}
+  	data.frame(color = color, 
+  		x.1 = rnorm(1, centro[1,1], 0.75), 
+  		x.2 = rnorm(1, centro[1,2], 0.75))
+  	})
+  bind_rows(sim_datos)
+}
+  
+
+```
+
+
+```{r, fig.asp = 1}
+N <- 500
+sim_entrena <- simular(N, centros_negro, centros_rojo)
+sim_prueba <- simular(3000, centros_negro, centros_rojo)
+
+ggplot(sim_entrena, aes(x=x.1, y=x.2, colour=factor(color))) + 
+    geom_point() + sin_lineas + sin_ejes + sin_leyenda
+```
+
+
+```{r}
+modelo_lineal <- lm(color ~ x.1 + x.2, data = sim_entrena)
+modelo_lineal
+```
+
+```{r}
+grid_1 <- expand.grid(x.1 = seq(-6,5, 0.05), x.2 = seq(-6,5,0.05))
+
+graf_clasificador <- function(graf_out){
+  #graf_out$fitted[graf_out$fitted > 0.49 & graf_out$fitted < 0.51] <- NA
+  plot_out <- ggplot(graf_out, aes(x=x.1,y=x.2)) + 
+	    geom_tile(alpha=0.9, size=2, aes(fill = factor(color_predicted))) + 
+	    geom_point(aes(x=x.1, y=x.2, fill = factor(color)), alpha=0.9,
+	           pch=21, colour='gray20', data=sim_entrena, size=3) + 
+        sin_lineas + sin_ejes + sin_leyenda
+  plot_out
+}
+
+```
+
+
+```{r, fig.asp = 1}
+
+graf_out <- grid_1 %>% 
+    mutate(linear_fit = predict(modelo_lineal, newdata = grid_1), 
+           color_predicted = ifelse(linear_fit > 0, 1, -1))
+print(graf_clasificador(graf_out))
+
+```
+
+```{r}
+sim_entrena %>% 
+    mutate(miss_class = ifelse(color != sign(predict(modelo_lineal)), 1, 0)) %>% 
+    summarise(error_entrenamiento = mean(miss_class))
+
+sim_prueba %>% 
+    mutate(miss_class = ifelse(color != sign(predict(modelo_lineal, data = sim_prueba)), 1, 0)) %>% 
+    summarise(error_prueba = mean(miss_class))
+```
+
+### $k$-vecinos más cercanos
+
+```{r}
+library(kknn)
+vmc <- kknn(color ~ x.1 + x.2, 
+	train = sim_entrena, 
+	test = grid_1, 
+	k = 100, 
+	kernel='rectangular', 
+	scale = 'false')
+```
+
+
+```{r, fig.asp = 1}
+graf_out <- graf_out %>% 
+    mutate(vmc100_fit = predict(vmc),          # Predicciones bajo VMC
+           color_predicted = ifelse(vmc100_fit > 0, 1, -1)) # Predicciones binarias
+
+graf_clasificador(graf_out)
+```
+```{r, fig.asp = 1}
+
+vmc <- kknn(color ~ x.1 + x.2, 
+	train = sim_entrena, 
+	test = grid_1, 
+	k = 3, 
+	kernel='rectangular', 
+	scale = 'false')
+
+graf_out <- graf_out %>% 
+    mutate(vmc003_fit = predict(vmc),          # Predicciones bajo VMC
+           color_predicted = ifelse(vmc003_fit > 0, 1, -1)) # Predicciones binarias
+
+graf_clasificador(graf_out)
+```
+
+```{r}
+knn_entrena <- function(k, entrena, prueba){
+    vmc_entrena <- kknn(color ~ x.1 + x.2, 
+            	train = entrena, 
+            	test = entrena, 
+            	k = k, 
+            	kernel='rectangular', 
+            	scale = 'false')
+    vmc_prueba <- kknn(color ~ x.1 + x.2, 
+            	train = entrena, 
+            	test = prueba, 
+            	k = k, 
+            	kernel='rectangular', 
+            	scale = 'false')
+    list("entrena" = predict(vmc_entrena), 
+         "prueba"  = predict(vmc_prueba))
+}
+
+```
+```{r}
+resultados <- knn_entrena(3, sim_entrena, sim_prueba)
+
+sim_entrena %>% 
+    mutate(class_pred  = ifelse(resultados$entrena > 0, 1, -1), 
+           class_error = ifelse(color != class_pred, 1, 0)) %>% 
+    summarise(error_entrena = mean(class_error))
+
+sim_prueba %>% 
+    mutate(class_pred  = ifelse(resultados$prueba > 0, 1, -1), 
+           class_error = ifelse(color != class_pred, 1, 0)) %>% 
+    summarise(error_prueba = mean(class_error))
+```
+
+```{r}
+resultados <- knn_entrena(100, sim_entrena, sim_prueba)
+
+sim_entrena %>% 
+    mutate(class_pred  = ifelse(resultados$entrena > 0, 1, -1), 
+           class_error = ifelse(color != class_pred, 1, 0)) %>% 
+    summarise(error_entrena = mean(class_error))
+
+sim_prueba %>% 
+    mutate(class_pred  = ifelse(resultados$prueba > 0, 1, -1), 
+           class_error = ifelse(color != class_pred, 1, 0)) %>% 
+    summarise(error_prueba = mean(class_error))
+```
+
+```{r}
+
+calcula_errores <- function(k, entrena, prueba){
+    resultados <- knn_entrena(k, entrena, prueba)
+
+    error_entrena <- entrena %>% 
+        mutate(class_pred  = ifelse(resultados$entrena > 0, 1, -1), 
+               class_error = ifelse(color != class_pred, 1, 0)) %>% 
+        summarise(error_entrena = mean(class_error)) %>% 
+        pull(error_entrena)
+    
+    error_prueba <- prueba %>% 
+        mutate(class_pred  = ifelse(resultados$prueba > 0, 1, -1), 
+               class_error = ifelse(color != class_pred, 1, 0)) %>% 
+        summarise(error_prueba = mean(class_error)) %>% 
+        pull(error_prueba)
+    
+    tibble(entrena = error_entrena, prueba = error_prueba)
+}
+
+```
+
+```{r}
+
+tibble( k = c(1,2,5,7,10,15,20,50,100,150,250) ) %>% 
+    mutate(resultados = map(k, ~calcula_errores(.x, sim_entrena, sim_prueba))) %>% 
+    unnest(resultados) %>% 
+    pivot_longer(entrena:prueba) %>% 
+    ggplot(aes(factor(k), value, group = name, color = name)) + 
+        geom_line() + geom_point() + sin_lineas
+
+```
+
+```{r, cache = TRUE}
+
+simula_curvas <- function(id){
+    simulacion <- simular(N, centros_negro, centros_rojo)
+    tibble( k = c(1,2,5,7,10,15,20,50,100,150,250) ) %>% 
+        mutate(resultados = map(k, ~calcula_errores(.x, simulacion, sim_prueba))) %>% 
+        unnest(resultados)
+}
+
+sims_dt <- tibble(replica = 1:50) %>% 
+    mutate(resultados = map(replica, ~simula_curvas(.x)))
+
+sims_mean <- sims_dt %>% 
+    unnest(resultados) %>% 
+    group_by(k) %>% 
+    summarise(entrena = mean(entrena), 
+           prueba  = mean(prueba), 
+           replica = 1) %>% 
+    pivot_longer(entrena:prueba)
+
+sims_dt %>% 
+    unnest(resultados) %>% 
+    pivot_longer(cols = entrena:prueba) %>% 
+    ggplot(aes(factor(k), value, 
+               group = interaction(replica,name), 
+               color = name)) + 
+        geom_line(alpha = .3) + sin_lineas + 
+        geom_line(data = sims_mean, aes(x = factor(k), 
+                                        y = value), 
+                  lwd = 2, lty = 2)
+
+```
+
