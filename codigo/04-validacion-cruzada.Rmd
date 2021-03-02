@@ -1,0 +1,224 @@
+---
+title: "Validación cruzada"
+author: Alfredo Garbuno
+---
+
+
+
+```{r setup, include = FALSE}
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+<!-- [tidymodels book](https://www.tmwr.org/) -->
+<!-- [parsnip](https://www.tidyverse.org/blog/2018/11/parsnip-0-0-1/) -->
+<!-- [tidymodels](https://www.youtube.com/watch?v=sMdcjHNBsZM&t=606s) -->
+<!-- [search strategies](https://www.youtube.com/watch?v=qEeF-ErtUAU) -->
+<!-- [tuning](https://rstudio.com/resources/rstudioconf-2020/total-tidy-tuning-techniques/) -->
+
+```{r}
+library(ISLR)
+
+set.seed(123)
+datos_split <- initial_split(Auto, prop = 0.7)
+datos_entrena <- training(datos_split)
+datos_prueba <- testing(datos_split)
+nrow(datos_entrena)
+
+ggplot(datos_entrena, aes(x = displacement, y = mpg)) + geom_point() + sin_lineas
+```
+
+### Mínimos cuadrados
+
+La recta de mínimos cuadrados está dada como sigue:
+
+```{r}
+
+modelo_lineal <- lm(mpg ~ displacement + year, data=datos_entrena)
+test_grid <- tibble(displacement = seq(50,500,5)) %>% 
+  crossing(tibble(year= c(70, 75, 80)))
+
+test_grid$mpg <- predict(modelo_lineal, test_grid)
+
+ggplot(datos_entrena, aes(x = displacement, y = mpg, group = year, colour = year)) + 
+    geom_point() +
+    geom_line(data=test_grid) + sin_lineas
+```
+
+
+### $k$-vecinos más cercanos
+
+
+```{r}
+renv::snapshot()
+
+vmc_1 <- nearest_neighbor(neighbors = 25, weight_func = "rectangular") %>% 
+  set_engine("kknn") %>% 
+  set_mode("regression")
+receta_vmc <- recipe(mpg ~ displacement + year, datos_entrena) %>% 
+  step_normalize(all_predictors()) %>% 
+  prep()
+flujo <- workflow() %>% 
+  add_recipe(receta_vmc) 
+ajuste_1 <- flujo %>% add_model(vmc_1) %>% fit(datos_entrena)
+```
+
+
+```{r}
+test_grid <- test_grid %>% 
+  mutate(pred_1 = predict(ajuste_1, test_grid) %>% pull(.pred))
+
+ggplot(datos_entrena, aes(x = displacement, y = mpg, group = year, colour = year)) +
+    geom_point() +
+    geom_line(data=test_grid, aes(x = displacement, y = pred_1), size = 1.1) + sin_lineas
+```
+
+
+```{r}
+vmc_2 <- nearest_neighbor(neighbors = 5, weight_func = "rectangular") %>% 
+  set_engine("kknn") %>% 
+  set_mode("regression")
+ajuste_2 <- flujo %>% add_model(vmc_2) %>% fit(datos_entrena)
+
+test_grid <- test_grid %>% 
+  mutate(pred_2 = predict(ajuste_2, test_grid) %>% pull(.pred))
+
+ggplot(datos_entrena, aes(x = displacement, y = mpg, group = year, colour = year)) +
+    geom_point() +
+    geom_line(data=test_grid, aes(x = displacement, y = pred_2), size = 1.1) + sin_lineas
+```
+
+```{r}
+vmc_2 <- nearest_neighbor(neighbors = 1, weight_func = "rectangular") %>% 
+  set_engine("kknn") %>% 
+  set_mode("regression")
+ajuste_2 <- flujo %>% add_model(vmc_2) %>% fit(datos_entrena)
+
+test_grid <- test_grid %>% 
+  mutate(pred_2 = predict(ajuste_2, test_grid) %>% pull(.pred))
+
+ggplot(datos_entrena, aes(x = displacement, y = mpg, group = year, colour = year)) +
+    geom_point() +
+    geom_line(data=test_grid, aes(x = displacement, y = pred_2), size = 1.1) + sin_lineas
+```
+
+```{r}
+eval_1 <- predict(ajuste_1, datos_prueba) %>% 
+  bind_cols(datos_prueba) %>% 
+  rmse(mpg, .pred) %>% 
+    mutate(n_vecinos = 15) 
+eval_2 <- predict(ajuste_2, datos_prueba) %>% 
+  bind_cols(datos_prueba) %>% 
+  rmse(mpg, .pred) %>% 
+    mutate(n_vecinos = 1) 
+bind_rows(eval_1, eval_2)
+```
+
+```{r}
+modelo <- nearest_neighbor(neighbors = tune(), 
+                           weight_func = "rectangular") %>% 
+  set_engine("kknn") %>% 
+  set_mode("regression")
+
+flujo <- workflow() %>% 
+  add_model(modelo) %>% 
+  add_recipe(receta_vmc)
+```
+
+```{r}
+# construimos conjunto de parámetros
+bf_set <- parameters(neighbors(range = c(0, 2), trans = log10_trans()))
+# construimos un grid para probar valores individuales
+bf_grid <- grid_regular(bf_set, levels = 20)
+
+bf_grid
+```
+
+```{r}
+validacion_particion <- vfold_cv(Auto, v = 10)
+validacion_particion
+```
+
+```{r}
+metricas_vc <- tune_grid(flujo,
+  resamples = validacion_particion,
+  grid = bf_grid,
+  metrics = metric_set(rmse, mae)) 
+
+metricas_vc %>% unnest(.metrics)
+```
+
+
+
+```{r}
+metricas_vc %>% unnest(.metrics) %>%  group_by(id, .metric) %>% count()
+```
+
+```{r}
+ggplot(metricas_vc %>% unnest(.metrics) %>% filter(.metric == "rmse"), 
+       aes(x = factor(neighbors), y = .estimate)) + geom_point()
+```
+
+```{r}
+metricas_resumen <- metricas_vc %>% 
+  collect_metrics()
+metricas_resumen
+```
+
+```{r}
+g_1 <- ggplot(metricas_resumen %>% filter(.metric == "rmse"), 
+       aes(x = factor(neighbors), y = mean, ymin = mean - std_err, ymax = mean + std_err)) +
+  geom_linerange() +
+  geom_point(colour = "red")
+g_1
+```
+
+```{r}
+metricas_vc %>% show_best(metric = "mae")
+```
+
+```{r}
+minimo <- metricas_vc %>% select_best(metric = "mae")
+minimo_ee <- metricas_vc %>% select_by_one_std_err(metric = "mae", desc(neighbors))
+```
+
+
+```{r}
+g_1 +
+  geom_vline(data= minimo, aes(xintercept = neighbors), colour = "salmon") +
+  geom_vline(data = minimo_ee, aes(xintercept = neighbors), colour = "salmon")
+```
+
+```{r}
+
+modelo.final <- finalize_model(modelo, minimo)
+
+flujo.final <- workflow() %>% 
+    add_model(modelo.final) %>%  
+    add_recipe(receta_vmc)
+
+ajuste.final <- flujo.final %>% 
+    fit(datos_entrena)
+
+predict(ajuste.final, datos_prueba)
+
+```
+
