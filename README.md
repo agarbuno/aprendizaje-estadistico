@@ -2,8 +2,6 @@
 
 Notas para el curso de licenciatura de Aprendizaje Estadístico (EST-25134). 
 
----
-
 ## Requisitos de ambiente: 
 
 - El código se puede correr utilizando una versión reciente$^\star$ de `R` (4.0.2). 
