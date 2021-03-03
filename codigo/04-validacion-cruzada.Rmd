@@ -32,6 +32,8 @@ sin_ejes <- theme(axis.ticks = element_blank(),
         axis.text = element_blank())
 ```
 
+<!-- [libro `caret`](http://appliedpredictivemodeling.com/) -->
+<!-- [libro tidyverse](https://www.tidyverse.org/learn/) -->
 <!-- [tidymodels book](https://www.tmwr.org/) -->
 <!-- [parsnip](https://www.tidyverse.org/blog/2018/11/parsnip-0-0-1/) -->
 <!-- [tidymodels](https://www.youtube.com/watch?v=sMdcjHNBsZM&t=606s) -->
