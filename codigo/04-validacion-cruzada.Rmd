@@ -1,11 +1,15 @@
 ---
-title: "Validación cruzada"
+title: "Validación cruzada: Vecinos más cercanos"
 author: Alfredo Garbuno
 ---
 
 
 
 ```{r setup, include = FALSE}
+library(tidyverse)
+library(rsample)
+library(tidymodels)
+
 library(knitr)
 library(ggplot2)
 library(dplyr)
@@ -28,6 +32,8 @@ sin_ejes <- theme(axis.ticks = element_blank(),
         axis.text = element_blank())
 ```
 
+<!-- [libro `caret`](http://appliedpredictivemodeling.com/) -->
+<!-- [libro tidyverse](https://www.tidyverse.org/learn/) -->
 <!-- [tidymodels book](https://www.tmwr.org/) -->
 <!-- [parsnip](https://www.tidyverse.org/blog/2018/11/parsnip-0-0-1/) -->
 <!-- [tidymodels](https://www.youtube.com/watch?v=sMdcjHNBsZM&t=606s) -->
@@ -41,7 +47,6 @@ set.seed(123)
 datos_split <- initial_split(Auto, prop = 0.7)
 datos_entrena <- training(datos_split)
 datos_prueba <- testing(datos_split)
-nrow(datos_entrena)
 
 ggplot(datos_entrena, aes(x = displacement, y = mpg)) + geom_point() + sin_lineas
 ```
@@ -68,8 +73,6 @@ ggplot(datos_entrena, aes(x = displacement, y = mpg, group = year, colour = year
 
 
 ```{r}
-renv::snapshot()
-
 vmc_1 <- nearest_neighbor(neighbors = 25, weight_func = "rectangular") %>% 
   set_engine("kknn") %>% 
   set_mode("regression")
@@ -154,7 +157,7 @@ bf_grid
 
 ```{r}
 validacion_particion <- vfold_cv(Auto, v = 10)
-validacion_particion
+validacion_particion 
 ```
 
 ```{r}
@@ -218,7 +221,11 @@ flujo.final <- workflow() %>%
 ajuste.final <- flujo.final %>% 
     fit(datos_entrena)
 
-predict(ajuste.final, datos_prueba)
+tibble(truth = datos_prueba$mpg, 
+       pred = predict(ajuste.final, datos_prueba) %>% pull(.pred)) %>% 
+  ggplot(aes(truth, pred)) + 
+    geom_point() + 
+    geom_abline(slope = 0, intercept = 1)
 
 ```
 

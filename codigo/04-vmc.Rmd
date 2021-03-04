@@ -1,11 +1,12 @@
 ---
-title: "Modelos locales"
+title: "Modelos locales: Vecinos más cercanos"
 author: Alfredo Garbuno
 ---
 
 
 
 ```{r setup, include = FALSE}
+library(tidyverse)
 library(knitr)
 library(ggplot2)
 library(dplyr)
@@ -160,8 +161,9 @@ knn_entrena <- function(k, entrena, prueba){
 }
 
 ```
+
 ```{r}
-resultados <- knn_entrena(3, sim_entrena, sim_prueba)
+resultados <- knn_entrena(3,  sim_entrena, sim_prueba)
 
 sim_entrena %>% 
     mutate(class_pred  = ifelse(resultados$entrena > 0, 1, -1), 
@@ -230,7 +232,7 @@ simula_curvas <- function(id){
         unnest(resultados)
 }
 
-sims_dt <- tibble(replica = 1:50) %>% 
+sims_dt <- tibble(replica = 1:20) %>% 
     mutate(resultados = map(replica, ~simula_curvas(.x)))
 
 sims_mean <- sims_dt %>% 
