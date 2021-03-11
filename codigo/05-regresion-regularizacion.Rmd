@@ -1,0 +1,340 @@
+---
+title: "Validación cruzada: Vecinos más cercanos"
+author: Alfredo Garbuno
+---
+
+
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(rsample)
+library(tidymodels)
+
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE)
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+
+```{r}
+dat_grasa <- read_csv(file = "datos/bodyfat.csv") 
+dat_grasa
+```
+
+
+```{r}
+
+set.seed(108727)
+grasa_particion <- initial_split(dat_grasa, 0.3)
+grasa_ent <- training(grasa_particion)
+grasa_pru <- testing(grasa_particion)
+
+```
+
+## Regresión Ridge {-}
+
+```{r}
+
+grasa_receta <- recipe(grasacorp ~ ., grasa_ent) %>% 
+    step_normalize(all_predictors()) %>% 
+    prep()
+
+modelo_1 <- linear_reg(mixture = 0) %>% 
+    set_engine("glmnet") %>% 
+    set_mode("regression") %>% 
+    fit(grasacorp ~ estatura + peso + abdomen + muslo + biceps + rodilla, juice(grasa_receta))
+
+coefs <- tidy(modelo_1$fit) %>% 
+    filter(term != "(Intercept)")
+
+```
+
+La función`glmnet` se encarga de estandarizar variables y escoger un rango
+adecuado de penalizaciones $\lambda.$ La función `glmnet` ajusta varios modelos
+(parámetro `nlambda`) para un rango amplio de penalizaciones $\lambda:$
+
+```{r}
+
+ggplot(coefs, aes(x = lambda, y = estimate, colour = term)) +
+    geom_line(size = 1.4) + 
+    scale_x_log10() + 
+    geom_hline(yintercept = 0, lty = 2) + 
+    sin_lineas
+
+```
+
+
+## Ajustando el grado de regularización $\lambda$ {-}
+
+```{r}
+# con tune() indicamos que ese parámetro será afinado
+modelo_regularizado <-  linear_reg(mixture = 0, penalty = tune()) %>% 
+    set_engine("glmnet") 
+
+flujo_reg <- workflow() %>% 
+    add_model(modelo_regularizado) %>% 
+    add_recipe(grasa_receta)
+```
+
+```{r}
+# construimos conjunto de parámetros
+bf_set <- parameters(penalty(range = c(-3, 2), trans = log10_trans()))
+
+# construimos un grid para probar valores individuales
+bf_grid <- grid_regular(bf_set, levels = 50)
+bf_grid
+```
+
+```{r}
+validacion_particion <- vfold_cv(grasa_ent, v = 10)
+
+# tiene información de índices en cada "fold" o "doblez"vuelta"
+validacion_particion
+```
+
+```{r}
+
+metricas_vc <- tune_grid(flujo_reg,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(rmse, mae))
+
+metricas_vc %>% unnest(.metrics)
+
+```
+
+```{r}
+
+metricas_vc %>% 
+    unnest(.metrics) %>%  
+    group_by(id, .metric) %>% 
+    count()
+
+```
+
+```{r}
+
+metricas_vc %>% 
+    unnest(.metrics) %>% 
+    filter(.metric == "mae") %>% 
+    ggplot(aes(x = penalty, y = .estimate)) + 
+        geom_point() +  
+        scale_x_log10() + 
+        ylab('Error de validación') + 
+        xlab(expression(Penalización: lambda))
+
+```
+
+```{r}
+
+metricas_resumen <- metricas_vc %>% 
+  collect_metrics()
+
+metricas_resumen
+
+```
+
+```{r}
+
+g_1 <- ggplot(metricas_resumen %>% filter(.metric == "mae"), 
+              aes(x = penalty, 
+                  y = mean, 
+                  ymin = mean - std_err, 
+                  ymax = mean + std_err)) +
+    geom_linerange() +
+    geom_point(colour = "red") +
+    scale_x_log10() + sin_lineas + 
+    ylab('Error de validación') + 
+    xlab(expression(Penalización: lambda))
+
+g_1
+
+```
+
+```{r}
+metricas_vc %>% show_best(metric = "mae")
+```
+
+```{r}
+minimo <- metricas_vc %>% select_best(metric = "mae")
+
+minimo_ee <- metricas_vc %>% select_by_one_std_err(metric = "mae", desc(penalty))
+```
+
+```{r}
+
+g_1 +
+    geom_vline(data= minimo, aes(xintercept = penalty), colour = "salmon") +
+    geom_vline(data = minimo_ee, aes(xintercept = penalty), colour = "salmon")
+
+```
+
+## Regresión LASSO {-}
+
+```{r}
+
+# mixture = 1 es lasso, mixture = 0 es ridge
+modelo_regularizado <-  linear_reg(mixture = 1, penalty = tune()) %>% 
+    set_engine("glmnet") 
+
+flujo_reg <- workflow() %>% 
+    add_model(modelo_regularizado) %>% 
+    add_recipe(grasa_receta)
+```
+
+```{r}
+metricas_vc <- tune_grid(flujo_reg,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(rmse, mae)) 
+
+metricas_resumen <- metricas_vc %>% collect_metrics()
+metricas_resumen
+```
+
+```{r}
+g_1 <- ggplot(metricas_resumen %>% filter(.metric == "mae"),
+              aes(x = penalty, 
+                  y = mean, 
+                  ymin = mean - std_err, 
+                  ymax = mean + std_err)) +
+    geom_linerange() +
+    geom_point(colour = "red") +
+    scale_x_log10()
+g_1
+```
+
+```{r}
+
+mejor <- select_best(metricas_vc, metric = "mae", penalty)
+
+modelo_final <- 
+    flujo_reg %>%
+    finalize_workflow(mejor) %>%
+    fit(data = grasa_ent)
+
+coeficientes <- modelo_final %>% pull_workflow_fit() %>% tidy
+coeficientes %>% mutate(across(where(is.numeric), round, 2))
+
+```
+```{r}
+
+modelo_1 <- linear_reg(mixture = 1) %>% 
+    set_engine("glmnet") %>% 
+    fit(grasacorp ~ estatura + peso + abdomen + muslo + biceps + rodilla + edad + cuello, 
+      grasa_ent)
+
+coefs <- tidy(modelo_1$fit) %>% 
+  filter(term != "(Intercept)")
+
+ggplot(coefs, aes(x = lambda, y = estimate, colour = term)) +
+    geom_line(size = 1.4) + 
+    geom_hline(yintercept = 0, lty = 2) + 
+    geom_vline(xintercept = mejor$penalty, lty = 2) + 
+    annotate("text", x = mejor$penalty + .1, y= -.85,  
+             label = "lambda^{'*'}", parse = TRUE, size = 4) + 
+    scale_x_log10() + 
+    sin_lineas
+
+```
+
+## Regresión Elastic Net {-}
+
+```{r}
+
+# mixture = 1 es lasso, mixture = 0 es ridge
+modelo_regularizado <-  linear_reg(mixture = tune(), penalty = tune()) %>% 
+    set_engine("glmnet") 
+
+flujo_reg <- workflow() %>% 
+    add_model(modelo_regularizado) %>% 
+    add_recipe(grasa_receta)
+```
+
+```{r}
+
+bf_set <- parameters(penalty(range = c(-2, 2), trans = log10_trans()), 
+                     mixture(range = c(0, 1)))
+
+# construimos un grid para probar valores individuales
+bf_grid <- grid_regular(bf_set, levels = 30)
+bf_grid
+
+```
+
+
+```{r, cache = TRUE}
+metricas_vc <- tune_grid(flujo_reg,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(rmse, mae)) 
+
+metricas_resumen <- metricas_vc %>% collect_metrics()
+metricas_resumen
+```
+
+```{r}
+g_1 <- ggplot(metricas_resumen %>% filter(.metric == "mae"),
+              aes(x = penalty, 
+                  y = mixture, 
+                  z = mean)) +
+  geom_raster(aes(fill = std_err)) + 
+  scale_fill_gradientn(colours=c("yellow","red")) + 
+  geom_contour(aes(colour = after_stat(level)), binwidth = .12) + 
+  scale_x_log10() + sin_lineas
+
+g_1
+```
+
+```{r}
+
+mejor <- select_best(metricas_vc, metric = "mae", penalty)
+
+modelo_final <- 
+    flujo_reg %>%
+    finalize_workflow(mejor) %>%
+    fit(data = grasa_ent)
+
+coeficientes <- modelo_final %>% pull_workflow_fit() %>% tidy
+coeficientes %>% mutate(across(where(is.numeric), round, 2))
+
+```
+
+
+```{r}
+
+modelo_1 <- linear_reg(mixture = mejor$mixture, 
+                       penalty = mejor$penalty) %>% 
+    set_engine("glmnet") %>% 
+    fit(grasacorp ~ estatura + peso + abdomen + muslo + biceps + rodilla + edad + cuello, 
+      grasa_ent)
+
+coefs <- tidy(modelo_1$fit) %>% 
+  filter(term != "(Intercept)")
+
+ggplot(coefs, aes(x = lambda, y = estimate, colour = term)) +
+    geom_line(size = 1.4) + 
+    geom_hline(yintercept = 0, lty = 2) + 
+    geom_vline(xintercept = mejor$penalty, lty = 2) + 
+    annotate("text", x = mejor$penalty + .1, y= -.85,  
+             label = "lambda^{'*'}", parse = TRUE, size = 4) + 
+    scale_x_log10() + 
+    sin_lineas
+```
