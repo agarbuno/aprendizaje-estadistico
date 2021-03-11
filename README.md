@@ -91,6 +91,16 @@ Si has seguido las instrucciones como vienen en este documento. El repositorio d
 git checkout -b docker-run
 ```
 
+Para mantener esta rama en particular al corriente con el desarrollo del material deberás hacer un _merge_ de la rama principal a la rama de _Docker_:
+
+```{bash}
+git checkout -b docker-run
+git fetch 
+git merge origin/master
+```
+
+Por último podría ser el caso que necesites resolver conflictos en el _merge_ con la rama `master`. Para esto puedes utilizar un editor de texto (como [`Atom`](https://atom.io/))o el mismo ambiente de `Rstudio`.
+
 #### Observaciones:
 
 <a id="note1" href="#note1ref"><sup>1</sup></a>El formato de las notas que se puede reproducir con esto es `bookdown::gitbook`. La compatibilidad con `bookdown::pdf_book` aun no es reproducible.
