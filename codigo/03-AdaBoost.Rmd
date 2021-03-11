@@ -205,8 +205,8 @@ increasing order of aspect angle, but they do not encode the angle directly.
  
 ```{r}
 
-sonar_entrena <- read.table("codigo/datos/sonar/sonar_train.csv",sep=",")
-sonar_prueba <- read.table("codigo/datos/sonar/sonar_test.csv",sep=",")
+sonar_entrena <- read.table("datos/sonar/sonar_train.csv",sep=",")
+sonar_prueba <- read.table("datos/sonar/sonar_test.csv",sep=",")
 
 sonar_entrena %>% 
     group_by(V61) %>% 
