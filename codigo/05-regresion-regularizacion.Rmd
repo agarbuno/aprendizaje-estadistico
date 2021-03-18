@@ -1,5 +1,5 @@
 ---
-title: "Validación cruzada: Vecinos más cercanos"
+title: "Regularización: Regresión"
 author: Alfredo Garbuno
 ---
 
