@@ -1,0 +1,215 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 17:               % UPDATE LECTURE NUMBER
+    Descenso en Gradiente Estocástico}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Marzo 16, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable: Jesús Bernardo Solórzano Flores  % >>>>> SCRIBE NAME(S)
+}
+\numberwithin{equation}{section}
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\section{Introducción}
+\label{sec:introduction}
+
+Recordemos que el objetivo del aprendizaje es minimizar una función de pérdida $L_\mathcal{D}(h)=\mathbb{E}_{S\sim \mathcal{D}}\left[l(h,z)\right]$. Hasta ahora se han discutido métodos de aprendizaje que dependen del riesgo empírico. Esto es, partimos de una muestra de entrenamiento $S$ y definimos, en particular, la función de pérdida empírica
+\begin{center}
+$L_S(h) = \frac{1}{m} \sum_{i=1}^m l\left(h,z^{(i)}\right) \quad \text{con } z^{(i)}\sim \mathcal{D},\,S\sim \mathcal{D}^m$
+\end{center}
+
+En Minimización de Pérdida Regularizada (RLM) se elegía una hipótesis que minimizara conjuntamente $L_S(h)$ y la función de regularización sobre $h$, esto es 
+\begin{center}
+$\min L_s(h) + R(h) = \min J_S(h)$
+\end{center}
+
+El método de descenso en gradiente para minimizar una función $f(w)$ convexa y diferenciable utiliza iteraciones dadas por
+\begin{center}
+$\vct{w}_{t+1}=\vct{w}_{t} + \eta\, \vct{p}_t$
+\end{center}
+con la dirección de descenso $\vct{p}_t= -\nabla_{\vct{w}}J_S(\vct{w})$. El método de descenso en gradiente estocástico permite cambiar esta dirección $\vct{p}_t$ por un estimador insesgado aleatorio $\vct{\hat{p}}_t$, esto es, un estimador tal que $\mathbb{E}\left[\vct{\hat{p}}_t\right]=\vct{p}_t$. Utilizaremos SGD para funciones convexas y Lipschitz. Además, GD tendrá la misma tasa de convergencia, en promedio, que SDG.
+
+
+
+
+
+
+
+
+
+\section{Descenso en Gradiente}
+\label{sec:descenso-gradiente}
+El gradiente de una función diferenciable $f:\R^d\leftarrow \R$ en $\vct{w}\in\mathbb{R}^d$, denotado por $\nabla f\left(\vct{w}\right)$, es el vector de derivadas parciales de $f$, esto es, $\nabla f\left(\vct{w}\right)=\left(\frac{\partial f}{\partial w_1}, \frac{\partial f}{\partial w_2},\dots,\frac{\partial f}{\partial w_d}\right)$. Descenso en gradiente es un algoritmo iterativo que en cada iteración, empezando con un valor inicial $\vct{w}^{(1)}=\zerovct$, genera una actualización en la dirección de máximo descenso, esto es
+\begin{equation}
+	\vct{w}^{\left(t+1\right)}=\vct{w}^{\left(t\right)}-\eta\,\nabla f(\vct{w}^{\left(t\right)}), 
+\end{equation}
+donde $\eta >0$. Después de $T$ iteraciones, el algoritmo regresa como respuesta
+\begin{itemize}
+	\item [i)] el vector de medias, $\overline{\vct{w}}_T=\displaystyle{\frac{1}{T}\sum_{t=1}^T}\, \vct{w}^{(t)}$,
+	\item[ii)] la última iteración, $\vct{w}^{(T)}$,
+	\item[iii)] o el punto con la menor pérdida posible $\vct{w}(T) =\mathrm{argmin}_{t\in \{1,\dots, T\}}f(\vct{w}^{\left(t\right)})$.
+\end{itemize}
+Si utilizamos la aproximación de Taylor de $f$ alrededor de $\vct{w}$ dada por	 $f(\vct{u})\approx f(\vct{w}) + \langle \vct{u}-\vct{w},\nabla f(\vct{w})\rangle$ y utilizando la propiedad de convexidad, evaluando la función en cualquier punto, se tiene que
+\begin{center}
+$f(\vct{u})\geq f(\vct{w}) + \langle \vct{u}-\vct{w},\nabla f(\vct{w})\rangle$.
+\end{center}
+Entonces, para un $\vct{w}$ relativament cercano a $\vct{w}^{(t)}$ se satisface que 
+\begin{center}
+	$f(\vct{w}) \approx f(\vct{w}^{(t)})+\langle \vct{w}-\vct{w}^{(t)},\nabla f(\vct{w}^{(t)})\rangle$,
+\end{center}
+es decir, $f(\vct{w})$ será aproximadamente la cota inferior. Luego, podemos minimizar la aproximación de $f(\vct{w})$ con la mejor actualización
+\begin{center}
+$\vct{w}^{(t+1)}=\mathrm{argmin}_{\vct{w}}\,\|{\vct{w}-\vct{w}^{(t)}}\|^2 + \eta \left( f(\vct{w}^{(t)})+\langle \vct{w}-\vct{w}^{(t)},\nabla f(\vct{w}^{(t)})\rangle\right)$
+\end{center}
+El parámetro $\eta$ me permite enontrar el compromiso entre la aproximación a la recta y buscar puntos más cercanos al punto en el que estamos. Si derivamos respecto a $\vct{w}$ e igualamos a cero, la solución coincide con el método iterativo de la ecuación (1).
+
+
+
+
+\subsection{Análisis de Descenso en Gradiente}
+
+Supongamos que la función objetivo es Lipschitz-convexa-acotada. Sea $\vct{w}^*$ el minimizador y $\|{\vct{w}^*}\|\leq B$, para alguna $B$. Consideremos $\overline{\vct{w}}_T=\frac{1}{T}\sum_{t=1}^T\, \vct{w}^{(t)}$.Queremos medir $f(\vct{w}^{(t)})-f(\vct{w}^*)$, es decir, medir el desempeño del candidato respecto al mímimo de la función. Por la definición de $\overline{\vct{w}}_T$ y la desigualdad de Jensen, tenemos que
+\begin{align}
+	f(\vct{w}^{(t)})-f(\vct{w}^*) &= f\left(\frac{1}{T}\displaystyle{\sum_{t=1}^T\, \vct{w}^{(t)}}\right)-f\left(\vct{w}^*\right)\nonumber\\
+	&\leq \frac{1}{T}\displaystyle{\sum_{t=1}^T\, \left(f(\vct{w}^{(t)})\right)} -f(\vct{w}^*)\nonumber\\
+	&=\frac{1}{T}\displaystyle{\sum_{t=1}^T\, \left(f(\vct{w}^{(t)})-f(\vct{w}^*)\right)}.
+\end{align}
+Por la convexidad de $f$, para todo $i\in\{1,\dots,T\}$ se satisface que
+\begin{center}
+$f(\vct{w}^{(i)})-f(\vct{w}^*)\leq \langle \vct{w}^{(i)}-\vct{w}^*,\nabla f(\vct{w}^{(i)})\rangle$.
+\end{center}
+Combinando estas ecuaciones obtenemos que
+\[
+f(\overline{\vct{w}}_T)-f(\vct{w}^*) \leq \frac{1}{T}\displaystyle{\sum_{t=1}^T}\langle \vct{w}^{(t)}-\vct{w}^*,\nabla f(\vct{w}^{(t)})\rangle.
+\]
+Para acotar el lado derecho de la desigualdad usamos el siguiente lemma.
+
+\begin{lemma}
+	Sea una sucesión $\vct{v}_1,\dots,\vct{v}_T$. Con un proceso iterativo que empieza en el vector $\vct{w}^{(1)}=\zerovct$ con regla de actualización de la forma $\vct{w}^{(t+1)}=\vct{w}^{(t)}-\eta\,\vct{v}_t$, se satisface que
+	\begin{center}
+	$\frac{1}{T}\,\displaystyle{\sum_{t=1}^T}\langle \vct{w}^{(t)}-\vct{w}^*,\vct{v}_t\rangle\leq \frac{\|{\vct{w}^*}\|^2}{2\eta}+\frac{\eta}{2}\,\displaystyle{\sum_{t=1}^T}\|{\vct{v}_t}\|^2.$
+	\end{center}
+\end{lemma}
+En particular, si consideramos $B,\rho>0$, si para todo $t$ tenemos que $\|{\vct{v}_t}\|\leq\rho$, y fijando $\eta=\sqrt{\frac{B^2}{\rho^{2}T}}$, entonces para todo $\vct{w}^*$ tal que $\|{\vct{w}^*}\|\leq B$ tenemos que
+\begin{center}
+$\frac{1}{T}\,\displaystyle{\sum_{t=1}^T}\langle \vct{w}^{(t)}-\vct{w}^*,\vct{v}_t\rangle\leq \frac{B\rho}{\sqrt{T}}$
+\end{center}
+Esto quiere decir que si queremos un nivel de precisión $f(\overline{\vct{w}}_T)-f(\vct{w}^*)\leq \varepsilon$, entonces lo que necesitamos es aplicar el método de descenso en gradiente con $T\geq \frac{B^2\rho^2}{\varepsilon^2}\,\,$ iteraciones.
+
+
+
+
+
+\section{Descenso en Gradiente Estocástico}
+\label{sec:SDG}
+\label{sec:rules}
+En descenso en gradiente estocásitco no necesitamos que la actualización en la dirección sea exactamente el gradiente. Lo que utilizaremos es un estimador insesgado del gradiente.
+
+\begin{theorem}
+	Sean $B,\rho > 0$. Sean $f$ una función convexa y $\vct{w}^*\in \mathrm{argmin}_{\{\vct{w}:\|{\vct{w}}\|\leq B\}}f(\vct{w})$. Entonces, después de $T$ iteraciones en SGD con $\eta = \frac{B^2}{\rho^2T}$ y suponiendo que para todo paso $t$ se cumple que $\|{\vct{v}_t}\|\leq \rho$ con probabilidad 1, se tiene que
+	\begin{center}
+$\mathbb{E}\left[f\left(\overline{\vct{w}}_T\right)\right]-f\left(\vct{w}^*\right)\leq \frac{B\rho}{\sqrt{T}}$.
+	\end{center}
+\end{theorem}
+
+Notemos que podemos hacer modificaciones que pueden funcionar bajo las siguientes consideraciones:
+\begin{itemize}
+	\item[1.] Hasta ahora hemos considerado que el espacio de las actualizaciones sea acotado, $\|{\vct{w}}\|\leq B$. No hay nada dentro de la actualización usando el gradiente que garantice que $\|{\vct{w}}^{\left(t+1\right)}\|\leq B$. Esto puede ocasionar que la dirección de descenso proponga un candidato tal que $\|{\vct{w}}\|^{\left(t+1\right)}>B$, lo que implicaría que $\vct{w}^{\left(t+1\right)}\notin H$. Para ello, podemos usar proyecciones
+	\begin{center}
+	$\vct{w}^{\left(t+1\right)}=\vct{w}^{\left(t\right)}-\eta \,\vct{v}_t$
+	\end{center}
+	y proyectar sobre $\vct{w}^{\left(t+1\right)}=  \mathrm{argmin}_{\{\vct{w}:\|{\vct{w}}\leq B\}}\|{\vct{w}-\vct{w}^{\left(t+\frac{1}{2}\right)}\|}$. Así, garantizamos que $\vct{w}^{\left(t\right)},\,\overline{\vct{w}}_T\in H$.
+	\item[2.] Podemos hacer un tamaño de paso variable tomando 
+	\begin{center}
+	$\eta_t=\frac{B}{\rho\sqrt{t}}$.
+	\end{center}
+	Conforme avancemos y tengamos más observaciones, el proceso iterativo de búsqueda se mantiene controlado dentro de una vecindad de búsqueda.
+\end{itemize}
+
+
+
+
+\subsection{SDG con Error de Generalización}
+¿Cómo conectamos SDG con el error de generalización? Recordemos que en aprendizaje nos enfrentamos con el problema de la minimización del error de generalización
+\begin{center}
+$L_\mathcal{D}(\vct{w})=\displaystyle{\mathbb{E}_{z\sim \mathcal{D}}}\left[l\left(\vct{w},z\right)\right]$
+\end{center}
+Tomemos $z\sim \mathcal{D}$ y evaluemos el gradiente con esa observación, entoces
+\begin{center}
+$\nabla \,l(\vct{w}^{\left(t\right)},z) = \tilde{\nabla}\,L_\mathcal{D}(\vct{w}^{\left(t\right)})$
+\end{center}
+Luego, por el Teorema 3.1,
+\begin{center}
+	$\mathbb{E}\left[L_\mathcal{D}(\overline{\vct{w}}_T)-L_\mathcal{D}(\vct{w}^*)\right]\leq \varepsilon$,
+\end{center}
+de donde se sigue que
+\begin{center}
+$\mathbb{E}\left[L_\mathcal{D}(\overline{\vct{w}}_T)\right]\leq L_\mathcal{D}(\vct{w}^*) +\varepsilon$
+\end{center}
+y, por definición,
+\begin{center}
+$\mathbb{E}\left[L_\mathcal{D}(\overline{\vct{w}}_T)\right]\leq \displaystyle{\min_{\vct{w}\in H}}\, L_\mathcal{D}(\vct{w}) + \varepsilon$.
+\end{center}
+Por lo tanto tenemos aprendizaje siempre y cuando $T\geq\frac{B^2\rho^2}{\varepsilon^2}\,$, $T$  iteraciones del SGD con muestras aleatorias de $\mathcal{D}$.
+
+
+
+
+
+
+\subsection{SGD con RLM}
+Recordemos que la función objetivo es $L_S(\vct{w})+R(\vct{w})$, donde $L_S(\vct{w})=\frac{1}{m}\displaystyle{\sum_{i=1}^m}\,l(\vct{w},z^{(i)})$. Por propiedades del operador gradiente, tenemos que
+\begin{center}
+$\nabla\,L_\mathcal{D}(\vct{w}) = \frac{1}{m}\displaystyle{\sum_{i=1}^m}\,\nabla\,l(\vct{w},z^{(i)})$
+\end{center}
+¿Cómo podemos construir un estimador de la dirección de descenso? Tomemos un índice $i\sim U\{1,\dots,m\}$ y evaluamos en ese índice 
+\begin{center}
+$\nabla\,l(\vct{w},z^{(i)})=\tilde{\nabla}\,L_S(\vct{w})$.
+\end{center}
+Si calculamos el valor esperado
+\begin{center}
+$\displaystyle{\mathbb{E}_i}\left[\nabla\,l(\vct{w},z^{(i)})\right]=\displaystyle{\sum_{i=1}^m}\,\nabla\,l(\vct{w},z^{(i)})\cdot\frac{1}{m}= \nabla\,L_S(\vct{w})$.
+\end{center}
+Por lo tanto, hemos construido un estimador insesgado de la dirección de descenso. 
+\newline
+\newline
+Notemos que en cada iteración del método los índices se escogieron de manera independiente y sobre el mismo conjunto $\{1,\dots,m\}$, es decir, los puntos se escogieron a través de un muestreo aleatorio con reemplazo. Este mecanismo puede acarrear algunas desventajas. Supongamos que tenemos $m$ observaciones y obtenemos una muestra con reemplazo de índices de tamaño $m$. Entonces la probabilidad de escoger una observación al menos una vez es 
+\begin{center}
+$1-\Prob\left(\text{ no escoger }i\right)=1-\left(1-\frac{1}{m}\right)^m \approx 1-e^{-1}\approx 63\%$
+\end{center}
+En consecuencia, puede ser que estemos desperdiciando en promedio el $37\%$ de los datos para evaluar el gradiente. En otras palabras, puede ser que, al no observar estos datos, lo que aprendió el algoritmo no sea suficientemente generalizable.
+
+En la práctica, lo que podemos hacer es proceder de la siguiente manera:
+
+\begin{itemize}
+	\item[1.] Permutamos nuestras observaciones.
+	
+	\item[2.] Aplicamos SGD con $m$ iteraciones utilizando el orden en que aparecieron las muestras. 
+	
+	\item[3.] Una vez que pasemos por las $m$ iteraciones, volvemos a permutar (cambiamos el orden), aplicamos SGD y repetimos hasta convergencia.
+\end{itemize}
+
+Replicamos los pasos hasta alcanzar un número deseado de tolerancia, $Tol$, tal que $\|{\nabla\, f(\vct{w}^{(T)})}\|\leq Tol$. De esta manera, nos aseguramos que pasamos por todas las observaciones y que, en promedio, nuestras direcciones de descenso aleatorio sean direcciones insesgadas. 
+
+
+
+\end{document}
