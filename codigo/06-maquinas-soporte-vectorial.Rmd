@@ -1,0 +1,295 @@
+---
+title: "Máquinas de Soporte Vectorial"
+author: Alfredo Garbuno
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(rsample)
+library(tidymodels)
+library(e1071)
+library(kernlab)
+
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE, 
+                      out.width = "99%")
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+Cuando los datos son separables, típicamente hay más de un hiperplano separador, por ejemplo:
+
+```{r, fig.asp = .4}
+set.seed(1087)
+
+beta <- c(-1,2)
+beta.0 <- 1
+
+dat.1 <- tibble(x.1=rnorm(10,0,1), x.2=rnorm(10,0,1)) %>% 
+    mutate(valor = beta[1] * x.1 + beta[2] * x.2 - beta.0,
+           clase = ifelse(valor > 0, 1, -1), 
+           color = factor(clase))
+
+
+ggplot(dat.1, aes(x=x.1,y=x.2, colour=color)) + 
+    geom_point(size=5) +
+      geom_abline(intercept=beta.0/beta[2], slope=-beta[1]/beta[2]) +
+      geom_abline(intercept=beta.0/beta[2]-0.1, slope=-(beta[1]/beta[2])+0.2) + 
+      geom_abline(intercept=beta.0/beta[2]+0.1, slope=-(beta[1]/beta[2])+0.1)
+
+```
+
+
+Optimizamos para encontrar el margen máximo
+
+```{r}
+objetivo <- function(X, y){
+  func.obj <- function(params){
+    beta <- params[1:2]
+    beta.0 <- params[3]
+    distancias <- (X%*%beta - beta.0)*y*(1/sqrt(sum(beta^2)))
+    minimo.margen <- min(distancias)
+    -minimo.margen
+  }
+  func.obj
+}
+X <- as.matrix(dat.1[,1:2])
+y <- dat.1$clase
+obj.1 <- objetivo(X, y)
+
+
+# Nelder-Meade
+res <- optim(par=c(1,1,0), obj.1)
+res
+
+```
+
+
+```{r, fig.asp = .4}
+
+beta <- res$par[1:2]
+beta.0 <- res$par[3]
+margen <- -res$value
+norma <- sqrt(sum(beta^2))
+ggplot(dat.1, aes(x=x.1,y=x.2, colour=color)) + geom_point(size=4) +
+  geom_abline(intercept=beta.0/beta[2], slope=-beta[1]/beta[2], colour='darkblue', size=1.5)+
+  geom_abline(intercept=(beta.0+margen*norma)/beta[2], slope=-beta[1]/beta[2], colour='darkblue')+
+  geom_abline(intercept=(beta.0-margen*norma)/beta[2], slope=-beta[1]/beta[2], colour='darkblue')
+
+```
+
+Los **vectores de soporte** en este caso son
+
+```{r}
+soporte_ind <- abs((X%*%beta - beta.0)*y*(1/sqrt(sum(beta^2))) - margen)  < 1e-6
+X[soporte_ind, ]
+```
+
+## Clasificación con máquinas de soporte vectorial 
+
+Generamos un conjunto ficticio
+
+```{r, fig.asp = .4}
+set.seed(280512)
+dat.x <- expand.grid(x.1=seq(-4,4,0.1), x.2=seq(-4,4,0.1))
+dat.2.1 <- data.frame(x.1=rnorm(7,-1,1), x.2=rnorm(7,-1,1))
+dat.2.1$clase <- 1
+dat.2.2  <- data.frame(x.1=rnorm(7,1,1), x.2=rnorm(7,1,1))
+dat.2.2$ clase <- -1
+dat.2 <- rbind(dat.2.1, dat.2.2)
+dat.2$clase <- factor(dat.2$clase)
+ 
+ggplot(dat.2, aes(x=x.1, y=x.2, colour=factor(clase)))+geom_point(size=3)
+```
+
+La interfaz de `R` para ajustar modelos SVM (`kernlab` y `e1071`) utilizan una
+formulación distinta a la que vimos en clase. El objetivo es minimizar la
+función
+
+$$ C \times L_S(w,b) + \|w\|^2\,,$$
+
+donde $C$ lo interpretamos como un control sobre la importancia de la función 
+de pérdida en relación con la regularización. Es por esto, que $C = \text{Costo}.$
+
+```{r}
+
+svm.1 <- svm(clase ~x.1 + x.2, data=dat.2, kernel = 'linear', cost=0.001 )
+svm.2 <- svm(clase ~x.1 + x.2, data=dat.2, kernel = 'linear', cost=1 )
+svm.3 <- svm(clase ~x.1 + x.2, data=dat.2, kernel = 'linear', cost=10000 )
+
+preds.1 <- predict(svm.1, newdata = dat.x)
+preds.2 <- predict(svm.2, newdata = dat.x)
+preds.3 <- predict(svm.3, newdata = dat.x)
+
+dat.x$preds.1 <- preds.1
+dat.x$preds.2 <- preds.2
+dat.x$preds.3 <- preds.3
+```
+
+
+```{r, fig.asp = .4}
+g.1 <- ggplot(dat.x, aes(x=x.1, y=x.2, fill=preds.1)) + 
+  geom_raster(alpha = .3) + sin_lineas + sin_leyenda + 
+  geom_point(data=dat.2, aes(x=x.1, y=x.2, fill=clase, color = clase), size=3) +
+  labs(title='Costo chico')
+
+g.2 <- ggplot(dat.x, aes(x=x.1, y=x.2, fill=preds.2))+
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda + 
+    geom_point(data=dat.2, aes(x=x.1, y=x.2, fill=clase, color = clase), size=3) +
+    labs(title='Costo mediano')
+
+g.3 <- ggplot(dat.x, aes(x=x.1, y=x.2, fill=preds.3))+
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda + 
+    geom_point(data=dat.2, aes(x=x.1, y=x.2, fill=clase, color = clase), size=3) +
+    labs(title='Costo grande')
+
+g.1 + g.2 + g.3
+
+```
+
+¿Cómo se desempeñan con una muestra de prueba? En este caso, vemos que un costo
+alto no conviene para clasificar estos datos. Con costo grande, el clasificador
+sobreajusta.
+
+```{r}
+
+dat.prueba.1 <- data.frame(x.1=rnorm(800,-1,1), x.2=rnorm(800,-1,1))
+dat.prueba.2 <- data.frame(x.1=rnorm(800,1,1), x.2=rnorm(800,1,1))
+dat.prueba.1$clase <- 1
+dat.prueba.2$clase <- -1
+dat.prueba <- rbind(dat.prueba.1, dat.prueba.2)
+dat.prueba$clase <- factor(dat.prueba$clase)
+
+c(C.chicho = mean(predict(svm.1, newdata = dat.prueba)!=dat.prueba$clase), 
+  C.mediano = mean(predict(svm.2, newdata = dat.prueba)!=dat.prueba$clase), 
+  C.grande = mean(predict(svm.3, newdata = dat.prueba)!=dat.prueba$clase))
+
+```
+
+## Diseño de atributos 
+
+Podemos ver el efecto del costo con modelos de entradas extendidas. En el
+siguiente ejemplo consideramos una expansión cuadrática:
+
+
+```{r, fig.asp = .4}
+set.seed(2805)
+
+dat.x <- expand.grid(x.1=seq(-4,4,0.1), x.2=seq(-4,4,0.1))
+dat.2.1 <- data.frame(x.1=rnorm(20,-2,1), x.2=rnorm(20,-2,1))
+dat.2.1.x <- data.frame(x.1=rnorm(20,2,1), x.2=rnorm(20,2,1))
+dat.2.1 <- rbind(dat.2.1, dat.2.1.x)
+dat.2.1$clase <- 1
+dat.2.2  <- data.frame(x.1=rnorm(40,0,1), x.2=rnorm(40,0,1))
+dat.2.2$ clase <- -1
+dat.2 <- rbind(dat.2.1, dat.2.2)
+dat.2$clase <- factor(dat.2$clase)
+
+ggplot(dat.2, aes(x=x.1, y=x.2, colour=factor(clase)))+geom_point(size=3)
+```
+
+
+```{r}
+svm.1 <- svm(clase ~x.1 + x.2 + I(x.1*x.2)+I(x.1^2)+I(x.2^2), data=dat.2, kernel = 'linear', cost=0.01 )
+svm.2 <- svm(clase ~x.1 + x.2 + I(x.1*x.2)+I(x.1^2)+I(x.2^2), data=dat.2, kernel = 'linear', cost=1 )
+svm.3 <- svm(clase ~x.1 + x.2 + I(x.1*x.2+I(x.1^2)+I(x.2^2)), data=dat.2, kernel = 'linear', cost=1000 )
+
+preds.1 <- predict(svm.1, newdata = dat.x)
+preds.2 <- predict(svm.2, newdata = dat.x)
+preds.3 <- predict(svm.3, newdata = dat.x)
+
+dat.x$preds.1 <- preds.1
+dat.x$preds.2 <- preds.2
+dat.x$preds.3 <- preds.3
+```
+
+
+```{r, fig.asp = .4}
+g.1 <- ggplot(dat.x, aes(x=x.1, y=x.2, fill=preds.1))+
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    geom_point(data=dat.2, aes(x=x.1, y=x.2, fill=clase, color = clase), size=3) +
+    labs(title='Costo chico')
+
+g.2 <- ggplot(dat.x, aes(x=x.1, y=x.2, fill=preds.2))+
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    geom_point(data=dat.2, aes(x=x.1, y=x.2, fill=clase, color = clase), size=3) +
+    labs(title='Costo mediano')
+
+g.3 <- ggplot(dat.x, aes(x=x.1, y=x.2, fill=preds.3))+
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda + 
+    geom_point(data=dat.2, aes(x=x.1, y=x.2, fill=clase, color = clase), size=3) + 
+    labs(title='Costo grande')
+
+g.1 + g.2 + g.3
+```
+
+Nótese que aquí también costo grande sobreajusta.
+
+## Caso práctico {-}
+
+Descripción del problema: 
+
+*We use a classification data set to demonstrate model tuning in this and the
+next chapter. The data come from Hill et al. (2007), who developed an automated
+microscopy laboratory tool for cancer research. The data consists of 56 imaging
+measurements on 2019 human breast cancer cells. These predictors represent shape
+and intensity characteristics of different parts of the cells (e.g., the
+nucleus, the cell boundary, etc.). There is a high degree of correlation between
+the predictors. For example, there are several different predictors that measure
+the size and shape of the nucleus and cell boundary. Also, individually, many
+predictors have skewed distributions.*
+
+*Each cell belongs to one of two classes. Since this is part of an automated lab
+test, the focus was on prediction capability rather than inference.*
+
+```{r}
+
+data(cells)
+cells <- cells %>% select(-case)
+cells %>% head()
+
+```
+
+```{r}
+
+set.seed(33)
+cell_folds <- vfold_cv(cells)
+
+```
+
+```{r}
+svm_rec <- 
+  recipe(class ~ ., data = cells) %>%
+  step_YeoJohnson(all_predictors()) %>%
+  step_normalize(all_predictors())
+
+
+svm_spec <-
+  svm_linear(cost = tune()) %>%
+  # svm_rbf(cost = tune(), rbf_sigma = tune()) %>%
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+svm_wflow <- 
+  workflow() %>% 
+  add_model(svm_spec) %>% 
+  add_recipe(svm_rec)
+
+```
+
