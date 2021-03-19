@@ -1,0 +1,94 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 1:               % UPDATE LECTURE NUMBER
+    Nociones de Aprendizaje}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Enero 20, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Paulina Carretero % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\section{Introducción}
+\label{sec:introduction}
+
+El objeto de estudio del curso es el Aprendizaje Automático (Machine Learning). Como idea, lo que buscamos es “escribir un programa que aprenda”. Esto es, que nuestro agente reciba como entrada lo que pasa en el mundo real, lo procese y genere conocimiento o expertise. 
+En términos teóricos: ver qué tanto podemos aprender dado un conjunto de datos fijo. 
+En términos matemáticos: ser explícitos en lo que queremos decir cuando mencionamos: 
+\begin{enumerate}
+    \item ¿Qué información reciben los agentes?
+    \item ¿Cómo se puede automatizar el proceso de aprendizaje
+    \item ¿Cómo evaluamos si fue o no exitoso el aprendizaje?
+\end{enumerate}
+Lo anterior nos lleva a preguntarnos. ¿Qué es aprender?\\
+
+\subsection{¿Qué es aprender?}
+Pensemos en un ejemplo simple, como nuestra mascota cuando le damos a probar un nuevo alimento. Nuestra mascota al encontrarse con alimento lo primero que va a hacer es olfatearlo o probarlo. Va a construir un conjunto de entradas que le sirvan como base para discernir entre éxito o fracaso (si es un buen alimento o no). \\
+
+¿Qué pasa si al siguiente día le damos un alimento nuevo? Si fuese a repetir el mismo proceso otra vez por un lado estaría siendo ineficiente (en términos algorítmicos) y por otro lado no podría generar reglas de sucesión que se adapten a nuevos experimentos.  sucesión que se adapten a nuevos experimentos. \\
+
+Lo que esperamos de nuestra mascota es que pueda hacer inferencias inductivas (fijarse en casos particulares para definir principios generales). Aunque hay un contra a esto, nos exponemos a que realice conclusiones falsas. ¿Cómo podemos evitarlo? Proveyendo, como al inicio, principios bien definidos\\
+
+\subsection{¿Cuándo necesitamos ML?}
+Algunos ejemplos son los siguientes:
+\begin{itemize}
+    \item Cuando hay mucha información y la tarea a realizar resulta compleja (va mucho más allá de la capacidad de una persona) como el procesamiento de imágenes, transacciones bancarias, etc.
+    \item Cuando los procesos que queremos trabajar son adaptables y requerimos salirnos de cierta rigidez
+\end{itemize}
+
+\subsection{Tipos de aprendizaje }
+\subsubsection{Debemos discernir entre aprendizaje…}
+\begin{itemize}
+    \item Supervisado: La información en la que podemos entrenar y la información objetivo no se encuentra en situaciones de prueba. En palabras más simples: “tener un maestro que nos dice cuáles son las respuestas correctas”
+    \item No supervisado: Información no distingue entre entrenamiento y situaciones de prueba. Es decir, nos dejan interactuar con el ambiente y nosotros tenemos que definir que reglas son las que funcionan.
+    \item Por refuerzo: El objetivo que queremos identificar escapa muy por encima de la información que queremos aprender. 
+\end{itemize}
+\subsubsection{Tipos de agente}
+\begin{itemize}
+    \item Pasivo: No interactúa con el ambiente/clientes/base de datos sino que tiene un banco de información precargado. 
+    \item Activo: interactúa de manera continua con el ambiente 	
+\end{itemize}
+\subsubsection{El rol del maestro}
+\begin{itemize}
+    \item Provee información útil 
+    \item Califica las acciones cuando nos encontramos en situaciones adversas (como vigilar la venta de boletos, por ejemplo) 
+\end{itemize}
+\subsubsection{El ambiente de aprendizaje puede ser por…}
+\begin{itemize}
+    \item Bloques: El ambiente se actualiza cada cierto bloque de tiempo como meses, semanas, etc.
+    \item De forma continua: El ambiente se actualiza constantemente  
+\end{itemize}
+
+\subsection{¿Machine Learning es inteligencia artificial?}
+El machine Learning requiere de la estadística, la computación, la teoría de juegos y de optimización. A pesar de que pudiésemos confundirlo con inteligencia artificial este no llega a serlo pues en el Machine Learning queremos la habilidad de convertir experiencia en conocimiento, pero no somos capaces de actuar en la forma que haría un agente inteligente. Las tareas en el ML trabajan muy bien en un dominio particular y fuera de él estas no funcionan tan bien como deberían. \\
+
+Además, para el ML es importante que en el entrenamiento se interactúe con información generada aleatoriamente ya que de lo contrario generaríamos conclusiones falsas. \\
+
+\subsubsection{ML vs estadística}
+Pensemos en un doctor que busca encontrar una correlación entre fumar y tener una enfermedad del corazón. La estadística procedería con buscar validar dicha hipótesis mientras que el ML va a buscar ver la información y establecer reglas de asociación (conocimiento) a partir de esta. \\
+
+Otra diferencia es que la estadística trabaja con supuestos (definir 1 modelo para las cantidades que se le presentan) mientras que el ML va a buscar mejorar/ajustar un proceso que se asemeje a como se generaron dichos datos. (no se compromete con 1 modelo) \\
+
+
+\end{document}
