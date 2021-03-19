@@ -1,6 +1,6 @@
 ---
-title: "Modelos locales: Vecinos más cercanos"
-author: Alfredo Garbuno
+title: 'Modelos locales: Vecinos más cercanos'
+author: "Alfredo Garbuno"
 ---
 
 
