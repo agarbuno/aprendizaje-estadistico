@@ -31,7 +31,7 @@
 % This is the body of your document.
 
 \begin{itemize}
-    \item Seguiremos considerando el modelo PAC (modelo Posible y Aproximadamente Correcto).
+    \item Seguiremos considerando el modelo PAC (modelo Probable y Aproximadamente Correcto).
     \item Más adelante veremos otras nociones de aprendizaje.
     \item Pioneros en escribir este modelo formal de aprendizaje: Vapnik y Chervonenkis.
 \end{itemize}
@@ -41,31 +41,25 @@
 
 $$\vert\mathcal{H}\vert<\infty\hspace{5mm}\oplus\hspace{5mm}ERM\hspace{5mm}\oplus\hspace{5mm}m\geq M_{0}$$
 
-\begin{description}\setlength{\itemsep}{0pt} % Compact description list
-    \item [Definición]: una clase $\mathcal{H}$ es aprendible, en el sentido PAC, si existe una función $m_{\mathcal{H}}:(0,1)^2\to\mathbb{N}$, y tenemos un algoritmo de aprendizaje con la siguiente propiedad:
+\begin{definition}
+    Decimos que una clase $\mathcal{H}$ es aprendible, en el sentido PAC, si existe una función $m_{\mathcal{H}}:(0,1)^2\to\mathbb{N}$, y tenemos un algoritmo de aprendizaje con la siguiente propiedad:
+    Al considerar cualquier $\epsilon,\delta\in(0,1),$ cualquier distribución $\D$ sobre $\mathcal{X},$ y cualquier función de etiquetado $f:\mathcal{X}\to\mathcal{Y}=\{0,1\}.$
 
-    \begin{center}
-        \begin{minipage}[c]{0.7\linewidth}
-            $\forall\hspace{2mm}\epsilon,\delta\in(0,1)$\\
-            $\forall\hspace{2mm}D$ sobre $\mathcal{X}$\\
-            $f:\mathcal{X}\to\mathcal{Y}=\{0,1\}$
-        \end{minipage}
-    \end{center}
-\end{description}
+    Si se satisface la hipótesis de realizabilidad con respecto a $\mathcal{H}$, $\D$ y
+    $f$, entonces si utilizamos el algoritmo de aprendizaje con una cantidad
+    suficiente de datos, $m\geq m_{\mathcal{H}}(\epsilon,\delta)$, el algoritmo
+    regresa una hipótesis $h_{S}$ tal que, con una alta probabilidad ---es decir una probabilidad mayor a $(1-\delta)$--- se encuentra una error de generalización suficientemente preciso, $L_{D,f}(h_{s})\leq \epsilon.$
+\end{definition}
 
-Si se satisface la hipótesis de realizabilidad con respecto a $\mathcal{H}$, D y $f$, entonces:
-si utilizamos el algoritmo de aprendizaje con una cantidad suficiente de datos, $m\geq m_{\mathcal{H}}(\epsilon,\delta)$, el algoritmo regresa una $h_{s}$ tal que, con probabilidad $(1-\delta)$, satisface $L_{D,f}(h_{s})\leq \epsilon$.
-
-\begin{center}
-    \begin{minipage}[c]{0.7\linewidth}
-        $\epsilon$ : precisión (qué tan lejos va a estar el clasificador con respecto a el óptimo).\\
-        $\delta$ : parámetro de confianza (qué tan probable será que el clasificador que encontremos alcance el requerimiento de precisión).
-    \end{minipage}
-\end{center}
+En este sentido lso parámetros tienen la siguiente interpretación:
+\begin{itemize}
+    \item $\epsilon$ : precisión (qué tan lejos va a estar el clasificador con respecto a el óptimo).\\
+    \item $\delta$ : parámetro de confianza (qué tan probable será que el clasificador que encontremos alcance el requerimiento de precisión).
+\end{itemize}
 
 \subsection{¿Hay forma de evitar estas aproximaciones (en términos de $\epsilon$ y $\delta$)?}
 
-No, no se pueden evitar, ya que no tenemos acceso a $D$, sino sólo a una muestra $S$, y no podemos garantizar que una muestra sea representativa.
+No, no se pueden evitar, ya que no tenemos acceso a $\D$, sino sólo a una muestra $S$, y no podemos garantizar que una muestra sea representativa.
 
 $m\geq m_{\mathcal{H}}(\epsilon,\delta)$: complejidad muestral, es decir, el número mínimo de observaciones independientes de la distribución que necesitamos para poder establecer las garantías anteriores.
 
@@ -73,7 +67,7 @@ $m\geq m_{\mathcal{H}}(\epsilon,\delta)$: complejidad muestral, es decir, el nú
     \item [Observación]: si $\mathcal{H}$ es PAC aprendible, existen muchas posibilidades para $m_{\mathcal{H}}$, por lo que acotamos $m_{\mathcal{H}}$ para que sea la mínima función en el sentido de que nos dará el mínimo entero necesario, considerando $\epsilon$ y $\delta$.
     \item [Corolario]: toda clase finita de hipótesis ($\mathcal{H}$) es PAC aprendible si:
     $$m_{\mathcal{H}}(\epsilon,\delta)\leq\Bigg\lceil \frac{log(\frac{\vert\mathcal{H}\vert}{\delta})}{\epsilon}\Bigg\rceil$$
-    
+
 \end{description}
 
 \subsection{¿En qué sentido podemos generalizar PAC?}
@@ -101,7 +95,7 @@ Es decir, estamos ahora admitiendo la posibilidad de que dos elementos que tenga
 
 Por lo tanto, rompiendo con la hipótesis de realizabilidad, podemos definir una función de pérdida:
 
-$$L_{D}(h)\stackrel{def}{=}\mathbb{P}_{(x,y)\sim D}\Big(h(x)\neq y\Big)\stackrel{def}{=}D\Big(\{(x,y):h(x)\neq y\}\Big)$$
+$$L_{D}(h)\stackrel{\text{def}}{=}\mathbb{P}_{(x,y)\sim D}\Big(h(x)\neq y\Big)\stackrel{\text{def}}{=}D\Big(\{(x,y):h(x)\neq y\}\Big)$$
 
 $$L_{S}(h)=\frac{\vert\{i:h(x^{(i)})\neq y^{(i)}\vert}{m}, \hspace{8mm}(x^{(i)},y^{(i)})\stackrel{iid}{\sim}D$$\vspace{2mm}
 
@@ -114,30 +108,33 @@ Se puede ver como: $D_{y\mid x}$ sustituye a $f(x)=y$, ya que la relción entre 
 \newpage
 
 \begin{description}\setlength{\itemsep}{0pt} % Compact description list
-    \item [Definición]: Clasificador Bayesiano Óptimo
-        \begin{center}
-            \begin{minipage}[c]{0.7\linewidth}
-                Dada la distribución $D$ sobre $\mathcal{X}\times\{0,1\}$, el mejor predictor de etiquetas es:
-                \[   
-                f_{D}(x) = 
-                    \begin{cases}
-                        \text{1} \quad\text{si\quad $\mathbb{P}(y=1\mid x)\geq1/2$}\\
-                        \text{0} \quad\text{si\quad $\mathbb{P}(y=1\mid x)<1/2$}
-                    \end{cases}
-                \]
-                es óptimo porque cualquier otro clasificador tiene un error (riesgo) mayor que $f_{D}$.
-                $$g:\mathcal{X}\to\{0,1\}, \quad\text{entonces}\quad L_{D}(f_{D})\leq L_{D}(g)$$
-            \end{minipage}
-        \end{center}
-    \item [Definición]: Capacidad de aprendizaje PAC agnóstico
-        \begin{center}
-            \begin{minipage}[c]{0.7\linewidth}
-                Una clase de hipótesis es PAC aprendible en un sentido agnóstico si existe una función de complejidad muestral $m_{\mathcal{H}}(0,1)^2\to\mathbb{N}$ y un algoritmo de aprendizaje con la siguiente propiedad:
-                $$\forall(\epsilon,\delta)\in(0,1)\hspace{3mm}\text{y}\hspace{3mm}\forall D\hspace{2mm}\text{sobre}\hspace{2mm}\mathcal{X}\times{\{0,1\}}$$
-                si el algoritmo de aprendizaje utiliza un número suficiente de observaciones $m\geq m_{\mathcal{H}}(\epsilon,\delta)$ $iid$ de $D$, entonces encontraremos una hipótesis $h$ con probabilidad $(1-\delta)$ que satisface:
-                $$L_{D}(h)\leq \min_{h'\in\mathcal{H}}L_{D}(h')+\epsilon$$
-            \end{minipage}
-        \end{center}
+    \begin{definition}
+        [Clasificador Bayesiano Óptimo]
+        Dada la distribución $D$ sobre $\mathcal{X}\times\{0,1\}$, el mejor predictor de etiquetas es:
+        \[
+        f_{D}(x) =
+            \begin{cases}
+                \text{1} \quad\text{si\quad $\mathbb{P}(y=1\mid x)\geq1/2$}\\
+                \text{0} \quad\text{si\quad $\mathbb{P}(y=1\mid x)<1/2$}
+            \end{cases}\,.
+        \]
+        es óptimo porque cualquier otro clasificador tiene un error (riesgo) mayor que $f_{D}$.
+        $$g:\mathcal{X}\to\{0,1\}, \quad\text{entonces}\quad L_{D}(f_{D})\leq L_{D}(g)\,.$$
+    \end{definition}
+
+    \begin{definition}
+        [Capacidad de aprendizaje PAC agnóstico]
+        Una clase de hipótesis es PAC aprendible en un sentido agnóstico si existe una
+        función de complejidad muestral $m_{\mathcal{H}}(0,1)^2\to\mathbb{N}$ y un
+        algoritmo de aprendizaje con la siguiente propiedad:
+        $$\forall(\epsilon,\delta)\in(0,1)\hspace{3mm}\text{y}\hspace{3mm}\forall
+        D\hspace{2mm}\text{sobre}\hspace{2mm}\mathcal{X}\times{\{0,1\}}$$ si el
+        algoritmo de aprendizaje utiliza un número suficiente de observaciones $m\geq
+        m_{\mathcal{H}}(\epsilon,\delta)$ $iid$ de $D$, entonces encontraremos una
+        hipótesis $h$ con probabilidad $(1-\delta)$ que satisface: $$L_{D}(h)\leq
+        \min_{h'\in\mathcal{H}}L_{D}(h')+\epsilon$$
+    \end{definition}
+
 \end{description}
 
 \begin{itemize}
@@ -180,11 +177,6 @@ Ahora: conjunto objetivo $\mathcal{Y}$
 
 
 %>>>>>> END OF YOUR CONTENT
-
-%>>>>>>>>>> take acknowledgements out
-\section*{Agradecimientos} Este {\emph template} se ha adaptado y traducido del
-provisto en la clase ACM 204 (Otoño 2017) por el profesor Joel Tropp.
-
 
 \bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
 \bibliography{template} % <<< RENAME TO "lecture_XX"
