@@ -1,0 +1,249 @@
+---
+title: "Máquinas de Soporte Vectorial: El truco del kernel"
+author: Alfredo Garbuno
+---
+    
+    ```{r setup, include = FALSE}
+library(tidyverse)
+library(rsample)
+library(tidymodels)
+library(e1071)
+library(kernlab)
+
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE, 
+                      out.width = "99%")
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+                  axis.text = element_blank())
+```
+
+```{r}
+set.seed(280511)
+dat.grid <- expand.grid(x.1=seq(-4,6,0.1), x.2=seq(-4,4,0.1))
+ 
+sim.data <- function(n){
+    dat.pos.1 <- data.frame(x.1=rnorm(n,0,1), x.2=rnorm(n,0,1))
+    dat.pos.1$clase <- 1
+    dat.pos.2 <- data.frame(x.1=rnorm(n,4,0.5), x.2=rnorm(n,0,0.5))
+    dat.pos.2$clase <- 1
+    dat.pos <- rbind(dat.pos.1, dat.pos.2)
+    dat.neg.1 <- data.frame(x.1=rnorm(n,-2,1), x.2=rnorm(n,-2,1))
+    dat.neg.2 <- data.frame(x.1=rnorm(n,3,1.2), x.2=rnorm(n,1,1))
+    dat.neg <- rbind(dat.neg.1, dat.neg.2)
+    dat.neg$clase <- 0
+    dat.out <- rbind(dat.pos, dat.neg)
+    dat.out$clase <- factor(dat.out$clase)
+    dat.out
+}
+dat.entrena <- sim.data(150)
+dat.prueba <- sim.data(5000)
+ggplot(dat.entrena, aes(x=x.1, y=x.2, colour=factor(clase)))+geom_point(size=3)
+```
+
+Consideramos primero kernel radial (gaussiano). Conforme aumentamos el costo,
+vemos que el ajusta más fuerte para encontrar fronteras que clasifican correctamente:
+
+```{r}
+svm.1 <- svm(clase ~x.1 + x.2, data=dat.entrena, kernel = 'radial', cost=0.00001, gamma=1 )
+svm.2 <- svm(clase ~x.1 + x.2, data=dat.entrena, kernel = 'radial', cost=100, gamma=1 )
+svm.3 <- svm(clase ~x.1 + x.2, data=dat.entrena, kernel = 'radial', cost=1000000, gamma=1 )
+
+dat.grid$pred.1 <- predict(svm.1, newdata = dat.grid)
+dat.grid$pred.2 <- predict(svm.2, newdata = dat.grid)
+dat.grid$pred.3 <- predict(svm.3, newdata = dat.grid)
+```
+
+
+```{r, fig.asp = .4}
+g1 <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.1)) + 
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    labs(title='Costo chico') + 
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase)))
+
+g2 <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.2))+
+        geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    labs(title='Costo mediano') + 
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase)))
+
+g3 <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.3))+
+        geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    labs(title='Costo grande') + 
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase)))
+
+
+g1 + g2 + g3
+```
+
+El parámetro gamma (que es $\gamma=1/\sigma^2$) establece que tan rápido caen
+las *similitudes* o productos punto entre datos. gamma grande implica que la
+similitud decae más rápidamente:
+
+
+```{r}
+svm.1 <- svm(clase ~x.1 + x.2, data=dat.entrena, kernel = 'radial', cost=10, gamma=0.1 )
+svm.2 <- svm(clase ~x.1 + x.2, data=dat.entrena, kernel = 'radial', cost=10, gamma=10 )
+svm.3 <- svm(clase ~x.1 + x.2, data=dat.entrena, kernel = 'radial', cost=10, gamma=100 )
+
+dat.grid$pred.1 <- predict(svm.1, newdata = dat.grid)
+dat.grid$pred.2 <- predict(svm.2, newdata = dat.grid)
+dat.grid$pred.3 <- predict(svm.3, newdata = dat.grid)
+```
+
+```{r, fig.asp = .4}
+g1 <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.1)) + 
+    geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    labs(title='gamma = 0.1') + 
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase)))
+
+g2 <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.2))+
+        geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    labs(title='gamma = 10') + 
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase)))
+
+g3 <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.3))+
+        geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    labs(title='gamma = 100') + 
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase)))
+
+
+g1 + g2 + g3
+```
+
+Seleccionamos usando estos dos parámetros. Por ejemplo, usando validación cruzada:
+
+```{r}
+
+validacion_particion <- vfold_cv(dat.entrena, v = 5)
+
+# tiene información de índices en cada "fold" o "doblez"vuelta"
+validacion_particion
+
+```
+
+
+```{r}
+
+svm_rec <- 
+  recipe(clase ~x.1 + x.2, data = dat.entrena) %>%
+  step_normalize(all_predictors())
+
+svm_spec <- 
+  svm_rbf(cost = tune(), rbf_sigma = tune()) %>% 
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+svm_wflow <- 
+  workflow() %>% 
+  add_model(svm_spec) %>% 
+  add_recipe(svm_rec)
+
+```
+
+```{r}
+cost()
+rbf_sigma()
+```
+
+
+```{r}
+# construimos conjunto de parámetros
+bf_set <- parameters(cost(     range = c(-3, 3), trans = log10_trans()),
+                     rbf_sigma(range = c(-3, 2), trans = log10_trans()))
+
+# construimos un grid para probar valores individuales
+bf_grid <- grid_regular(bf_set, levels = 15)
+# bf_grid <- expand.grid(cost = seq(1, 10, by = 3), 
+#                        rbf_sigma = seq(1, 10, by = 3))
+bf_grid
+```
+
+```{r, cache = TRUE}
+
+metricas_vc <- tune_grid(svm_wflow,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(accuracy, f_meas), 
+    control = control_grid(verbose = TRUE) )
+
+metricas_vc %>% unnest(.metrics)
+
+```
+
+```{r}
+
+metricas_resumen <- metricas_vc %>% collect_metrics()
+metricas_resumen
+
+```
+```{r}
+mejor <- select_best(metricas_vc, metric = "accuracy")
+
+g_1 <- ggplot(metricas_resumen %>% 
+                  filter(.metric == "accuracy") %>% 
+                  mutate(accuracy.mean = mean),
+              aes(x = rbf_sigma, 
+                  y = cost)) +
+  geom_raster(aes(fill = accuracy.mean)) +
+  sin_lineas + 
+  scale_x_log10() + scale_y_log10() 
+  # geom_hline(yintercept = mejor$cost, lty = 2, color = 'white') + 
+  #   geom_vline(xintercept = mejor$rbf_sigma, lty = 2, color = 'white') 
+
+g_2 <- ggplot(metricas_resumen %>% 
+                  filter(.metric == "f_meas") %>% 
+                  mutate(accuracy.mean = mean),
+              aes(x = rbf_sigma, 
+                  y = cost)) +
+  geom_raster(aes(fill = accuracy.mean)) +
+  sin_lineas + 
+  scale_x_log10() + scale_y_log10() 
+
+g_1 + g_2
+
+
+```
+
+```{r}
+metricas_vc %>% show_best(metric = "accuracy")
+```
+
+
+```{r}
+
+modelo_final <- 
+    svm_wflow %>%
+    finalize_workflow(mejor) %>%
+    fit(data = dat.entrena)
+
+modelo_final
+
+```
+
+```{r}
+
+dat.grid$pred.cv <- predict(modelo_final, new_data = dat.grid) %>% pull(.pred_class)
+
+g.cv <- ggplot(dat.grid, aes(x=x.1, y=x.2, fill = pred.cv))+
+        geom_raster(alpha = .3) + sin_lineas + sin_leyenda +
+    geom_point(data=dat.entrena, aes(fill = clase, colour=factor(clase))) + 
+    ggtitle("Modelo resultante de validación cruzada")
+
+g.cv
+
+```
