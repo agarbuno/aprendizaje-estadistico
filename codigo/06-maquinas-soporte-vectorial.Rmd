@@ -122,7 +122,11 @@ La interfaz de `R` para ajustar modelos SVM (`kernlab` y `e1071`) utilizan una
 formulación distinta a la que vimos en clase. El objetivo es minimizar la
 función
 
-$$ C \times L_S(w,b) + \|w\|^2\,,$$
+$$ L_S(w,b) + \lambda \times \|w\|^2\,,$$
+
+$$ C \times L_S^H(w,b) + \|w\|^2\,,$$
+
+$$\max \{0, 1 - y (\langle w, x\rangle + b)\} = \xi \geq 0$$
 
 donde $C$ lo interpretamos como un control sobre la importancia de la función 
 de pérdida en relación con la regularización. Es por esto, que $C = \text{Costo}.$
@@ -176,7 +180,7 @@ dat.prueba.2$clase <- -1
 dat.prueba <- rbind(dat.prueba.1, dat.prueba.2)
 dat.prueba$clase <- factor(dat.prueba$clase)
 
-c(C.chicho = mean(predict(svm.1, newdata = dat.prueba)!=dat.prueba$clase), 
+c(C.chico = mean(predict(svm.1, newdata = dat.prueba)!=dat.prueba$clase), 
   C.mediano = mean(predict(svm.2, newdata = dat.prueba)!=dat.prueba$clase), 
   C.grande = mean(predict(svm.3, newdata = dat.prueba)!=dat.prueba$clase))
 
@@ -267,7 +271,7 @@ cells %>% head()
 ```
 
 ```{r}
-
+ 
 set.seed(33)
 cell_folds <- vfold_cv(cells)
 
