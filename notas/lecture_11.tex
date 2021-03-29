@@ -1,0 +1,120 @@
+
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 11:               % UPDATE LECTURE NUMBER
+    Aprendizaje Estadístico}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Febrero 23, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable: José Pablo Sánchez
+  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+\section{Clase 11: Aprendizaje no uniforme (NUL)}
+\label{sec:introduction}
+Vimos que en el modelo PAC establecíamos una relacion entre el tamaño de muestra (m) y los parámetros ($\epsilon$,$\delta$). Estos parámetros son uniformes con respecto a f y D.
+\\
+\hspace*{20mm}  $\Rightarrow{} \text{las clases son limitadas} (VCdim(\mathcal{H}) < \infty$
+\\
+- Ahora buscamos cómo relajar la noción de aprendizaje
+\\
+- NUL $\longrightarrow$ incorpora una hipótesis $(h \in \mathcal{H})$ contra la que estamos comparando. Esto relaja PAC agnóstico.
+\\
+- Caracterizar: una unión numerable de posibles clases donde cada elemento es uniforme.
+\\
+- Esto da lugar al paradigma de minimización de riesgo estructural (SRM)
+
+\subsection{Capacidad de aprendizaje no uniforme (NUL)}
+\textbf{Definición: }Una Hipótesis $(h)$ es ($\epsilon,\delta$)-competitiva con respecto a ${h}'$ si con probabilidad $\geq 1 - \delta$ se cumple:
+\begin{equation}
+L_{D}(h) \leq L_{D}({h}') + \epsilon
+\end{equation}
+\newline \textbf{Definición: }Una clase $\mathcal{H}$ es aprendible no uniformemente (NUL) si existe un algoritmo de aprendizaje, A, y una función $M_{H}^{NUL}: (0,1)^2\times H \longrightarrow \mathbb{N}$ tal que $(\epsilon,\delta)\in(0,1)^2$ y $h \in \mathcal{H}$.
+\newline Si $m \geq M_{H}^{NUL}(\epsilon,\delta,h)$ entonces $\forall D$ con probabilidad $\geq 1 - \delta$ bajo $S \sim D^m$ tenemos que
+\begin{equation}
+L_{D}(A(S)) \leq L_{D}(h) + \epsilon
+\end{equation}
+
+\subsection{Caracterización de NUL}
+\begin{theorem}
+\newline Una clase $\mathcal{H}$ de clasificadores binarios es NUL sí y sólo sí es una unión numerable de clases PAC agnósticas.
+\end{theorem}
+\begin{theorem}
+\newline Sea $\mathcal{H}$ una clase tal que $\mathcal{H} = \bigcup\limits_{n \in \mathbb{N}}\mathcal{H}_{n}$ donde cada $\mathcal{H}_{n}$ es uniforme. Entonces $\mathcal{H}$ es NUL.
+\end{theorem}
+
+\underline{Ejemplo}
+\newline Sean $\mathcal{H}_{n} = \{\text{clasificadores polinomios de grando = n}\}$, es decir $h \in \mathcal{H}_{n},$ entonces $h(x) = signo(P_n(x))$
+\newline Sea $\mathcal{H} = \bigcup\limits_{n = 1}\mathcal{H}_{n} = \{\text{todos los polinomios posibles} \in \mathbb{R}\}$, luego es fácil ver que $VCdim(\mathcal{H}) = \infty$ y que $VCdim(\mathcal{H}_{n}) \leq n + 1$
+\newline \hspace*{20mm} $\therefore \mathcal{H}$ no será PAC agnóstico, pero, por los teoremas anteriores, $\mathcal{H}$ es NUL
+
+\subsection{Minimización de Riesgo Estructural (SRM)}
+\newline Si representamos nuestro espacio de posibles hipótesis $\mathcal{H} = \bigcup\limits_{n \in \mathbb{N}}\mathcal{H}_{n}$ tendremos que asignar un $W_n$ (peso) para cada $\mathcal{H}_n$
+\\
+\newline \textbf{Definición:} Sea $\mathcal{H} = \bigcup\limits_{n \in \mathbb{N}}\mathcal{H}_{n}$ con cada $\mathcal{H}_{n}$ uniforme con $m_{H}^{UC}(\epsilon,\delta)$ y definimos $\varepsilon_n:\mathbb{N} \times (0,1) \longrightarrow (0,1)$ como:
+\begin{equation}
+\varepsilon_n(m,\delta) = min.\{\epsilon \in (0,1):m_{H}^{UC}(\epsilon,\delta) \leq m\}
+\end{equation}
+
+\newline \underline{Nota:} nos fijamos en una cota mínima posible usando n obervaciones.
+\\
+Si utilizamos la definición de convergencia uniforme y la definición de $\varepsilon_n$ tenemos que $\forall (\epsilon,\delta)$ con probabilidad $\geq 1 - \delta$ bajo $S \sim D^m$ se satisface que
+\begin{equation}
+    \forall h \in \mathcal{H}_n,\text{ }\left | L_{D}(h) - L_{S}(h)\right |\leq\varepsilon_n(m,\delta)
+\end{equation}
+\\
+Tomemos ahora $W_n$ tal que $\sum W_n \leq 1$
+\\
+Si tenemos N posibles candidatos $\mathcal{H}_n$ podríamos considerar cada familia con el mismo peso $W_n = \frac{1}{N}$, más esto no es posible en el caso infinito
+
+\begin{theorem}
+ Sea $W:\mathbb{N} \longrightarrow [0,1]$ tal que $ \sum_{n=1}^{\infty} W(n) \leq 1$.
+ \\Sea $\mathcal{H} = \bigcup\limits_{n = 1}^{\infty}\mathcal{H}_{n}$ con cada $\mathcal{H}_{n}$ uniforme con $m_{H_n}^{UC}$.
+\\ Sea $\varepsilon_n$ como arriba, entonces $\forall \delta\in(0,1)$ y D con probabilidad $\geq 1 - \delta$ sobre
+$S \sim D^m$ se satisface de manera simultanea, es decir $\forall n \in \mathbb{N}$ y $h \in \mathacal{H}_n$, la desigualdad \begin{equation}
+    \left | L_{D}(h) - L_{S}(h)\right |\leq\varepsilon_n(m,W_n\delta)
+\end{equation}
+\newline \hspace*{10mm} $\therefore \forall\delta \in (0,1)$ y $D$ con probabilidad $\geq 1 - \delta$ se cumplirá $\forall h \in \mathcal{H}$
+\begin{equation}
+     L_{D}(h) \leq L_{S}(h) + \min\varepsilon_n(m,W_n\delta)
+\end{equation}
+\newline Notemos que $n = n(h) = \min\{n: h \in \mathcal{H}_n\}$
+\end{theorem}
+\begin{theorem}
+ Sea $\mathcal{H} = \bigcup\limits_{n = 1}^{\infty}\mathcal{H}_{n}$ con cada $\mathcal{H}_{n}$ uniforme con $m_{H_n}^{UC}$.
+ \\Sea $W:\mathbb{N} \longrightarrow [0,1]$ tal que $W(n) = \frac{6}{n^2\pi^2}$.
+ \\Entonces $\mathcal{H}$ es NUL usando el SRM con
+ \begin{equation}
+     m_{H}^{NUL}(\epsilon,\delta,h) \leq m_{H}^{UC}(\frac{\epsilon}{2},W(n)\delta).
+ \end{equation}
+
+\end{theorem}
+
+\section{Resumen}
+\newline - Nuestra cota en el error de generalización se basa en evidencia empírica (error de entrenamiento)
+\newline - No podemos establecer un tamaño de muestra suficiente, y dependerá del mejor candidato $h \in \mathcal{H} \implies$ la calidad de nuestra respuesta depende de nuestras preferencias.
+\newline - Nos Ayudará a seleccionar modelos cuando nuestra información previa es incompleta
+
+
+
+\end{document}

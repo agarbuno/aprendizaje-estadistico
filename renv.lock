@@ -254,6 +254,13 @@
       "Repository": "CRAN",
       "Hash": "01c82e3b053eb7660a8ace8d932265b8"
     },
+    "e1071": {
+      "Package": "e1071",
+      "Version": "1.7-6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "9a374a10e3c0dbf1a0e207af019bfcea"
+    },
     "ellipsis": {
       "Package": "ellipsis",
       "Version": "0.3.1",
@@ -443,6 +450,13 @@
       "Repository": "CRAN",
       "Hash": "98138e0994d41508c7a6b84a0600cfcb"
     },
+    "kernlab": {
+      "Package": "kernlab",
+      "Version": "0.9-29",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "46b2f61dadae64579e4cbe8af3c088d6"
+    },
     "kknn": {
       "Package": "kknn",
       "Version": "1.3.1",
@@ -599,10 +613,15 @@
     },
     "parsnip": {
       "Package": "parsnip",
-      "Version": "0.1.5",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "a6e96ada957f305bacbb4737f577b42b"
+      "Version": "0.1.5.9002",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "tidymodels",
+      "RemoteRepo": "parsnip",
+      "RemoteRef": "master",
+      "RemoteSha": "110257f3c1566043239e6c08e6d16d81cb4b5116",
+      "Hash": "a550179faefe0de3ff2d0f06d92b9c8a"
     },
     "patchwork": {
       "Package": "patchwork",
@@ -680,6 +699,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "14dc9f7a3c91ebb14ec5bb9208a07061"
+    },
+    "proxy": {
+      "Package": "proxy",
+      "Version": "0.4-25",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "29a4dd5b440af584aed8c448d8eefb6e"
     },
     "ps": {
       "Package": "ps",

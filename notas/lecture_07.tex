@@ -1,0 +1,254 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 07:               % UPDATE LECTURE NUMBER
+    Modelos Lineales}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Febrero 04, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Jordi Legorreta Montaño  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\section{Modelos Lineales}
+\label{sec:ML}
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    \item [Antes]: modelo de clasificación por semiespacios
+    \begin{center}
+        \begin{minipage}[c]{0.7\linewidth}
+            (También conocido como discriminación lineal).\\
+            Algoritmo para entrenarlo: perceptrones.\\
+            \textbf{NOTA}: No confundir modelo con algoritmo.\\
+            $\hat{y}\in\{0,1\}$\\
+            $y\langle w,x\rangle \geq1\hspace{2mm}\leftarrow$\hspace{2mm} margen de clasificación\\
+            $y\langle w,x\rangle>0$\\
+            $w^{(t+1)}=w^{(t)}+y^{(i)}x^{(i)}$
+        \end{minipage}
+    \end{center}
+\end{description}
+
+El algoritmo, lo que busca, es que después de cada iteración, los casos mal clasificados sean bien clasificados.
+
+$$y^{(i)}\langle w^{(t+1)},x^{(i)}\rangle\geq0
+
+Dado el criterio anterior, ¿cuál será la función de pérdida?\\
+
+\subsection{Modelo de Regresión}
+
+Sirven para describir una relación entre un conjunto de características $x\in\mathcal{X}\subseteq\mathbb{R}^{p}$, y la respuesta (en este caso) será $y\in\mathbb{R}$.
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    \item [x]: variables independientes, explicativas o exploratorias.
+    \item[y]: variable dependiente o variable objeto.
+    \begin{center}
+        \begin{minipage}[c]{0.7\linewidth}
+            $y=f(x)\hspace{2mm}\leftarrow\hspace{2mm}$ relación entre $\mathcal{X}$ e $\mathcal{Y}$
+        \end{minipage}
+    \end{center}
+\end{description}
+
+Queremos encontrar $h:\mathbb{R}^{d}\to\mathbb{R}$, la mejor aproximación a dicha relación.
+
+\begin{center}
+    \begin{minipage}[c]{0.7\linewidth}
+        $\mathcal{H}_{reg}=L_{p}=\{h_{w,b}:w\in\mathbb{R}^{p},\hspace{2mm}b\in\mathbb{R},\hspace{2mm}h_{w,b}(x)=\langle x,w\rangle+b\}$\\
+        
+        La ``mejor'' $h\in\mathcal{H}_{reg}$ es la que minimice el error:\\
+        
+        $l(\hat{y},y)=\frac{1}{2}(\hat{y}-y)^2$\\
+        $l(w,x,y)=\frac{1}{2}(\langle w,x\rangle-y)^2$,\hspace{2mm} $w\in\mathbb{R}^{p+1}$\\
+        
+        $L_{s}(h)=L_{s}(w)=\frac{1}{2m}\sum_{i=1}^{m}(\langle w,x^{(i)}\rangle-y^{(i)})^2$
+    \end{minipage}
+\end{center}
+
+Con la función de perdida anterior, el principio de minimización de riesgo empírico nos dice que:
+
+\begin{center}
+    \begin{minipage}[c]{0.7\linewidth}
+        $ERM\to h^{*}=h_{w}^{*}\mid w^{*}=$ argmin $L_{s}(w)$\\
+        
+        $L_{s}(w)=\frac{1}{2m}\|\mathbb{X}w-y\|^2$\\
+        
+        $\mathbb{X}$ &= \begin{bmatrix}
+            -$X^{(1)T}-$ \\
+            -$X^{(2)T}-$ \\
+            \vdots \\
+            -$X^{(m)T}-$
+            \end{bmatrix}
+            \in\mathbb{R}^{mxp}, \hspace{4mm}
+        y &= \begin{bmatrix}
+            y^{1} \\
+            y^{2} \\
+            \vdots \\
+            y^{m}
+            \end{bmatrix}
+            \in\mathbb{R}^{m}
+    \end{minipage}
+\end{center}
+
+Ventajas de la función $L_{s}(w)$:
+\begin{itemize}
+    \item Función diferenciable, por lo que podemos calcular la función gradiente parametrizada por $w$.
+\end{itemize}
+
+$$\nabla_{w}L_{s}(w)=\nabla_{w}(\frac{1}{2m}\|\mathbb{X}w-y\|^2)=\frac{2}{2m}(\mathbb{X}w-y)^{T}\mathbb{X}$$
+
+$$\nabla_{w}L_{s}(w)=0\iff\frac{1}{m}(\mathbb{X}w-y)^{T}\mathbb{X}=0\iff w^{*}=(\mathbb{X}^{T}\mathbb{X})^{-1}\mathbb{X}^{T}y$$
+
+$$w^{*}=A^{-1}b\iff Aw^{*}=b$$
+
+¿Qué condiciones debe satisfacer la matriz A?
+
+\begin{itemize}
+    \item Que sea invertible
+    \item Que sea positiva definida
+    \begin{enumerate}[label=(\roman*)]
+        \item $m>p$
+        \item No haya atributos linealmente dependientes
+    \end{enumerate}
+    \item $A^{\dagger}$ es la pseudoinversa
+    \begin{center}
+    \begin{minipage}[c]{0.7\linewidth}
+        $A=vDv^{T}$,\hspace{2mm} donde $vv^{T}=v_{T}v=\mathbb{I}_{p}$\\
+        $A^{\dagger}=vD^{\dagger}v^{T}$\\
+        $D=diag(d_{1},d_{2},...,d_{p})$\\
+        $D^{\dagger}=diag(1/d_{1},...,1/d_{k},0,...,0)$
+    \end{minipage}
+\end{center}
+\end{itemize}
+
+$ERM\hspace{2mm}\rightarrow\hspace{2mm}$ solución: $w^{*}=A^{\dagger}x^{T}y$
+
+Concluyendo: este problema de regresión tiene una solución y se puede encontrar de manera analítica.
+
+\subsection{Conectar ERM con estimadores de máxima verosimilitud}
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    \item [$y=h_{w}(x)+\epsilon$]: consideramos cierta desviación
+    \begin{center}
+        \begin{minipage}[c]{0.7\linewidth}
+            $\epsilon\sim N(0,\sigma^{2})$\\
+            $\epsilon$: error de estimación, discrepancia que existe entre el modelo lineal y los datos.\\
+            $y=\hat{y}+\epsilon$
+        \end{minipage}
+    \end{center}
+    \item [Definición]: $\pi(y\mid x,w)=\frac{1}{\sqrt{2\sigma^{2}\pi}}e^{-\frac{1}{2\sigma^{2}}(y-\langle w,x\rangle)^2}$,\hspace{2mm} donde\hspace{2mm} $y\sim N(\langle w,x\rangle,\sigma^{2})$
+    \begin{center}
+        \begin{minipage}[c]{0.7\linewidth}
+            $log\pi(y\mid x,w)=-\frac{1}{2\sigma^{2}}(y-\langle w,x\rangle)^2+c$\\
+            $l(\hat{y},y)=-log\pi(y\mid x,w)$\\
+            $L_{s}(w)=\frac{1}{m}\sum_{i=1}^{m}l(\hat{y}^{(i)},y^{(i)})=-\frac{1}{m}\sum_{i=1}^{m}log\pi(y\mid x,w)$\\
+            $-\frac{1}{m}\sum_{i=1}^{m}log\pi(y\mid x,w)=-l_{m}(w)$\\
+            $\mathcal{L}_{m}(w)=\Pi_{i=1}^{m}\pi(y^{(i)}\mid x^{(i)},w)\hspace{2mm}\leftarrow\hspace{2mm} verosimilitud$\\
+            $l_{m}(w)=log(\mathcal{L}_{m}(w))=\frac{1}{m}\sum_{i=1}^{m}log\pi(y^{(i)}\mid x^{(i)},w)$\\
+            $\frac{1}{m}\sum_{i=1}^{m}log\pi(y^{(i)}\mid x^{(i)},w)\hspace{2mm}\leftarrow\hspace{2mm} log-verosimilitud$\\
+            $w_{ERM}^{*}=$ argmin $L_{s}(w)=$ argmax $l_{m}(w)=\hat{w}^{MLE}$
+        \end{minipage}
+    \end{center}
+\end{description}
+
+En el contexto de regresión lineal con errores gaussianos, el principio de minimización de riesgo empírico es equivalente a estimar un parámetro como si fuera un problema estadístico de máxima verosimilitud.
+
+\subsection{Conexión de ERM con Teoría de la Información}
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    \item [Teoría de la información]: Codificar, decodificar, transmitir y manipular paquetes de información en canales de comunicación\cite{mackay}.
+\end{description}
+
+Lo que más nos interesa en Teoría de la Información es:
+
+\begin{enumerate}[label=(\roman*)]
+    \item Entropía: $H(P)=\sum_{j}-p_{j}log(p_{j})$, la información con la que podemos codificar la realización de un evento aleatorio a través de una distribución $P$.\\
+    "Sorpresas": los eventos de probabilidad muy bajos, cuando ocurren, nos sorprenden, porque no los esperamos.
+    $$log(\frac{1}{p_{j}})=-log(p_{j})$$\\
+    De alguna manera la entropía es el valor esperado de la sorpresa.
+    \item Entropía cruzada: $H(P,Q)=\sum_{j}-p_{j}log(q_{j})$, los eventos aleatorios se están generando con respecto a una distribución $P$ y los estamos codificando utilizando una distribución $Q$.\\
+    Por la desigualdad de Jensen, tenemos que: $H(P)=H(P,P)\leq H(P,Q)$
+    \item Entropía cruzada relativa: $D_{kl}(P\|Q)=H(P,Q)-H(P,P)\geq0$, donde $D_{kl}$ se conoce como "Divergencia" de Kullback-Leibler
+\end{enumerate}
+
+Entonces: $L_{s}(h)=\sum_{i=1}^{m}-log\pi(y^{(i)}\mid x^{(i)},w)\frac{1}{m}=H(D^{m},D_{w}^{m})$, entropía cruzada entre la distribución empírica que generan los datos $D^{m}$ y una distribución de $m$ datos utilizando una codificación basada en $w$.
+
+Por lo tanto, $w^{*}=$ argmin $L_{s}(h)=$ argmin $H(D^{m},D_{w}^{m})$
+
+\subsection{Familias Polinomiales}
+
+$P(x)=a_{0}+a_{1}x+...+a_{p}x^{p}=\langle a,\Phi(x)\rangle$, donde $a=(a_{0},a_{1},...,a_{p})^{T}\in\mathbb{R}^{p+1}$ y $\Phi(x)=(1,x,...,x^{p})\in\mathbb{R}^{p+1}$.
+
+$a^{*}\hspace{2mm}\leftarrow\hspace{2mm}$ utilizamos $ERM$ con pérdida cuadrática.
+
+Ya no son sólo rectas, sino que ahora trabajamos con polinomios.
+
+\section{Modelo de Regresión en clasificación (binaria)}
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    $h:\mathbb{R}^{p}\to[0,1]$, donde $h(x)$ es la probabilidad de obtener $y=1$.\\
+    $\sigma(x)=\frac{e^{x}}{1+e^{x}}=\frac{1}{1+e^{-x}}$, donde $\sigma(x)$ es la función sigmoide, la cual nos ayuda a comprimir la recta real, de tal forma que este problema de usar modelos de regresión para clasificación le llamamos:
+\end{description}
+
+\textbf{Regresión logística}: $\mathcal{H}_{log}=\sigma_{w}L_{p}\{\sigma_{w}:w\in\mathbb{R}^{p},\hspace{2mm}\sigma_{w}(x)=\sigma(\langle x,w\rangle)\}$
+
+\begin{itemize}
+    \item Si $\langle w,x\rangle$ es muy grande, entonces $\sigma_{w}(x)\approx1$
+    \item Si $\langle w,x\rangle$ es muy pequeño (en términos negativos), entonces $\sigma_{w}(x)\approx0$
+    \item Si $\langle w,x\rangle=0$, entonces $\sigma_{w}(x)=\frac{1}{2}$
+\end{itemize}
+
+¿Qué función de pérdida utilizar?
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    $\sigma_{w}(x)=\mathbb{P}(y=1\mid x,w)\implies y\sim Bernoulli(\sigma_{w}(x))$\\
+    Verosimilitud de una Bernoulli: $(\sigma_{w}(x))^{y}(1-\sigma_{w}(x))^{1-y}$\\
+    log-verosimilitud: $ylog(\sigma_{w})+(1-y)log(1-\sigma_{w})$
+\end{description}
+
+Si $\sigma_{w}(x)=\frac{e^{w^{T}x}}{1+e^{w^{T}}x}$, entonces:
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    log-verosimilitud: $-log(1+e^{-y\langle w,x\rangle})$,\hspace{2mm} donde $y\in\{1,-1\}$\\
+    $l(\hat{y},y)=log(1+e^{-\hat{y}\langle w,x\rangle})$,\hspace{2mm} donde $\hat{y}=\sigma_{w}(x)$\\
+    $L_{s}(w)=\frac{1}{m}\sum_{i=1}^{m}log(1+e^{-y^{(i)}\langle w,x^{(i)}\rangle})$
+\end{description}
+
+
+%>>>>>> END OF YOUR CONTENT
+
+%>>>>>>>>>> take acknowledgements out
+\section*{Agradecimientos} Este {\emph template} se ha adaptado y traducido del
+provisto en la clase ACM 204 (Otoño 2017) por el profesor Joel Tropp.
+
+
+%\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+%\bibliography{lecture_07} % <<< RENAME TO "lecture_XX"
+
+\begin{thebibliography}{}
+
+\bibitem{mackay}
+Mackay 2003: Information Theory, Inference and Learning.
+
+\end{thebibliography}
+
+
+\end{document}

@@ -11,6 +11,7 @@ library(rsample)
 library(tidymodels)
 
 library(knitr)
+library(kknn)
 library(ggplot2)
 library(dplyr)
 library(tidyr)

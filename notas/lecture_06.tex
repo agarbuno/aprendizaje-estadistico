@@ -1,0 +1,134 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 6:               % UPDATE LECTURE NUMBER
+    Modelos lineales}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Febrero 2, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Carlos Enrique Lezama Jacinto  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle
+
+\section{Predictores lineales}
+
+En primer lugar, nos enfocaremos en predictores lineales\footnote{Inicialmente, utilizaremos la \emph{minimización de riesgo empírico} (ERM, por sus siglas en inglés) como método de aprendizaje preferido.} puesto que son fáciles de interpretar y se ajustan razonablemente bien a los datos de entrenamiento. Además, son muy intuitivos y presentan las bases para modelos más complejos.
+
+Algunos de los modelos y algortimos que estudiaremos en las próximas clases son:
+
+\vspace{10px}
+
+\begin{minipage}[c]{\linewidth}
+	\begin{center}
+		 \begin{tabu}{ccc}
+			\toprule
+		    \textbf{Modelos} & \textbf{Algoritmos} & \textbf{Tarea} \\
+            \midrule
+		    Semiespacios & Programación lineal (LP), perceptrones & Clasificación \\
+		    Regresión lineal & Mínimos cuadrados & Regresión \\
+		    Regresión logística & Métodos iterativos & Clasificación \\
+            \bottomrule
+        \end{tabu}
+	\end{center}
+\end{minipage}
+
+\vspace{10px}
+
+\begin{definition}[Clase de transformaciones afines]
+	Definimos la clase de transformaciones afines como:
+	\[
+		L_p = \{ h_{\vct{w}, b}\ :\ \vct{w} \in \R^p,\ b \in \R \}
+	,\]
+	donde
+	\[
+		h_{\vct{w}, b} (\vct{x}) = \langle \vct{w}, \vct{x} \rangle + b = \left( \sum_{i = 1}^{p} w_i x_i \right) + b
+	.\]
+\end{definition}
+
+Las clases que veremos a continuación son composiciones de una función $\phi : \R \to \mathcal{Y}$ con $L_p$. En un caso de \emph{clasificación binaria}, podemos proponer:
+
+\begin{center}
+\begin{equation*}
+	\phi\left( h(x) \right) =
+	\begin{cases}
+		1, & h(x) > 0 \\
+		0, & \text{en otros casos}
+	\end{cases}
+\end{equation*}
+\end{center}
+
+Por otro lado, para problemas de \emph{regresión}, nuestra $\phi$ fácilmente puede ser la función identidad, i.e. $\phi\left( h\left( x \right) \right) = h\left( x \right)$.
+
+\subsection{Modelo de semiespacios}
+
+\begin{definition}[Clase de semiespacios]
+	La clase de semiespacios, diseñada para problemas de clasificación binaria con $\mathcal{X} = \R^p$ y  $\mathcal{Y} = \{-1, +1\}$, la definimos como:
+	 \[
+		 HS_p = \text{sgn} \circ L_p = \{\text{sgn} \left( \langle \vct{w}, \vct{x} \rangle \right) : \vct{w} \in \R^p \}
+	.\]
+\end{definition}
+
+\newpage
+
+Dada la definición anterior, podemos considerar las siguientes tres situaciones:
+
+\begin{enumerate}
+	\item\label{itm:separable} Casos separables al asumir que se cumple la \emph{hipótesis de realizabilidad}.
+	\item Casos no-separables en un sentido agnóstico.
+	\item[\textcolor{red}{3.}] Cuando una función lineal no es suficiente y necesitamos una transformación no lineal.
+\end{enumerate}
+
+\subsubsection{Programación lineal}
+
+Los programas lineales son problemas que pueden expresarse como la maximización de una función lineal sujeta a restricciones lineales. Es decir,
+
+\begin{center}
+	\begin{equation*}
+		\begin{aligned}
+			\max_{\vct{w} \in \R_p} \qquad & \langle \vct{u}, \vct{w} \rangle \\
+			\text{sujeto a} \qquad & A\vct{w} \ge \vct{v}
+		\end{aligned}
+	\end{equation*}
+\end{center}
+
+\begin{remark}
+	Sea $\displaystyle S = \left\{ \left( \vct{x}^{(i)}, y^{(i)} \right) \right\}_{i = 1}^{m}$ un conjunto de entrenamiento. Al asumir el caso \ref{itm:separable}, existe $\vct{w} \in \R^p$ tal que
+	\[
+		y_i \langle \vct{w}, \vct{x}^{(i)} \rangle \ge 1, \qquad \forall i = 1, \ldots, m
+	,\] y $\vct{w}$ es un predictor ERM.
+\end{remark}
+
+Por la observación anterior, si definimos $A \in \R^{m \times p}$ tal que $A_{i,j} = y^{(i)} x^{(i)}_j$, entonces podemos escribir $A\vct{w} \ge \vct{v}$.
+
+\subsubsection{Algoritmo de perceptrones}
+
+Este algortimo iterativo construye una secuencia de vectores $\vct{w}^{(1)}, \vct{w}^{(2)},\ldots$. Inicialmente, establecemos $\vct{w}^{(1)} = \bar{0}$ (vector de ceros). En la iteración $t$, el Perceptrón encuentra un ejemplo $i$ mal etiquetado por $\vct{w}^{(t)}$, es decir, $y^{(i)} \langle \vct{w}^{(t)}, \vct{x}^{(i)} \rangle < 0$. Entonces, el Perceptrón actualiza $\vct{w}^{(t + 1)} = \vct{w}^{(t)} + y^{(i)} \vct{x}^{(i)}$. Recordemos que nuestro objetivo es tener $y^{(i)} \langle \vct{w}, \vct{x}^{(i)} \rangle > 0$ para toda $i$. Nótese que
+\[
+	y^{(i)} \langle \vct{w}^{(t+1)}, \vct{x}^{(i)} \rangle = y^{(i)} \langle \vct{w}^{(t)} + y^{(i)}\vct{x}^{(i)}, \vct{x}^{(i)} \rangle = y^{(i)} \langle \vct{w}^{(t)}, \vct{x}^{(i)} \rangle + \|\vct{w}^{(i)}\|^2
+.\]
+
+\begin{theorem}
+	Al asumir $\left\{\left(x^{(i)}, y^{(i)}\right)\right\}_{i=1}^m$ separables, y sean $B = \min \left\{ \| \vct{w} \| : y^{(i)} \langle \vct{w}, \vct{x}^{(i)} \rangle \ge 1 \right\}$, y $\displaystyle R = \max_{i} \left\{ \| \vct{x}^{(i)} \| \right\}$. Entonces, el algortimo de perceptrones se detiene a lo más $\left( RB \right)^2 $ iteraciones después y devuelve $\vct{w}^{(t)}$ tal que $y^{(i)} \langle \vct{w}^{(t)}, \vct{x}^{(i)} \rangle > 0$.
+\end{theorem}
+
+\begin{proof}
+	Bastante larga para estas notas.
+\end{proof}
+
+\end{document}

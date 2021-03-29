@@ -41,7 +41,7 @@
 
 \usepackage{bm} % boldmath must be called after the package
 \providecommand{\mathbold}[1]{\bm{#1}}
-
+\usepackage{dsfont}
 %=============
 % AMS Packages and fonts
 %=============
@@ -154,17 +154,17 @@
 
 \theoremstyle{myThm}
 \newtheorem{theorem}{Teorema}[section]
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{corollary}[theorem]{Corollary}
-\newtheorem{fact}[theorem]{Fact}
+\newtheorem{lemma}[theorem]{Lema}
+\newtheorem{proposition}[theorem]{Proposición}
+\newtheorem{corollary}[theorem]{Corolario}
+\newtheorem{fact}[theorem]{Dato}
 
 \theoremstyle{myRem}
-\newtheorem{remark}[theorem]{Remark}
+\newtheorem{remark}[theorem]{Observación}
 
 \theoremstyle{myDef}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{example}[theorem]{Example}
+\newtheorem{definition}[theorem]{Definición}
+\newtheorem{example}[theorem]{Ejemplo}
 
 %=====================
 % Header
@@ -266,3 +266,6 @@
 %=============
 \newcommand{\B}{\mathcal{B}}
 \newcommand{\op}[1]{\mathbold{#1}}
+\renewcommand{\H}{\mathcal{H}}
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\Y}{\mathcal{Y}}

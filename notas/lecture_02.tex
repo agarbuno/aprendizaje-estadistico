@@ -1,0 +1,106 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 02:               % UPDATE LECTURE NUMBER
+    Modelo Formal de Aprendizaje}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Enero 19, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Manuel García Garduño  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\section{Marco Formal del Aprendizaje Estadístico}
+\label{sec:introduction}
+\begin{enumerate}
+    \item Las entradas
+    \begin{itemize}
+        \item Conjunto de dominio $\mathcal{X} \subseteq \R^d, d < \infty$.
+        \item Conjunto de etiquetas $\mathcal{Y}$, por ejemplo, los conjuntos $\{0,1\}, \{-1,1\}$.
+        \item Conjunto de entrenamiento: $S = \{(x_{i},y_{i}) , i = 1,...,m\}$; $m < \infty$, en donde $(x_{i},y_{i})\in\mathcal{X}\times\mathcal{Y}$.
+    \end{itemize}
+    \item La regla de predicción: $h:\mathcal{X}\mapsto\mathcal{Y}$.
+    \item Un algoritmo de aprendizaje $A$, en donde $A(S)$ es la hipótesis que el algoritmo de aprendizaje genera al observar el conjunto de entrenamiento.
+    \item Un modelo que genera los datos
+    \begin{itemize}
+        \item[$i)$] Asumimos que $\mathcal{X}$ tiene una medida de probabilidad $\mathcal{D}$ (distribución) que se desconoce.
+        \item[$ii)$] Asumimos que existe una función que etiqueta correctamente los datos, es decir, $\exists$ $f:\mathcal{X}\mapsto\mathcal{Y}$ tal que $f(x_{i}) = y_{i}$
+    \end{itemize}
+    \item Una métrica de éxito
+    \begin{definition}[Error del clasificador]
+    El error de un clasificador $h$, es la probabilidad de etiquetar incorrectamente una instancia generada por $\mathcal{D}$.
+    \end{definition}
+    \begin{itemize}
+        \item El error de $h$ también puede expresarse como:
+        \begin{equation}
+            \mathcal{L}_{(\mathcal{D},f)}(h) = P\{h(x) \neq f(x))\} = \mathcal{D}(\{x:h(x)\neq f(x)\})
+        \end{equation}
+        \item Conocemos $S$, pero desconocemos $f$ y $\mathcal{D}$
+    \end{itemize}
+\end{enumerate}
+\section{Minimización del Riesgo Empírico}
+A pesar de no poder calcular el verdadero error de clasificación puesto que ignoramos a la función que etiqueta correctamente a los elementos de $\mathcal{X}$ y tampoco conocemos su distribución, sí podemos construir una medida del error que es calculable con los datos que tenemos.
+\begin{definition}[Riesgo Empírico]
+    Para un subconjunto de $m$ elementos de $\mathcal{X}$, definimos el riesgo empírico de nuestra regla de predicción $h$ como
+    \begin{equation}
+        L_{S}(h) = \frac{|\{i = 1,...,m : h(x_{i}) \neq f(x_{i})\}|}{m} \,.
+    \end{equation}
+\end{definition}
+
+\subsection{¿Qué podría salir mal?}
+Supongamos que a partir de nuestro conjunto de entrenamiento $S$ decidimos definir la siguiente regla de predicción:
+\begin{equation}
+h(x) =
+    \begin{cases}
+      y_{i} & \textrm{ si existe } i \textrm{ tal que } x_{i} = x\\
+      0     & \textrm{ en otro caso}\\
+    \end{cases}\,.
+\end{equation}
+
+Realmente lo que la regla de prediccón está haciendo es asignar a cada valor de
+$x$ el valor de $y$ que se observa en el conjunto de entrenamiento, y si el
+valor de $x$ no se encontraba en el conjunto de entrenamiento original le asigna
+el valor $0$. Observemos que el error empírico de $h$ calculado sobre los datos
+de entrenamiento es cero, puesto que la forma en que $h$ fue definida nos
+garantiza que siempre va a etiquetar correctamente a los datos de entrenamiento.
+Pero, ¿acaso $h$ etiqueta correctamente a las $x$'s que no estaban en el
+conjunto de entrenamiento? Posiblemente no, porque $h$ siempre les asignará la
+etiqueta $O$ . Más aún, el verdadero error del clasificador (que es el error que
+verdaderamente nos importa) será muy grande. Moraleja: minimizar el riesgo
+empírico no minimiza el error real del clasificador.
+
+\subsection{ERM con sesgo inductivo}
+
+Para solucionar este problema se escoge, antes de ver los datos, una familia
+(clase) $\mathcal{H}$ de posibles candidatos para $h$. De esta forma, quizá no
+se minimice el error empírico, pero el modelo tendrá una mayor capacidad de
+generalización que reduzca el error real del clasificador.
+
+
+%>>>>>> END OF YOUR CONTENT
+
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliography{template} % <<< RENAME TO "lecture_XX"
+
+
+\end{document}

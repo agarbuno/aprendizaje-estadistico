@@ -144,7 +144,7 @@ data %>%
 
 tibble(alpha = seq(0,1,by = 1/100)) %>% 
     mutate(m = ifelse(alpha < 1 - alpha, alpha, 1 - alpha), 
-           ifelse(alpha < 1/2)) %>% 
+           ifelse(alpha < 1/2, 'yes', 'no')) %>% 
     ggplot(aes(x = alpha, y = m)) + 
         geom_line()
 

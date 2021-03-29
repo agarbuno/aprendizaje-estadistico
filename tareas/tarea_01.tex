@@ -1,0 +1,54 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Tarea 1:               % UPDATE LECTURE NUMBER
+    Aprendizaje Estadístico}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\begin{enumerate}
+    \item Sea $\H$ una clase de clasificadores binarios en el dominio $\X.$ Sean
+    $\D$ una distribución sobre $\X,$ y $f$ la función objetivo de clasificación en $\H.$ Dada una $h\in \H,$ muestra que el riesgo empírico es un estimador insesgado de la función de riesgo.
+
+    \item {\bf Monotonía en Complejidad Muestral:} Sea $\H$ una clase de hipótesis para una tarea de clasificación binaria. Supongamos que $\H$ es PAC aprendible y su complejidad muestral está dada por $m_\H.$ Muestra que $m_\H$ es monotonamente no-creciente en cada uno de sus parámetros. Esto es, muestra
+    que dada una $\delta\in(0,1),$ y dados $\varepsilon_1 \leq \varepsilon_2 < 1,$ tenemos que $m_\H(\varepsilon_1, \delta) \geq m_\H(\varepsilon_2, \delta).$ De manera similar, muestra que para una $\epsilon\in(0,1),$ y dadas
+    $\delta_1 \leq \delta_1 < 1,$ tenemos que $m_\H(\varepsilon, \delta_1) \geq m_\H(\varepsilon, \delta_2).$
+
+
+    \item Sean $\X = \R^2,$ $\Y = \{0,1\}$ y sea $\H$ la clase de círculos concentricos en el plano. Esto es, $\H = \{h_r : r \in \R_+\},$ donde $h_r(x) =  \mathds{1}_{\|x\|\leq r}.$ Prueba que $\H$ es PAC aprendible (asume la hipotesis de realizabilidad), y que su complejidad muestral está acotada por
+    $$ m_\H(\epsilon, \delta) \leq \Bigg\lceil \frac{\log 1/\delta}{\epsilon} \Bigg\rceil \, .$$
+
+    \item Sea $\X$ un dominio y sean $\D_1, \D_2, \ldots, \D_m$ una sucesión de distribuciones sobre $\X.$ Sea $\H$ una clase finita de clasificadores binarios sobre $\X$ y sea $f \in \H.$ Supongamos que $S$ es el conjunto de $m$ muestras de tal forma que son independientes pero no son idénticamente distribuidas. La observación $i-$ésima se muestrea de $\D_i$ y se etiqueta de acuerdo a $f(x_i).$ Sea $\bar\D_m$ el promedio de las distribuciones.
+
+    Muestra que dada $\epsilon\in (0,1)$ tenemos que la probabilidad de que exista una $h\in \H$ tal que su riesgo falle en satisfacer la condición de precisión, $L_{\bar \D_m, f} > \epsilon,$ y su riesgo empírico a su vez sea mínimo, $L_{S}(h) = 0,$ está acotada por $|\H| \, e^{-\epsilon m}\, .$
+
+    {\em Pista:} Utiliza la desigualdad para promedios aritméticos y geométricos.
+
+    \item Sea $\H$ una clase de hipótesis de clasificadores binarios. Muestra
+    que si $\H$ es PAC aprendible de manera agnóstica, entonces $\H$ es PAC aprendible. Mejor aún, si $A$ es el algoritmo éxitoso en el escenario agnóstico, éste lo será en el escenario restringido (PAC--aprendible).
+
+    \item {\bf El predictor óptimo Bayesiano:} Muestra que para cualquier distribución de probabilidad $\D,$ el predictor $f_\D$ es óptimo, en el sentido de que cualquier otro clasificador $g: \X \rightarrow \{0,1\},$ satisface $L_{\D}(f_{\D}) \leq L_{\D}(g).$
+
+\end{enumerate}
+
+\end{document}
