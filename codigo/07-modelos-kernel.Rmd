@@ -7,7 +7,7 @@ author: Alfredo Garbuno
 library(tidyverse)
 library(rsample)
 library(tidymodels)
-library(e1071)
+library(e1071) 
 library(kernlab)
 
 library(knitr)
@@ -220,7 +220,7 @@ g_1 + g_2
 ```
 
 ```{r}
-metricas_vc %>% show_best(metric = "accuracy")
+metricas_vc %>% show_best(metric = "f_meas")
 ```
 
 
