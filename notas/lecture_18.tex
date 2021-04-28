@@ -1,0 +1,150 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 18:               % UPDATE LECTURE NUMBER
+    Aprendizaje Estadístico}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{23 marzo 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Francisco Velasco Medina  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\section{Generalización de Máquinas de Soporte Vectorial}
+\label{sec:introduction}
+
+%imagen
+
+\begin{definition}{Definición}
+
+Un \textbf{espacio de Hilbert} es un espacio vectorial
+con producto interior y completo.
+
+\end{definition}
+
+%imagen
+
+Llevamos los datos de $\psi(x) = (x, x^{2})$ a $signo(\left\langle w, \psi()\right\rangle - b).$
+
+\begin{enumerate}
+    \item Consideramos un conjunto $\mathcal{X}$ y una tarea de aprendizaje (clasificación). Usemos una función $\psi: \mathcal{X} \rightarrow \mathcal{F}.$
+    $\mathcal{F} = \R^{n}$ puede ser un espacio
+    de Hilbert.
+    \item Consideramos una muestra $S = \{(x_{i}, y_{i})\}^{m}_{i = 1} \rightarrow \hat{S} = \{(\psi(x_{i}), y_{i})\}^{m}_{i = 1}.$
+    \item Entrenamos con $\hat{S}.$
+    \item Predecimos con $(h \cdot \psi)(x) = h(\psi(x)).
+    \psi:$ enriquecer nuestra representación con los atributos.
+\end{enumerate}
+
+\section{El truco del kernel}
+
+Dada $\psi: \mathcal{X} \rightarrow \mathcal{F}$. Definimos el kernel como
+
+\begin{align}
+    \begin{split}
+        k(x,x') &= \langle\psi(x), \psi(x')\rangle_{\mathcal{F}}\\
+        &= \langle x, x'\rangle_{\psi} \cdot \underset{w}{\text{mín}} L^{H}_{S}(w) + \lambda||w||^{2}_{2}
+    \end{split}
+    \\ &\Rightarrow \underbrace{\underset{w}{\text{mín}} f(\langle w, \psi(x_{1})\rangle, \langle w, \psi(x_{2})\rangle + R(||w||_{2})}_{\text{(1) Monótona no decreciente}}, \label{eq:1}
+\end{align}
+
+\begin{theorem}{Teorema del Representante}
+
+Si $\psi: \mathcal{X} \rightarrow \mathcal{F}$ donde $\mathcal{F}$ es un espacio de Hilbert. Entonces $\exists\ \alpha \in \R^{m}$ tal que $w = \sum^{m}_{i = 1}\alpha_{i}\psi(x_{i})$ y además es una solución a \eqref{eq:1}.
+
+\end{theorem}
+
+\begin{proof}
+Sea $w^{*}$ una solución a \eqref{eq:1} y $w^{*} \in \mathcal{F}$
+
+$$w^{*} = \sum^{m}_{i = 1}\alpha_{i}\psi(x_{i}) + u$$
+
+donde $\langle u, \psi(x_{i})\rangle = 0, \forall\ i \in \{1, \dots, m\}$.
+Sea $w = w^{*} - u$:
+
+\begin{align}
+    \Rightarrow||w^{*}||_{2} = ||w||_{2} + ||u||_{2}\\
+    \Rightarrow R(||w||_{2}) \leq R(||w^{*}||_{2})\\
+    \langle w, \psi(x_{i})\rangle = \langle w^{*} - u, \psi(x_{i})\rangle = \langle w^{*}, \psi(x_{i})\rangle && \forall\ i \in \{1,\dots, m\}\\
+    \Rightarrow f(w) = f(w^{*}
+\end{align}
+
+$\Rightarrow w$ es óptimo y además $w = \sum^{m}_{i = 1}\alpha_{i}\psi(x_{i})$ 
+\end{proof}
+
+Entonces optimizamos \eqref{eq:1} en términos de $\alpha$.
+
+\begin{align}
+    \langle w, \psi(x_{i])}\rangle &= \sum^{m}_{j = 1}\alpha_{j}\langle\psi(x_{j}, \psi(x_{i})\rangle\\ 
+    ||w||^{2}_{2} &= \langle w, w\rangle_{\mathcal{F}}\\
+    &= \sum^{m}_{j,
+     i}\alpha_{j}\alpha_{i}\langle\psi(x_{j}, \psi(x_{i})\rangle\\
+     &= \sum^{m}_{j,i}\alpha_{j}\alpha_{i}k(x_{j}, x_{i})\\
+     &= \alpha^{T}G\alpha && donde G_{ij} = k(x_{j}, x_{i})\\
+\end{align}
+
+\begin{align}
+    \Rightarrow\underset{\alpha}{\text{mín}} f(\sum\alpha_{j}k(x_{j}, x_{1}), 
+     \dots, \sum\alpha_{i}k(x_{j}, x_{m}) + R(\sqrt{\alpha^{T}G\alpha}) \label{eq:2}\\
+     \Rightarrow\underset{\alpha}{\text{mín}} \lambda\alpha^{T}G\alpha + \frac{1}{m} \sum^{m}_{i = 1} \text{máx}\{0, 1 - y_{i}(G\alpha)_{i}\}
+\end{align}
+
+\begin{example}{Ejemplos de kernel}
+Polinomios de grado k: $k(x, x') = (1 + \langle x, x'\rangle)^{k}; \psi(x) = (1, x,\dots, x^{k}).$\\
+
+Kernel gaussiano: $k(x, x') = exp(\frac{||x - x'||^{2}}{-2\sigma^{2}}; \psi(x) = (\dots, \frac{1}{\sqrt{n!\sigma^{2}}}exp\left(\frac{-x^{2}}{2\sigma^{2}}\right)x^{n},\dots$\\
+
+Hiperbólico: $k(x, x') = tanh(\sigma\langle x, x'\rangle + b)$\\
+
+$k(x, x') = exp\left(\frac{||x - x'||^{2}_{\Sigma}}{-2}\right); ||r||^{2}_{\Sigma} = r^{T}\Sigma^{-1}r, \Sigma = diag(\sigma^{2}_{1},\dots, 
+\sigma^{2}_{k})$\\
+
+$k(A, A') = 2^{|A\bigcap A'|}$
+
+\end{example}
+
+\begin{lemma}
+El kernel $k: \mathcal{X} \times \mathcal{X} \rightarrow \R$ es válido para definir un producto interior en un 
+espacio de Hilbert. $\iff$ Es una función positiva definida. Es decir, $\forall x_{1}, \dots, x_{m}$
+la matriz $\psi$ es una matriz positiva definida.
+\end{lemma}
+
+\subsection{Propiedades}
+
+Si $k_{1}$ y $k_{2}$ son dos kernel válidos
+
+\begin{enumerate}
+    \item $k = k_{1} + k_{2}$
+    \item $k = f(x)k_{1}(x, x')f(x')$
+    \item $k = exp(k_{1}(x, x'))$
+    \item $k = k_{1} \times k_{2}$
+    \item $k = k_{1}(x_{a}, x_{a}') \underset{\times}{+} k_{2}(x_{b}, x_{b}'), x = (x_{a}, x_{b})$
+\end{enumerate}
+
+%¿Código?
+
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliography{template} % <<< RENAME TO "lecture_XX"
+
+
+\end{document}
