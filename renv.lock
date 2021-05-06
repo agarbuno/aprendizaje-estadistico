@@ -338,6 +338,13 @@
       "Repository": "CRAN",
       "Hash": "dad6793a5a1f73c8e91f1a1e3e834b05"
     },
+    "finetune": {
+      "Package": "finetune",
+      "Version": "0.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "a01c0dc78a755b8686784f13fc1fa508"
+    },
     "forcats": {
       "Package": "forcats",
       "Version": "0.5.1",
