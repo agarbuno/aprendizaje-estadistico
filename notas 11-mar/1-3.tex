@@ -1,0 +1,40 @@
+\section{Regularización como estabilizador}
+
+\begin{definition}
+Una función $f$ es $\lambda$-fuertemente convexa si $\forall u,w$ y $\alpha \in (0,1)$ tenemos que 
+$$f(\alpha w +(1-\alpha)u) \leq \alpha f(w) +(1-\alpha)f(u) - \frac{\lambda}{2} \alpha (1-\alpha)\|w-u\|^2$$
+\end{definition}
+
+\begin{lemma}
+\begin{enumerate}
+    \item $f(w) = \lambda\|w\|^2$ es $2\lambda$-fuertemente convexa.
+    \item Si $f$ es $\lambda$-fuertemente convexa y $g$ es convexa $\Rightarrow f+g$ es fuertemente convexa.
+    \item Si $f$ es $\lambda$-fuertemente convexa y $u$ es el minimizador de $f \Rightarrow \forall w, f(w)-f(u) \geq \frac{\lambda}{2}\|w-u\|^2$
+\end{enumerate}
+\end{lemma}
+
+\begin{proof} Del inciso 3 del Lema 1.\\
+$
+f(u + \alpha(w-u)) - f(u) \leq \alpha f(w) -\alpha f(u) - \frac{\lambda}{2} \alpha (1-\alpha)\|w-u\|^2 \\
+\Rightarrow
+\frac{f(u + \alpha(w-u)) - f(u)}{\alpha} \leq f(w) - f(u) - \frac{\lambda}{2} (1-\alpha)\|w-u\|^2
+$
+Si $\alpha \rightarrow 0$, el término de la derecha equivale a la derivada evaluada en el minimizados
+\end{proof}
+\\
+
+Falta ver que RLM es estable. Consideremos $S, {Z'}, S^{(i)}$ como arriba, y $A$ RLM. Entonces
+\begin{center}
+$
+A(S) = \underset{w \in H}{\mbox{argmin}} L_s(w) + \lambda\|w\|^2$ y 
+$f_S(w) = L_S(w) +\lambda\|w\|^2$ ($2\lambda$-fuertemente convexa).
+\end{center}
+Además, $f_S(w) - f_S(A(s)) \geq \lambda \|v-A(S)\|^2$
+
+\begin{equation*}
+\Rightarrow f_S(w) -f_S(u) = L_S(v) + \lambda \|v\|^2 - L_S(u) - \lambda\|u\|^2 \\
+L_S(u) = L_{S^{(i)}}(v) + \frac{l(v,Z_i) - l(v, {Z'})}{m}
+
+\therefore \lambda \|A(S^{(i)}) - A(S)\| \leq f_S(A(S^{(i)})) - f_S(A(S)) \leq \frac{l(A(S^{(i)}),Z_i) - l(A(S), Z_i)}{m} + \frac{l(A(S),{Z'}) - l(A(S^{(i)}), {Z'})}{m}
+\end{equation*}
+
