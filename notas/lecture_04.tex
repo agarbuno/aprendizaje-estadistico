@@ -1,0 +1,185 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 04:               % UPDATE LECTURE NUMBER
+    El Modelo de Aprendizaje}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Enero 26, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Jordi Legorreta Montaño  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\begin{itemize}
+    \item Seguiremos considerando el modelo PAC (modelo Probable y Aproximadamente Correcto).
+    \item Más adelante veremos otras nociones de aprendizaje.
+    \item Pioneros en escribir este modelo formal de aprendizaje: Vapnik y Chervonenkis.
+\end{itemize}
+
+\section{PAC Aprendible o Aprendizaje PAC}
+\label{sec:PAC}
+
+$$\vert\mathcal{H}\vert<\infty\hspace{5mm}\oplus\hspace{5mm}ERM\hspace{5mm}\oplus\hspace{5mm}m\geq M_{0}$$
+
+\begin{definition}
+    Decimos que una clase $\mathcal{H}$ es aprendible, en el sentido PAC, si existe una función $m_{\mathcal{H}}:(0,1)^2\to\mathbb{N}$, y tenemos un algoritmo de aprendizaje con la siguiente propiedad:
+    Al considerar cualquier $\epsilon,\delta\in(0,1),$ cualquier distribución $\D$ sobre $\mathcal{X},$ y cualquier función de etiquetado $f:\mathcal{X}\to\mathcal{Y}=\{0,1\}.$
+
+    Si se satisface la hipótesis de realizabilidad con respecto a $\mathcal{H}$, $\D$ y
+    $f$, entonces si utilizamos el algoritmo de aprendizaje con una cantidad
+    suficiente de datos, $m\geq m_{\mathcal{H}}(\epsilon,\delta)$, el algoritmo
+    regresa una hipótesis $h_{S}$ tal que, con una alta probabilidad ---es decir una probabilidad mayor a $(1-\delta)$--- se encuentra una error de generalización suficientemente preciso, $L_{D,f}(h_{s})\leq \epsilon.$
+\end{definition}
+
+En este sentido lso parámetros tienen la siguiente interpretación:
+\begin{itemize}
+    \item $\epsilon$ : precisión (qué tan lejos va a estar el clasificador con respecto a el óptimo).\\
+    \item $\delta$ : parámetro de confianza (qué tan probable será que el clasificador que encontremos alcance el requerimiento de precisión).
+\end{itemize}
+
+\subsection{¿Hay forma de evitar estas aproximaciones (en términos de $\epsilon$ y $\delta$)?}
+
+No, no se pueden evitar, ya que no tenemos acceso a $\D$, sino sólo a una muestra $S$, y no podemos garantizar que una muestra sea representativa.
+
+$m\geq m_{\mathcal{H}}(\epsilon,\delta)$: complejidad muestral, es decir, el número mínimo de observaciones independientes de la distribución que necesitamos para poder establecer las garantías anteriores.
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    \item [Observación]: si $\mathcal{H}$ es PAC aprendible, existen muchas posibilidades para $m_{\mathcal{H}}$, por lo que acotamos $m_{\mathcal{H}}$ para que sea la mínima función en el sentido de que nos dará el mínimo entero necesario, considerando $\epsilon$ y $\delta$.
+    \item [Corolario]: toda clase finita de hipótesis ($\mathcal{H}$) es PAC aprendible si:
+    $$m_{\mathcal{H}}(\epsilon,\delta)\leq\Bigg\lceil \frac{log(\frac{\vert\mathcal{H}\vert}{\delta})}{\epsilon}\Bigg\rceil$$
+
+\end{description}
+
+\subsection{¿En qué sentido podemos generalizar PAC?}
+
+\begin{itemize}
+    \item ¿Sólo clasificación?, es decir, ¿sólo 0 ó 1?
+    \item La hipótesis de realizabilidad podría no ser la correcta, en el sentido de que posiblemente no podríamos garantizar que un algoritmo de aprendizaje fuese exitoso para una distribución fija y una función, en cualquier otro contexto de datos.
+\end{itemize}
+
+\subsubsection{Aprendizaje PAC agnóstico}
+
+Antes: $\exists h^*\in\mathcal{H}\hspace{2mm}\mid\hspace{2mm} \mathbb{P}_{\mathcal{X}\sim D}\Big(h^*(x)=f(x)\Big)=1$\\
+
+Ahora:
+
+\begin{center}
+    \begin{minipage}[c]{0.7\linewidth}
+        $D$ como una medida de probabilidad en el espacio $\mathcal{X}\times\mathcal{Y}$\\
+        $D_{x}$ distribución marginal en $\mathcal{X}$\\
+        $D_{y\mid x}$ distribución condicional para $\mathcal{Y}$
+    \end{minipage}
+\end{center}
+
+Es decir, estamos ahora admitiendo la posibilidad de que dos elementos que tengan características muy similares (si no es que iguales) puedan tener una etiqueta distinta.
+
+Por lo tanto, rompiendo con la hipótesis de realizabilidad, podemos definir una función de pérdida:
+
+$$L_{D}(h)\stackrel{\text{def}}{=}\mathbb{P}_{(x,y)\sim D}\Big(h(x)\neq y\Big)\stackrel{\text{def}}{=}D\Big(\{(x,y):h(x)\neq y\}\Big)$$
+
+$$L_{S}(h)=\frac{\vert\{i:h(x^{(i)})\neq y^{(i)}\vert}{m}, \hspace{8mm}(x^{(i)},y^{(i)})\stackrel{iid}{\sim}D$$\vspace{2mm}
+
+Antes: la aleatoriedad provenía sólo de $\mathcal{X}$.\vspace{2.5mm}
+
+Ahora: extendemos $D$ para que sea una medida de probabilidad en la pareja $(x,y)$.\vspace{2.5mm}
+
+Se puede ver como: $D_{y\mid x}$ sustituye a $f(x)=y$, ya que la relción entre $\mathcal{X}$ e $\mathcal{Y}$ no es determinista, no es una función, sino que ahora es un modelo probabilístico.
+
+\newpage
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+    \begin{definition}
+        [Clasificador Bayesiano Óptimo]
+        Dada la distribución $D$ sobre $\mathcal{X}\times\{0,1\}$, el mejor predictor de etiquetas es:
+        \[
+        f_{D}(x) =
+            \begin{cases}
+                \text{1} \quad\text{si\quad $\mathbb{P}(y=1\mid x)\geq1/2$}\\
+                \text{0} \quad\text{si\quad $\mathbb{P}(y=1\mid x)<1/2$}
+            \end{cases}\,.
+        \]
+        es óptimo porque cualquier otro clasificador tiene un error (riesgo) mayor que $f_{D}$.
+        $$g:\mathcal{X}\to\{0,1\}, \quad\text{entonces}\quad L_{D}(f_{D})\leq L_{D}(g)\,.$$
+    \end{definition}
+
+    \begin{definition}
+        [Capacidad de aprendizaje PAC agnóstico]
+        Una clase de hipótesis es PAC aprendible en un sentido agnóstico si existe una
+        función de complejidad muestral $m_{\mathcal{H}}(0,1)^2\to\mathbb{N}$ y un
+        algoritmo de aprendizaje con la siguiente propiedad:
+        $$\forall(\epsilon,\delta)\in(0,1)\hspace{3mm}\text{y}\hspace{3mm}\forall
+        D\hspace{2mm}\text{sobre}\hspace{2mm}\mathcal{X}\times{\{0,1\}}$$ si el
+        algoritmo de aprendizaje utiliza un número suficiente de observaciones $m\geq
+        m_{\mathcal{H}}(\epsilon,\delta)$ $iid$ de $D$, entonces encontraremos una
+        hipótesis $h$ con probabilidad $(1-\delta)$ que satisface: $$L_{D}(h)\leq
+        \min_{h'\in\mathcal{H}}L_{D}(h')+\epsilon$$
+    \end{definition}
+
+\end{description}
+
+\begin{itemize}
+    \item Si no se satisface la hipótesis de realizabilidad, entonces no podemos garantizar que el error de generalización ($L_{D}(h)$) sea arbitrariamente chico.
+    \item PAC agnóstico puede ser exitoso aún cuando no alcancemos el mejor error posible sobre la clase de hipótesis con la que estamos trabajando.
+    \item La precisión de nuestra generalización se vuelve relativa a la clase con la que estamos trabajando, precisamente por la constante $\displaystyle\min_{h'\in\mathcal{H}}L_{D}(h')$
+\end{itemize}
+
+\subsubsection{Más allá de clasificación}
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+
+    \item [Regresión]:
+        \begin{center}
+            \begin{minipage}[c]{0.7\linewidth}
+                $y\in\mathbb{R}\quad\therefore\quad\mathcal{Y}=\mathbb{R}\hspace{2mm}\text{(recta real)}$.\\
+                $l(x,y)=(h(x)-y)^2$, donde $l(x,y)$ es la función de pérdida.\\
+                $L_{D}(h)=\mathbb{E}_{(x,y)\sim D}[l(x,y)]$, donde $L_{D}(h)$ es la función de riesgo.
+            \end{minipage}
+        \end{center}
+\end{description}
+
+Antes: conjunto de etiquetas $\mathcal{Y}$\vspace{2.5}
+
+Ahora: conjunto objetivo $\mathcal{Y}$
+
+\begin{description}\setlength{\itemsep}{0pt} % Compact description list
+
+    \item [Funciones de pérdida]:
+        \begin{center}
+            \begin{minipage}[c]{0.7\linewidth}
+                $\mathcal{H}$: clase de hipótesis, y el dominio $Z=\mathcal{X}\times\mathcal{Y}$\\
+                $l:\mathcal{H}\times Z\to\mathbb{R}^{+}$\\
+                $L_{D}(h)=\mathbb{E}_{Z\sim D}[l(h,z)]$\\
+                $L_{S}(h)=\frac{1}{m}\sum_{i=1}^{m}l(h,z^{(i)})$\\
+                $Z^{(i)}\stackrel{iid}{\sim}D$\\
+                $L_{S}(h)$ es un estimador insesgado
+            \end{minipage}
+        \end{center}
+
+
+%>>>>>> END OF YOUR CONTENT
+
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliography{template} % <<< RENAME TO "lecture_XX"
+
+
+\end{document}

@@ -1,0 +1,239 @@
+---
+title: "Random Forest"
+author: Alfredo Garbuno
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(rsample)
+library(tidymodels)
+
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits=2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning=FALSE, 
+                      fig.align = 'center', fig.width = 5, fig.height=3, cache = TRUE, 
+                      out.width = "99%")
+comma <- function(x) format(x, digits = 2, big.mark = ",")
+theme_set(theme_linedraw())
+color.blues <- c(NA,"#BDD7E7", "#6BAED6", "#3182BD", "#08519C", "#074789", "#063e77", "#053464")
+color.itam  <- c("#00362b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f")
+
+
+sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = "none")
+sin_ejes <- theme(axis.ticks = element_blank(), 
+        axis.text = element_blank())
+```
+
+# Árboles de San Francisco
+
+Tomado de [aqui](https://juliasilge.com/blog/sf-trees-random-tuning/)
+
+```{r}
+sf_trees <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-28/sf_trees.csv")
+
+trees_df <- sf_trees %>%
+  mutate(
+    legal_status = case_when(
+      legal_status == "DPW Maintained" ~ legal_status,
+      TRUE ~ "Other"
+    ),
+    plot_size = parse_number(plot_size)
+  ) %>%
+  select(-address) %>%
+  na.omit() %>%
+  mutate_if(is.character, factor)
+```
+
+```{r}
+trees_df %>%
+  ggplot(aes(longitude, latitude, color = legal_status)) +
+  geom_point(size = 0.5, alpha = 0.4) +
+  labs(color = NULL)
+```
+
+```{r}
+trees_df %>%
+  count(legal_status, caretaker) %>%
+  add_count(caretaker, wt = n, name = "caretaker_count") %>%
+  filter(caretaker_count > 50) %>%
+  group_by(legal_status) %>%
+  mutate(percent_legal = n / sum(n)) %>%
+  ggplot(aes(percent_legal, caretaker, fill = legal_status)) +
+  geom_col(position = "dodge") +
+  labs(
+    fill = NULL,
+    x = "% of trees in each category"
+  )
+```
+
+```{r}
+set.seed(123)
+trees_split <- initial_split(trees_df, strata = legal_status)
+trees_train <- training(trees_split)
+trees_test <- testing(trees_split)
+```
+
+```{r}
+tree_rec <- recipe(legal_status ~ ., data = trees_train) %>%
+  update_role(tree_id, new_role = "ID") %>%
+  step_other(species, caretaker, threshold = 0.01) %>%
+  step_other(site_info, threshold = 0.005) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_date(date, features = c("year")) %>%
+  step_rm(date) %>%
+  step_downsample(legal_status)
+
+tree_prep <- prep(tree_rec)
+juiced <- juice(tree_prep)
+```
+
+```{r}
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+```
+
+```{r}
+tune_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(tune_spec)
+
+```
+
+
+```{r}
+set.seed(234)
+trees_folds <- vfold_cv(trees_train)
+
+trees_folds
+```
+
+```{r}
+doParallel::registerDoParallel(n = 10)
+
+set.seed(345)
+tune_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = 20
+)
+
+tune_res
+```
+
+```{r}
+tune_res %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  select(mean, min_n, mtry) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "AUC")
+```
+
+```{r}
+rf_grid <- grid_regular(
+  mtry(range = c(10, 30)),
+  min_n(range = c(2, 8)),
+  levels = 5
+)
+
+rf_grid
+```
+
+```{r}
+set.seed(456)
+regular_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = rf_grid
+)
+
+regular_res
+
+```
+
+```{r}
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "AUC")
+```
+
+```{r}
+best_auc <- select_best(regular_res, "roc_auc")
+
+final_rf <- finalize_model(
+  tune_spec,
+  best_auc
+)
+
+final_rf
+```
+
+```{r}
+library(vip)
+
+final_rf %>%
+  set_engine("ranger", importance = "permutation") %>%
+  fit(legal_status ~ .,
+    data = juice(tree_prep) %>% select(-tree_id)
+  ) %>%
+  vip(geom = "point")
+
+```
+
+```{r}
+final_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf)
+
+final_res <- final_wf %>%
+  last_fit(trees_split)
+
+final_res %>%
+  collect_metrics()
+
+```
+
+```{r}
+final_res %>%
+  collect_predictions() %>%
+  mutate(correct = case_when(
+    legal_status == .pred_class ~ "Correct",
+    TRUE ~ "Incorrect"
+  )) %>%
+  bind_cols(trees_test) %>%
+  ggplot(aes(longitude, latitude, color = correct)) +
+  geom_point(size = 0.5, alpha = 0.5) +
+  labs(color = NULL) +
+  scale_color_manual(values = c("gray80", "darkred"))
+```
+
+
+```{r}
+final_res %>%
+    collect_predictions() %>%
+    conf_mat(legal_status, .pred_class)
+```
+

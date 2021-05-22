@@ -1,0 +1,149 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 05:               % UPDATE LECTURE NUMBER
+    Convergencia Uniforme}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Enero 26, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Emanuel Santiago Payró Costilla  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\begin{itemize}
+    \item Recordando lo visto anteriormente, dada una $\mathcal{H}$ finita, en el ERM:
+    \begin{enumerate}
+        \item Recibimos una muestra $S\sim\mathcal{D}^{m}$.
+        \item Evaluamos el $L_{S}$ en cada $h\in\mathcal{H}$
+        \item $h_{s}\in\min\limits_{h\in\mathcal{H}}L_{S}(h)$
+    \end{enumerate}
+    \item Esperamos que $L_{S}(h_{S})$ sea cercana a $L_{\mathcal{D}}(h_{S})$
+    \item Necesitamos que todos los riesgos bajo $\mathcal{H}$ sean buenas aproximaciones.
+\end{itemize}
+
+\begin{definition}\setlength{\itemsep}{0pt}
+    $S$ es una muestra $\epsilon$- representativa con respecto a $Z$, $\mathcal{D}$, $l$ y $\mathcal{H}$ si:
+    \begin{center}
+        $\forall\hspace{2mm}h\in\mathcal{H},\hspace{6mm}\vert$$L_{S}(h)$\hspace{2mm}-\hspace{2mm}$L_{\mathcal{D}}(h)\vert\leq\epsilon$
+
+    \end{center}
+
+\end{definition}
+
+\begin{lemma}\setlength{\itemsep}{0pt}
+    Supongamos que $S$ es un conjunto $\frac{\epsilon}{2}\hspace{1mm}$- representativo (c.r.a. $Z$, $\mathcal{D}$, $l$ y $\mathcal{H}$). Entonces $h_{S}\in\min L_{S}(h)$ satisface:
+    \begin{center}
+        \begin{minipage}[c]{0.7\linewidth}
+        $$L_{\mathcal{D}}(h_{S})\leq \min_{h\in\mathcal{H}}L_{\mathcal{D}}(h)+\epsilon$$
+        \end{minipage}
+    \end{center}
+\end{lemma}
+
+\begin{definition}
+    $\mathcal{H}$ tiene la propiedad de convergencia uniforme con respecto a ${Z}$ y $l$ si:
+    \begin{center}
+        \begin{minipage}[c]{0.9\linewidth}
+        $\exists\hspace{1mm} m_{H}^{uc}:(0,1)^{2}\to\hspace{1mm}\N$ tal que $\forall\hspace{1mm}\epsilon,\delta\in(0,1)$ y toda distribución $\mathcal{D}$ sobre $Z$ tenemos que $S$ es una muestra de tamaño m, donde m\hspace{1mm}\geq\hspace{1mm}$m_{\mathcal{H}}^{uc}(\epsilon,\delta)$ entonces con probabilidad mayor o igual a 1 - $\delta$, $S$ es $\epsilon$ - representativo.
+        \end{minipage}
+    \end{center}
+\end{definition}
+
+\begin{corollary}
+    Si $\mathcal{H}$ tiene convergencia uniforme con $m_{\mathcal{H}}^{uc}$, entonces la clase puede aprender en el sentido PAC agnóstico, con una complejidad muestral:
+    \begin{center}
+            $m_{\mathcal{H}}(\epsilon,\delta)\hspace{2mm}\leq\hspace{2mm}m_{\mathcal{H}}^{uc}(\frac{\epsilon}{2},\delta)$
+    \end{center}
+\end{corollary}
+
+Ahora nos gustaría establecer condiciones para definir cuando una clase de hipótesis es PAC aprendible de manera agnóstica. Para ello, vamos a:
+\begin{enumerate}
+    \item Acotar la probabilidad de hacer un error generalizable por medio de uniones.
+    \item Utilizar un principio de concentración de medida para garantizar la desigualdad.
+\end{enumerate}
+
+Para el primer inciso, dados $\epsilon,\delta$ necesitamos encontrar un tamaño de muestra m tal que $\forall\hspace{1mm}\mathcal{D}$ con probabilidad $\geq\hspace{2mm}1-\delta$, la elección de la muestra $S\sim\mathcal{D}^{m}$ garantiza que:\\
+\begin{center}
+$\forall h\in\mathcal{H}\hspace{6mm}\vert L_{S}(h)-L_{\mathcal{D}}(h)\vert\leq\epsilon$
+\end{center}
+
+
+\begin{minipage}[c]{1.0\linewidth}
+    \begin{center}
+     \linespread{1.4}\selectfont
+        Entonces si tenemos que:
+        $\mathcal{D}^{m}\left(\{S:\forall h\in\mathcal{H}, \hspace{2mm}\vert
+        L_{S}(h)-L_{\mathcal{D}}(h)\vert\leq\epsilon\right)\geq 1-\delta$ \\
+        ó bien $\mathcal{D}^{m}\left(\{S:\exists h\in\mathcal{H}, \hspace{2mm}\vert
+        L_{S}(h)-L_{\mathcal{D}}(h)\vert>\epsilon\right)< \delta$\\
+        Ahora como: $\{S:\exists h\in\mathcal{H}, \hspace{2mm}\vert L_{S}(h)-L_{\mathcal{D}}(h)\vert >\epsilon\}=\bigcup\limits_{h\in\mathcal{H}}\{S:\hspace{1mm}\vert L_{S}(h)-L_{\mathcal{D}}(h)\vert >\epsilon\}$\\
+$\Rightarrow\mathcal{D}^{m}\left(\{S:\exists h\in\mathcal{H}, \hspace{2mm}\vert
+        L_{S}(h)-L_{\mathcal{D}}(h)\vert>\epsilon\right)\leq\hspace{1mm}\sum\limits_{h\in\mathcal{H}}\mathcal{D}^{m}\left(\{S:\hspace{1mm}\vert L_{S}(h)-L_{\mathcal{D}}(h)\vert >\epsilon\}\right)$
+    \end{center}
+
+\end{minipage}
+
+\begin{lemma}
+$\textbf{(Desigualdad de Hoeffding)}$ Si $\theta_{1}, ..., \theta_{m}\hspace{1mm}$ son independientes e idénticamente distribuidas, tal que $\forall i\hspace{2mm} \Expect(\theta i)=\mu\hspace{2mm}$y $\hspace{2mm}\mathbb{P}(a\leq\theta\leq b)=1$, entonces:
+    \begin{center}
+        \begin{minipage}[c]{0.7\linewidth}
+            $\mathbb{P}(\vert\Bar{\theta}_{m}-\mu\vert>\epsilon)\leq\hspace{1mm}2\exp\left(-\displaystyle\frac{2m\epsilon^{2}}{(b-a)^{2}}\right)$ donde $\Bar{\theta}_{m}=\frac{1}{m}\sum\limits_{i=1}^{m}\theta_{i}$
+        \end{minipage}
+    \end{center}
+\begin{center}
+    \linespread{1.4}\selectfont
+    $\theta_{i}=l(h,z_{i}); z_{i}\overset{\text{iid}}{\sim}\mathcal{D};\theta_{i}\hspace{2mm}iid.$\\
+    $\Bar{\theta}_{m}=L_{S}(\theta)\hspace{10mm}\mu=L_{\mathcal{D}}(h)$\\
+    $l(h,)\in[0,1]\hspace{6mm}\Rightarrow\hspace{6mm}\theta_{i}\in[0,1]$\\
+    $\mathcal{D}^{m}(\{S:\vert L_{S}(h)-L_{D}(h)\vert>\epsilon\})=\mathbb{P}(\vert\Bar{\theta}_{m}-\mu\vert>\epsilon)\leq\hspace{2mm} 2\exp(-2m\epsilon^{2})$\\
+    $\Rightarrow\mathcal{D}^{m}(\{S:\exists h\in\mathcal{H}, \vert L_{S}(h)-L_{D}(h)\vert>\epsilon\})\leq \sum\limits_{h\in\mathcal{H}}2\exp(-2m\epsilon^{2})$\\
+    $=2\vert\mathcal{H}\vert\exp(-2m\epsilon^{2})$\\
+    $\Rightarrow m\geq\displaystyle\frac{\log(\frac{2\vert\mathcal{H}\vert}{\delta})}{2\epsilon^{2}}$
+\end{center}
+
+\end{lemma}
+
+\begin{corollary}
+    Sea $\mathcal{H}$ una clase finita de hipótesis, $\mathcal{Z}$ el dominio y l: $\mathcal{H}\times\mathcal{Z}\to[0,1]$ una función de pérdida. Entonces $\mathcal{H}$ posee la propiedad de convergencia uniforme con complejidad muestral:\\
+    \begin{center}
+            $m_{\mathcal{H}}^{uc}(\epsilon,\delta)\leq\Bigg\lceil\displaystyle\frac{\log(\frac{2\vert\mathcal{H}\vert}{\delta})}{2\epsilon^{2}}\Bigg\rceil$
+    \end{center}
+    Además, el algoritmo ERM utilizando una complejidad muestral:\\
+    \begin{center}
+        $m_{\mathcal{H}}(\epsilon,\delta)\hspace{2mm}\leq\hspace{2mm}m_{\mathcal{H}}^{uc}(\frac{\epsilon}{2},\delta)$
+    \end{center}
+    Nos garantiza que $\mathcal{H}$ es aprendible como PAC agnóstico.
+
+\end{corollary}
+
+
+    \textbf{Resumen:} Si tenemos convergencia uniforme para $\mathcal{H}$ entonces $L_{S}$ estará cercano a $L_{D}$\\
+    \begin{center}
+        Si CU + ERM $\Rightarrow$ PAC agnóstico
+    \end{center}
+
+%>>>>>> END OF YOUR CONTENT
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliography{template} % <<< RENAME TO "lecture_XX"
+
+
+\end{document}
