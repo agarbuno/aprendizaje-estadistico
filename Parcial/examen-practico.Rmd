@@ -1,0 +1,539 @@
+---
+title: 'Clasificación Regularizada'
+author: Carlos Lezama, Alejandro Chávez, Jorge Rizo
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(rsample)
+library(tidymodels)
+
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+options(digits = 2)
+
+library(patchwork)
+library(scales)
+knitr::opts_chunk$set(
+    echo = TRUE,
+    message = FALSE,
+    warning = FALSE,
+    fig.align = 'center',
+    fig.width = 12,
+    fig.height = 8,
+    cache = TRUE,
+    out.width = '99%'
+)
+comma <- function(x)
+    format(x, digits = 2, big.mark = ',')
+theme_set(theme_linedraw())
+color.blues <-
+    c(NA,
+      '#BDD7E7',
+      '#6BAED6',
+      '#3182BD',
+      '#08519C',
+      '#074789',
+      '#063e77',
+      '#053464')
+color.itam  <-
+    c('#00362b',
+      '#00503f',
+      '#006953',
+      '#008367',
+      '#009c7b',
+      '#00b68f')
+
+
+sin_lineas <-
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+sin_leyenda <- theme(legend.position = 'none')
+sin_ejes <- theme(axis.ticks = element_blank(),
+                  axis.text = element_blank())
+```
+
+En este proyecto aplicarán los conceptos de regularización y métodos de validación en el contexto de
+clasificación. Los datos tienen la siguiente descripción:
+
+These data arose from a collaboration between Andreas Buja, Werner Stuetzle and Martin Maechler, and
+we used as an illustration in the paper on Penalized Discriminant Analysis by Hastie, Buja and
+Tibshirani (1995).
+
+The data were extracted from the TIMIT database (TIMIT Acoustic-Phonetic Continuous Speech Corpus,
+NTIS, US Dept of Commerce) which is a widely used resource for research in speech recognition. A
+dataset was formed by selecting five phonemes for classification based on digitized speech from this
+database. The phonemes are transcribed as follows: 'sh' as in 'she', 'dcl' as in 'dark', 'iy' as the
+vowel in 'she', 'aa' as the vowel in 'dark', and 'ao' as the first vowel in 'water'. From continuous
+speech of 50 male speakers, 4509 speech frames of 32 msec duration were selected, approximately 2
+examples of each phoneme from each speaker. Each speech frame is represented by 512 samples at a
+16kHz sampling rate, and each frame represents one of the above five phonemes. The breakdown of the
+4509 speech frames into phoneme frequencies is as follows:
+
+aa ao dcl iy sh 695 1022 757 1163 872
+
+From each speech frame, we computed a log-periodogram, which is one of several widely used methods
+for casting speech data in a form suitable for speech recognition. Thus the data used in what
+follows consist of 4509 log-periodograms of length 256, with known class (phoneme) memberships.
+
+The data contain 256 columns labelled 'x.1' - 'x.256', a response column labelled 'g', and a column
+labelled 'speaker' identifying the diffferent speakers.
+
+## Datos {.unnumbered}
+
+En particular nosotros nos enfocaremos en clasificar los fonemas `aa` y `ao`. Los datos han sido
+separados en conjunto de entrenamiento y conjunto de prueba.
+
+Para el conjunto de entrenamiento tenemos atributos y etiquetas. Mientras que para el conjunto de
+prueba sólo tienen disponibles los atributos. Parte de su calificación dependerá en qué tan bien
+logran clasificar los datos de prueba.
+
+El código de carga abajo también incluye una visualización de los datos. Por cómo están
+estructurados podemos agrupar y observar si hay algunas frecuencias que están fuertemente
+relacionadas con algún fonema en particular.
+
+```{r}
+dt <- read_csv('train_phoneme.csv') %>%
+    mutate(phoneme =  factor(phoneme))
+nspeakers <- 700
+```
+
+```{r}
+dt %>%
+    sample_n(nspeakers) %>%
+    pivot_longer(cols = x.1:x.256) %>%
+    mutate(x = as.numeric(fct_inorder(name)),
+           ix = rep(1:nspeakers, 256)) %>%
+    group_by(phoneme, x) %>%
+    summarise(
+        average = mean(value),
+        yinf = average - sd(value),
+        ysup = average + sd(value)
+    ) %>%
+    ggplot(aes(x = x, y = average, fill = phoneme)) +
+    geom_ribbon(aes(ymin = yinf, ymax = ysup), alpha = .4)  +
+    geom_line(aes(color = phoneme), alpha = .8) +
+    xlab('Frecuencia discretizada') +
+    ylab('Medición en cada frecuencia') +
+    labs(fill = 'Fonema', color = 'Fonema')
+```
+
+Usaremos regresión logística con regularización para identificar de manera automática las
+frecuencias que tienen mayor efecto para discernir entre estos dos fonemas.
+
+El código de abajo realiza la clasificación de manera utilizando regresión logistica sin
+regularización. Del cual podemos extraer los coeficientes y graficarlos.
+
+**Q1.** ¿Qué observas? ¿Hay alguna asociación con respecto a los objetivos de clasificación y el
+gráfico de perfiles que construimos arriba?
+
+(Respuesta en *.pdf*)
+
+```{r}
+m1 <-
+    glm(
+        phoneme ~ .,
+        data = dt,
+        family = binomial(),
+        control = list(maxit = 50)
+    )
+```
+
+```{r}
+m1 %>%
+    tidy() %>%
+    filter(term != '(Intercept)') %>%
+    mutate(term = as.numeric(fct_inorder(term))) %>%
+    ggplot(aes(x = term, y = estimate)) +
+    geom_line(colour = 'grey70') +
+    geom_point(size = 0.5) +
+    geom_hline(yintercept = 0, lty = 2)
+```
+
+Ahora exploraremos la precisión sobre las estimaciones de nuestros coeficientes utilizando una
+técnica de remuestreo. Lo importante del siguiente ejercicio es observar que nuestras estimaciones
+tienen una dispersión muy grande. Como se ve en el gráfico siguiente.
+
+```{r}
+train <- dt
+
+set.seed(108727)
+
+# Preparamos el remuestreo
+boots <- bootstraps(train, times = 10, apparent = TRUE)
+
+# Definimos funcion de ajuste
+ajusta_modelo <- function(split) {
+    glm(
+        phoneme ~ .,
+        data = split,
+        family = binomial(),
+        control = list(maxit = 50)
+    )
+}
+
+# Aplicamos el modelo en cada remuestra y extraemos coeficientes.
+boot_models <- boots %>%
+    mutate(modelo = map(splits, ajusta_modelo),
+           coefs  = map(modelo, tidy))
+
+# Mostramos las cantidades resumen considerando las remuestras.
+boot_models %>%
+    unnest(coefs) %>%
+    mutate(term = fct_inorder(term)) %>%
+    head()
+```
+
+```{r}
+# Graficamos la variabilidad de las estimaciones en los coeficientes.
+boot_models %>%
+    unnest(coefs) %>%
+    mutate(term = fct_inorder(term)) %>%
+    filter(term != '(Intercept)') %>%
+    ggplot(aes(x = term, y = estimate)) +
+    geom_boxplot() +
+    theme(axis.text.x = element_blank())
+```
+
+## Regresión logistica Ridge {.unnumbered}
+
+De lo anterior podemos concluir que es muy dificil ajustar este modelo sin considerar algun tipo de
+restricciones. Muchos coeficientes aunque parecen estar estimados en cero tienen una gran dispersión
+lo cual nos hace pensar que no tenemos un modelo preciso.
+
+Ahora usaremos el flujo de trabajo de `tidymodels` para ajustar el modelo. Usaremos una estructura
+muy similar que en el caso de regresión pero ahora pedimos una regresión logística.
+
+```{r}
+receta <- recipe(phoneme ~ ., train) %>%
+    step_normalize(all_predictors()) %>%
+    prep()
+```
+
+```{r}
+modelo_1 <- logistic_reg(mixture = 0) %>%
+    set_engine('glmnet') %>%
+    set_mode('classification') %>%
+    fit(phoneme ~ ., juice(receta))
+```
+
+**Q2.** Extrae los coeficientes y gráfica las estimaciones como funcion del grado de penalización en
+la regularización. Como ves, la gráfica es poco informativa a nivel individual, pero en general
+podemos ver que el efecto es el deseado.
+
+```{r}
+coefs_1 <- tidy(modelo_1$fit) %>%
+    filter(term != '(Intercept)')
+```
+
+```{r}
+ggplot(coefs_1, aes(x = lambda, y = estimate, colour = term)) +
+    geom_line(size = 0.1) +
+    scale_x_log10() +
+    geom_hline(yintercept = 0, lty = 2) +
+    sin_leyenda +
+    ylab('Coeficientes') +
+    xlab(expression(Penalización:lambda))
+```
+
+**Q3.** Utiliza el método de validación cruzada para encontrar el mejor grado de penalización para
+regresión Ridge. Considera los siguientes dos puntos:
+
+-   Un rango para los valores de `penalty`.
+
+-   El ajuste del modelo utiliza una función convexa para la función objetivo. Sin embargo, en clase
+    vimos que en clasificación lo que nos interesa es la precisión del modelo en términos de qúe tan
+    bien puede realizar la clasificación. Es decir, nos interesa la pérdida 0-1. En este sentido, el
+    modelo lo entrenamos repetidamente aplicando un método iterativo. Para seleccionar la mejor
+    configuración de la regularización utilizamos el método de validación donde ahora la selección
+    se hace en una colección discreta de posibles valores. Es en este punto dónde podemos regresar a
+    la métrica usual y seleccionar nuestro modelo ganador.
+
+-   Auxiliate del siguiente bloque de codigo para correr el procedimiento de validación para el
+    modelo Ridge.
+
+```{r}
+modelo_1_regularizado <-
+    logistic_reg(mixture = 0, penalty = tune()) %>%
+    set_engine('glmnet')
+
+flujo_reg_1 <- workflow() %>%
+    add_model(modelo_1_regularizado) %>%
+    add_recipe(receta)
+```
+
+```{r}
+bf_set <-
+    parameters(penalty(range = c(-2, 3), trans = log10_trans()))
+
+bf_grid <- grid_regular(bf_set, levels = 50)
+
+validacion_particion <- vfold_cv(train, v = 10)
+```
+
+```{r}
+metricas_vc_1 <- tune_grid(
+    flujo_reg_1,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(accuracy)
+)
+```
+
+```{r}
+mejor_1 <- metricas_vc_1 %>% select_best()
+```
+
+```{r}
+# Visualización de desempeño
+metricas_vc_1 %>% collect_metrics() %>%
+    ggplot(aes(
+        x = penalty,
+        y = mean,
+        ymin = mean - std_err,
+        ymax = mean + std_err
+    )) +
+    geom_linerange() +
+    geom_point(size = 1.5, color = '#009194') +
+    scale_x_log10() +
+    ylab('Error de validación') +
+    xlab(expression(Penalización:lambda)) +
+    geom_vline(data = mejor_1, aes(xintercept = penalty), colour = 'red')
+```
+
+## Regresión logistica LASSO {.unnumbered}
+
+**Q4.** Repite el punto anterior con regularización LASSO.
+
+```{r}
+modelo_2 <- logistic_reg(mixture = 1) %>%
+    set_engine('glmnet') %>%
+    set_mode('classification') %>%
+    fit(phoneme ~ ., juice(receta))
+```
+
+```{r}
+coefs_2 <- tidy(modelo_2$fit) %>%
+    filter(term != '(Intercept)')
+```
+
+```{r}
+ggplot(coefs_2, aes(x = lambda, y = estimate, colour = term)) +
+    geom_line(size = 0.1) +
+    scale_x_log10() +
+    geom_hline(yintercept = 0, lty = 2) +
+    sin_leyenda +
+    ylab('Coeficientes') +
+    xlab(expression(Penalización:lambda))
+```
+
+```{r}
+modelo_2_regularizado <-
+    logistic_reg(mixture = 1, penalty = tune()) %>%
+    set_engine('glmnet')
+
+flujo_reg_2 <- workflow() %>%
+    add_model(modelo_2_regularizado) %>%
+    add_recipe(receta)
+```
+
+```{r}
+bf_set <-
+    parameters(penalty(range = c(-5, 0), trans = log10_trans()))
+
+bf_grid <- grid_regular(bf_set, levels = 50)
+
+validacion_particion <- vfold_cv(train, v = 10)
+```
+
+```{r}
+metricas_vc_2 <- tune_grid(
+    flujo_reg_2,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(accuracy)
+)
+```
+
+```{r}
+mejor_2 <- metricas_vc_2 %>% select_best()
+```
+
+```{r}
+# Visualización de desempeño
+metricas_vc_2 %>% collect_metrics() %>%
+    ggplot(aes(
+        x = penalty,
+        y = mean,
+        ymin = mean - std_err,
+        ymax = mean + std_err
+    )) +
+    geom_linerange() +
+    geom_point(size = 1.5, color = '#009194') +
+    scale_x_log10() +
+    ylab('Error de validación') +
+    xlab(expression(Penalización:lambda)) +
+    geom_vline(data = mejor_2, aes(xintercept = penalty), colour = 'red')
+```
+
+## Regresión Elastic Net {.unnumbered}
+
+**Q5.** Repite el punto anterior ahora considerando Elastic-Net. Para esto considera que el ajuste
+puede tardar un poco y no es necesario mostrar de manera gráfica el mapa de calor para la malla de
+búsqueda.
+
+```{r}
+modelo_3 <- logistic_reg(mixture = tune()) %>%
+    set_engine('glmnet') %>%
+    set_mode('classification') %>%
+    fit(phoneme ~ ., juice(receta))
+```
+
+```{r}
+coefs_3 <- tidy(modelo_3$fit) %>%
+    filter(term != '(Intercept)')
+```
+
+```{r}
+modelo_3_regularizado <-
+    logistic_reg(mixture = tune(), penalty = tune()) %>%
+    set_engine('glmnet')
+
+flujo_reg_3 <- workflow() %>%
+    add_model(modelo_3_regularizado) %>%
+    add_recipe(receta)
+```
+
+```{r}
+bf_set <-
+    parameters(penalty(range = c(-1, 1), trans = log10_trans()),
+               mixture(range = c(0, 1)))
+
+bf_grid <- grid_regular(bf_set, levels = 50)
+
+validacion_particion <- vfold_cv(train, v = 10)
+```
+
+```{r}
+metricas_vc_3 <- tune_grid(
+    flujo_reg_3,
+    resamples = validacion_particion,
+    grid = bf_grid,
+    metrics = metric_set(accuracy)
+)
+```
+
+```{r}
+mejor_3 <- metricas_vc_3 %>% select_best()
+```
+
+```{r}
+metricas_vc_3 %>% collect_metrics() %>%
+    ggplot(aes(x = penalty, y = mixture, z = mean)) + geom_raster(aes(fill = std_err)) +
+    scale_fill_gradientn(colours = c('red', 'yellow')) + geom_contour(aes(colour = after_stat(level)), binwidth = .12) +
+    scale_x_log10() + sin_lineas +
+    xlab(expression(Penalización:lambda)) +
+    ylab('Mezcla')
+```
+
+## Modelo final {.unnumbered}
+
+**Q6.** Escoge el tipo de modelo que hará las predicciones para el conjunto de prueba. Para esto
+utiliza el error de generalización estimado por el método de validación cruzada para escoger entre
+las mejores versiones de Ridge, LASSO o Elastic-Net.
+
+```{r}
+# Ajuste final
+modelo_final_1 <- finalize_model(modelo_1_regularizado, mejor_1)
+flujo_final_1 <-
+    workflow() %>% add_model(modelo_final_1) %>% add_recipe(receta)
+ajuste_final_1 <- flujo_final_1 %>% fit(train)
+
+modelo_final_2 <- finalize_model(modelo_2_regularizado, mejor_2)
+flujo_final_2 <-
+    workflow() %>% add_model(modelo_final_2) %>% add_recipe(receta)
+ajuste_final_2 <- flujo_final_2 %>% fit(train)
+
+modelo_final_3 <- finalize_model(modelo_3_regularizado, mejor_3)
+flujo_final_3 <-
+    workflow() %>% add_model(modelo_final_3) %>% add_recipe(receta)
+ajuste_final_3 <- flujo_final_3 %>% fit(train)
+```
+
+```{r}
+pred_1 <- predict(ajuste_final_1, new_data = train)
+pred_2 <- predict(ajuste_final_2, new_data = train)
+pred_3 <- predict(ajuste_final_3, new_data = train)
+```
+
+```{r}
+class_1 <- ifelse(pred_1$.pred_class == 'aa', 0, 1)
+class_2 <- ifelse(pred_2$.pred_class == 'aa', 0, 1)
+class_3 <- ifelse(pred_3$.pred_class == 'aa', 0, 1)
+class_true <- ifelse(train$phoneme == 'aa', 0, 1)
+
+confusion_matrix_1 <- as.data.frame(table(class_1, class_true))
+confusion_matrix_2 <- as.data.frame(table(class_2, class_true))
+confusion_matrix_3 <- as.data.frame(table(class_3, class_true))
+```
+
+```{r, fig.width = 5, fig.height = 5}
+# Escogiendo el modelo final
+ggplot(data = confusion_matrix_1,
+       mapping = aes(x = class_true, y = class_1)) +
+    geom_tile(aes(fill = Freq)) +
+    geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+    scale_fill_gradient(low = "white", high = "#009194", trans = "log") +
+    sin_leyenda +
+    xlab('Verdadero') +
+    ylab('Predicción 1') +
+    scale_x_discrete(labels = c('aa', 'ao')) +
+    scale_y_discrete(labels = c('aa', 'ao'))
+
+ggplot(data = confusion_matrix_2,
+       mapping = aes(x = class_true, y = class_2)) +
+    geom_tile(aes(fill = Freq)) +
+    geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+    scale_fill_gradient(low = "white", high = "#009194", trans = "log") +
+    sin_leyenda +
+    xlab('Verdadero') +
+    ylab('Predicción 2') +
+    scale_x_discrete(labels = c('aa', 'ao')) +
+    scale_y_discrete(labels = c('aa', 'ao'))
+
+ggplot(data = confusion_matrix_3,
+       mapping = aes(x = class_true, y = class_3)) +
+    geom_tile(aes(fill = Freq)) +
+    geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+    scale_fill_gradient(low = "white", high = "#009194", trans = "log") +
+    sin_leyenda +
+    xlab('Verdadero') +
+    ylab('Predicción 3') +
+    scale_x_discrete(labels = c('aa', 'ao')) +
+    scale_y_discrete(labels = c('aa', 'ao'))
+```
+
+```{r}
+# Modelo final
+modelo_final <- ajuste_final_1
+```
+
+**Q7.** Parte de tu calificación será sobre las predicciones que hará tu modelo sobre el conjunto de
+prueba. Por lo tanto es necesario que guardes en un csv las predicciones de tu modelo y las incluyas
+en tu entrega de examen. Para esto puedes utilizar:
+
+```{r}
+test <- read_csv('test_features.csv')
+write_csv(as.data.frame(predict(modelo_final, new_data = test)$.pred_class),
+          'predicciones_06.csv')
+```
+
+# Code run time
+**Tiempo:** 42m08s
+**OS:** Manjaro 21.0 [Gnome Edition]
+**CPU:** Intel i5-8265U
+**GPU:** Intel UHD Graphics 620
+**RAM:** 8gb
+Sin procesos en segundo plano.

@@ -1,0 +1,173 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+\usepackage{bbm}
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Clase 11/03:               % UPDATE LECTURE NUMBER
+    Regularización y estabilidad}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{Marzo 11, 2021} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+\author{%
+  Responsable:&
+  Alejandro Chávez Mier  % >>>>> SCRIBE NAME(S)
+}
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+
+\begin{itemize}
+    \item Hoy veremos que CLA y CSA son realmente logrables/aprendibles. Hay instancias de esos dos que son uniformes y por lo tanto aprendibles, con la regla más sencilla: ERM.
+    \item Idea: tomamos una función de pérdida y sumamos algo que regularice.
+    \item Nota: regularización nos sirve para medir la complejidad de la hipótesis y actúa como un estabilizador).
+\end{itemize}
+
+\section{Minimización de pérdida regularizada (RLM)}
+RLM = pérdida empírica + función de regularización.
+\\
+
+El objetivo: $\underset{w \in H}{\mbox{argmin}} L_s(w)+R(w)$. Queremos, pues, encontrar un balance entre modelos simples y soluciones con error empírico pequeño.
+$R()$ normalmente se escoje con conocimiento de dominio, y las opciones clásicas son $R(w) = \lambda*\|w\|^2_2$ ó $R(w) = \lambda*\|w\|^2_1$
+\\
+
+Regularización de Tikhonov (se usa para problemas inversos): supongamos que tenemos un problema de regresión de la forma $\frac{1}{2m}\|x_w-y\|^2 + \frac{\lambda}{2}\|w\|^2$, el cual buscamos minimizar.
+Ya hemos visto que $\frac{1}{2m}\|x_w-y\|^2$ tiene un mínimo. La ventaja de $\frac{\lambda}{2}\|w\|^2$ es que no afecta mucho ese mínimo y, además, la solución de $\Delta_w(L_s(w)+R(w)=0$ es $(\lambda_m*\mathbbm{1}_{pxp})w = x^Ty*2w = (x^Tx +\lambda_m*\mathbbm{1}_{pxp})^{-1}x^Ty $.
+Por ejemplo, si $P(w) = w_0+w_1x+\dots+w_px^p$ y $\lambda >> 0 $, esperaríamos que el modelo fuera parsimonioso y que los términos mayores se fueran eliminando.
+\\
+
+Verificaremos que $R(w)$ estabiliza y permite el sobreajuste. En particular, veremos un resultados en que 
+\begin{center}
+    $E_S(L_D(A(S))) \leq \underset{w \in H}{\min} L_D(w) + \varepsilon$
+\end{center}
+
+Otra forma de pensar el problema es: $\underset{w \in H}{\min} L_D(w)$ sujeto a $\|w\|^2_2 \leq \theta$
+
+\section{Noción de estabilidad}
+Sea $A$ un algoritmo de aprendizaje y sea $S (\thicksim D^m) = (Z_1,\dots, Z_m)$. Hablamos de sobreajuste cuando $|L_D(A(S))-L_S(A(S))|$ es grande.
+Sea $S^{(i)} = (Z_1,\dots,Z_i,{Z'}, Z_{i+1},\dots,Z_m)$ con ${Z'}$ independiente de los anteriores y  ${Z'} \thicksim D^m$. Lo que esperaríamos de un buen argumento es:
+\begin{center}
+    $l(A(S^{(i)})),Z_i)*l(A(S)),Z_i) \geq 0$
+\end{center}.
+
+\begin{theorem}
+Supongamos que $D$ es una distribución. Sea $S (\thicksim D^m) = (Z_1,\dots, Z_m)$, y sea ${Z'} \thicksim D^m$ una observación independiente. Denotamos como $U(m)$ a la distribución uniforme en el conjunto de índices $\{1,\dots,m\}$. Entonces
+
+\begin{center}
+$E_S(L_D(A(S)) - L_S(A(S))) = E_{\underset{i\thicksim U(m)}{S \thicksim D^m}}(l(A(S^{(i)})),Z_i) - l(A(S)),Z_i))$
+\end{center}
+
+\end{theorem}
+\\
+
+\begin{proof}
+$E_S(L_D(A(S)) = E_{S,{Z'}}(l(A(S),{Z'})) = E_{\underset{i\thicksim U(m)}{S \thicksim D^m}}(l(A(S^{(i)})),Z_i)$
+Por otro lado, $E_S(L_S(A(S)) = E_{S,i}(l(A(S),Z_i)) = E_S(\frac{1}{n} \sum_{i=1}^m l(A(S),Z_i)$
+\end{proof}
+
+\begin{definition}
+Sea $\varepsilon :\mathbb{N} \rightarrow \mathbb{R}$ monótonamente decreciente. Decimos que el algoritmo $A$ es estable en promedio, bajo reemplazos individuales con tasa $\varepsilon(m)$, si $\forall D$ se tiene que $$E_{\underset{i\thicksim U(m)}{S \thicksim D^m}}(l(A(S^{(i)})),Z_i) - l(A(S)),Z_i)) \leq \varepsilon(m) $$
+\end{definition}
+
+\section{Regularización como estabilizador}
+
+\begin{definition}
+Una función $f$ es $\lambda$-fuertemente convexa si $\forall u,w$ y $\alpha \in (0,1)$ tenemos que 
+$$f(\alpha w +(1-\alpha)u) \leq \alpha f(w) +(1-\alpha)f(u) - \frac{\lambda}{2} \alpha (1-\alpha)\|w-u\|^2$$
+\end{definition}
+
+\begin{lemma}
+\begin{enumerate}
+    \item $f(w) = \lambda\|w\|^2$ es $2\lambda$-fuertemente convexa.
+    \item Si $f$ es $\lambda$-fuertemente convexa y $g$ es convexa $\Rightarrow f+g$ es fuertemente convexa.
+    \item Si $f$ es $\lambda$-fuertemente convexa y $u$ es el minimizador de $f \Rightarrow \forall w, f(w)-f(u) \geq \frac{\lambda}{2}\|w-u\|^2$
+\end{enumerate}
+\end{lemma}
+
+\begin{proof} Del inciso 3 del Lema 1.\\
+$
+f(u + \alpha(w-u)) - f(u) \leq \alpha f(w) -\alpha f(u) - \frac{\lambda}{2} \alpha (1-\alpha)\|w-u\|^2 \\
+\Rightarrow
+\frac{f(u + \alpha(w-u)) - f(u)}{\alpha} \leq f(w) - f(u) - \frac{\lambda}{2} (1-\alpha)\|w-u\|^2
+$
+Si $\alpha \rightarrow 0$, el término de la derecha equivale a la derivada evaluada en el minimizados
+\end{proof}
+\\
+
+Falta ver que RLM es estable. Consideremos $S, {Z'}, S^{(i)}$ como arriba, y $A$ RLM. Entonces
+\begin{center}
+$
+A(S) = \underset{w \in H}{\mbox{argmin}} L_s(w) + \lambda\|w\|^2$ y 
+$f_S(w) = L_S(w) +\lambda\|w\|^2$ ($2\lambda$-fuertemente convexa).
+\end{center}
+Además, $f_S(w) - f_S(A(s)) \geq \lambda \|v-A(S)\|^2$
+
+\begin{equation*}
+\Rightarrow f_S(w) -f_S(u) = L_S(v) + \lambda \|v\|^2 - L_S(u) - \lambda\|u\|^2 \\
+L_S(u) = L_{S^{(i)}}(v) + \frac{l(v,Z_i) - l(v, {Z'})}{m}
+
+\therefore \lambda \|A(S^{(i)}) - A(S)\|^2 \leq f_S(A(S^{(i)})) - f_S(A(S)) \leq \frac{l(A(S^{(i)}),Z_i) - l(A(S), Z_i)}{m} + \frac{l(A(S),{Z'}) - l(A(S^{(i)}), {Z'})}{m}
+\end{equation*}
+
+\subsection{Bajo Lipschitz}
+\begin{equation*}
+l(A(S^{(i)}),Z_i) - l(A(S), Z_i) \leq \rho \|A(S^{(i)}) - A(S) \|
+\Rightarrow \|A(S^{(i)}) - A(S) \| \leq \frac{2\rho}{\lambda m}
+\end{equation*}
+
+\begin{equation*}
+\Rightarrow E_S(L_D(A(S)) - L_S(A(S))) \leq \frac{2\rho^2}{\lambda m}
+\end{equation*}
+
+\section{Control de sobreajuste y estabilidad}
+$E_S(L_D(A(S))) = E_S(L_S(A(S))) + E_S(L_D(A(S))-L_S(A(S))$
+Si $\lambda$ crece, el error empírico también.
+\\
+
+Dado que $A(S) = \mbox{argmin} L_S(w) + \lambda\|w\|^2$,
+\begin{equation*}
+    L_S(A(S)) \leq L_S(A(S)) + \lambda \|A(S)\|^2 \leq L_S(w) + \lambda \|w\|^2
+\end{equation*}
+\begin{equation*}
+    \Rightarrow E_S(L_S(A(S))) \leq L_D(w) + \lambda \|w\|^2, E_S(L_D(A(S))) \leq L_D(w) + \lambda \|w\|^2 + estabilidad
+\end{equation*}
+
+\begin{equation*}
+    \therefore E_S(L_D(A(S))) \leq L_D(w) + \lambda \|w\|^2 + \frac{2 \rho}{\lambda m}
+\end{equation*}
+
+
+
+
+
+
+
+
+   
+%>>>>>> END OF YOUR CONTENT
+
+%>>>>>>>>>> take acknowledgements out
+\section*{Agradecimientos} Este {\emph template} se ha adaptado y traducido del
+provisto en la clase ACM 204 (Otoño 2017) por el profesor Joel Tropp.
+
+
+\bibliographystyle{siam} % <<< USE "alpha" BIBLIOGRAPHY STYLE
+\bibliography{template} % <<< RENAME TO "lecture_XX"
+
+
+\end{document}
+
