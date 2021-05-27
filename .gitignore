@@ -9,6 +9,8 @@ rsconnect
 *.log
 *_cache
 *_files
+*.html
+*.pdf 
 
 ## Core latex/pdflatex auxiliary files:
 *.aux

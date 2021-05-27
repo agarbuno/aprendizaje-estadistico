@@ -1,0 +1,61 @@
+\documentclass[11pt,reqno,twoside]{article}
+%>>>>>>> RENAME CURRENT FILE TO MATCH LECTURE NUMBER
+% E.g., "lecture_01.tex"
+
+%>>>>>>> DO NOT EDIT MACRO FILE
+\input{macro} % "macro.tex" must be in the same folder
+
+%>>>>>>> IF NEEDED, ADD A NEW FILE WITH YOUR OWN MACROS
+
+% \input{lecture_01_macro.tex} % Name of supplemental macros should match lecture number
+
+%>>>>>>> LECTURE NUMBER AND TITLE
+\title{Tarea 2:               % UPDATE LECTURE NUMBER
+    Aprendizaje Estadístico}	% UPDATE TITLE
+% TIP:  Use "\\" to break the title into more than one line.
+
+%>>>>>>> DATE OF LECTURE
+\date{} % Hard-code lecture date. Don't use "\today"
+
+%>>>>>>> NAME OF SCRIBE(S)
+
+\begin{document}
+\maketitle %  LEAVE HERE
+% The command above causes the title to be displayed.
+
+%>>>>> DELETE ALL CONTENT UNTIL "\end{document}"
+% This is the body of your document.
+
+\begin{enumerate}
+
+    \item Prueba que la matriz $A$ definida como $X^\top X$ es invertible si y solo
+    si, los vectores de atributos $x_p \in \R^m$ son linealmente independientes.
+
+    \item Determina la función de pérdida que utiliza el algoritmo de perceptrones para
+    ajustar el modelo de semiespacios.
+
+    \item En el contexto del teorema de convergencia del algoritmo de perceptrones:
+    Prueba que la cota es una cota justa. Es decir, para todo entero positivo $m,$
+    existe un vector $w^\star \in \R^p$ y una muestra $S = \{(x^{(i)}, y^{(i)})\}_{i
+    = 1}^m$ que satisfacen lo siguiente:
+    \begin{itemize}
+        \item $R = \max_i \|x^{(i)}\| \leq 1\,.$
+        \item $\|w^\star\|^2 = m,$ y para toda $i\leq m$ tenemos un margen de separación igual a 1. Es decir,
+        $y^{(i)} \langle x^{(i)}, w^\star \rangle \geq 1.$ En la notación del teorema esto implica que
+        $B \leq \sqrt{m},$ y por lo tanto que $(BR)^2 \leq m.$
+        \item Cuando utilizamos el algoritmo de perceptron entonces realizará $m$
+        iteraciones.
+
+        {\em Pista: } Prueba con $p = m$ y escoge $x^{(i)} = e_i$, los vectores canónicos
+        de $\R^p.$
+     \end{itemize}
+
+    \item Modificaremos el algoritmo de perceptrón. Asume que las actualizaciones se
+    realizan con la regla $w^{(t+1)} = w^{(t)} + \eta y^{(i)}x^{(i)},$ con $\eta >0.$
+    Prueba que el algoritmo termina en el mismo número de iteraciones y que la versión
+    básica que vimos en clase y que ademas converge a un vector que tiene la misma
+    dirección que en la versión básica. 
+
+\end{enumerate}
+
+\end{document}
