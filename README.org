@@ -33,5 +33,5 @@ La evaluación del curso será por medio de:
 
 La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]]. 
 
-bibliographystyle:abbrvnat
+bibliographystyle:abbrvnat  
 bibliography:./references.bib
