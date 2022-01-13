@@ -1,7 +1,14 @@
+#+TITLE: Introducción
+#+AUTHOR: Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil
+#+REVEAL_THEME: moon
+#+REVEAL_ROOT: https://cdn.jsdelivr.net/npm/reveal.js
+#+REVEAL_TRANS: cube
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
 #+PROPERTY: header-args:R :session intro-aprendizaje :results output
-
-* Introducción
-
 
 * Ambiente de trabajo
 
