@@ -10,16 +10,16 @@
 #+REVEAL_SLIDE_NUMBER: t
 #+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
 #+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
-#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_EXTRA_CSS: ./css/mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-#+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org
+#+PROPERTY: header-args:R :session misc :exports both :results output org
 
 * Introducción
 
 Este es el repositorio con el contenido del curso en *Aprendizaje Estadístico*
 ofrecido a estudiantes de semestres avanzados en las licenciaturas de matemáticas aplicadas,
-ciencia de datos y actuaría.
+ciencia de datos, actuaría, economía, etc.
 
 * Objetivo
 
@@ -43,8 +43,8 @@ El contenido actual del curso se encuentra en la rama: [[https://github.com/agar
 * Evaluación
 
 La evaluación del curso será por medio de:
-- Participación
-- Tareas
+#+ATTR_REVEAL: :frag (appear)
+- Participación y tareas
 - Evaluaciones parciales 
 - Proyecto final
 
@@ -95,6 +95,10 @@ Si todo sale bien podrán correr la siguiente línea sin ningún problema.
 #+RESULTS:
 #+begin_src org
 #+end_src
+
+#+REVEAL: split
+
+* Bibliografía
 
 bibliographystyle:abbrvnat  
 bibliography:./references.bib
