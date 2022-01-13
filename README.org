@@ -1,4 +1,4 @@
-#+TITLE: Aprendizaje Estadístico
+#+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: [Primavera, 2022]
@@ -30,26 +30,76 @@ conceptos familiares de estadística. El libro de texto será [[cite:&James2021]
 lo complementaremos con el enfoque de [[cite:&Kuhn2013]]. Se estudiarán, además,
 técnicas estadísticas modernas aplicadas a modelado predictivo por medio de
 lecturas que acompañaran el curso.
-  
+
+#+REVEAL: split
+
+El libro de texto será:
+#+begin_quote
+- James, G., Witten, D., Hastie, T., & Tibshirani, R. (2021). /An introduction to statistical learning/. Springer, New York, NY. Second Edition.  
+#+end_quote
+
+
+#+REVEAL: split
+Nos apoyaremos de:
+#+begin_quote
+- Kuhn, M., Johnson K. (2013). /Applied predictive modeling/. Springer, New York, NY.
+#+end_quote
 
 * Temario
 
-El temario para el semestre de primavera 2022 se puede encontrar [[https://github.com/agarbuno/aprendizaje-estadistico/blob/spring-2022/docs/temario.pdf][aqui]]. 
+El temario para el semestre de primavera 2022 se puede encontrar [[https://github.com/agarbuno/aprendizaje-estadistico/blob/spring-2022/docs/temario.pdf][aqui]]. Este es
+un plan preliminar que está sujeto al avance del curso a lo largo del semestre.
+
+** ¿De qué se trata el curso?
+
+El material que estudiaremos será sobre modelos predictivos desde el punto de
+vista estadístico. Dicho de otra forma, no será un curso de /Machine Learning/
+*algorítmico*. Nos concentraremos en las conexiones entre modelos predictivos y
+principios estadísticos que le dan sustento.
 
 * Recursos
 
-El contenido actual del curso se encuentra en la rama: [[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]].
+El contenido actual de esta iteración del curso se encuentra en la rama:
+[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]].
+
+* Horarios
+
+El curso será los días Lunes y Miércoles en un horario de 13:00 a 14:30.
+
+** Formato
+
+El curso será remoto (vía Zoom) *por el momento*. Si las condiciones sanitarias lo
+permiten el formato de la clase será ~completamente presencial~ a partir del *14 de
+Febrero*. Por otro lado, salvo se indique lo contrario, ~las evaluaciones serán
+presenciales~.
+
+** Canvas
+
+Utilizaremos este LMS para gestionar la comunicación fuera de los horarios de
+clase. Asimismo, ahi tendrán acceso al calendario y las sesiones de zoom que se
+necesiten a lo largo del semestre.
+
+** Fechas importantes
+
+#+ATTR_REVEAL: :frag (appear)
+- La sesión del ~Lunes 7 de Febrero~ será una sesión de ~3 horas~. El miércoles 9 de Febrero *no habrá clase*.
+- Por solidaridad, el ~Miércoles 9 de Marzo~ *no habrá sesión de clase*. Tendremos una sesión de reflexión. 
+- La semana del ~Lunes 11 de Abril~ estaré fuera en una conferencia (SIAM-UQ 2022).
+
+** Grabaciones de clases
+
+La clase se enriquece exponencialmente si existe una conversación entre los
+asistentes. Por lo tanto, las sesiones no se grabarán (si, incluso si hay un cumpleaños!). 
 
 * Evaluación
 
 La evaluación del curso será por medio de:
 #+ATTR_REVEAL: :frag (appear)
-- Participación y tareas
-- Evaluaciones parciales 
-- Proyecto final
+- Participación y tareas (30%)
+- Evaluaciones parciales (30%)
+- Proyecto final (40%)
 
 La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]]. 
-
 
 * Ambiente de trabajo
 
@@ -57,15 +107,15 @@ El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el
 
 #+REVEAL: split
 
-Como herramienta de trabajo tendrán que utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún problema en ~Github~.
+Se sugiere utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún problema en ~Github~.
 
 #+REVEAL: split
 
-*Nota*: Si van a utilizar ~R~ se recomienda tener instalada la versión ~4.1.1~ para tener la mejor compatibilidad con el código del curso.
+*Nota*: Es necesario tener instalada la versión ~4.1.1~ de ~R~ para tener la mejor compatibilidad con el código del curso.
 
 * Configuración ~R~
 
-Basta con clonar el repositorio en su máquina (contenedor?) y abrir un proyecto de ~Rstudio~ localizado en el directorio en donde clonaron. Después de esto deberán de configurar el ambiente de trabajo utilizando la siguiente en su consola de ~R~
+Basta con clonar el repositorio en su máquina (contenedor?) y abrir un proyecto de ~Rstudio~ localizado en el directorio en donde clonaron. Después de esto deberán de configurar el ambiente de trabajo utilizando la siguiente línea en su consola de ~R~: 
 
 #+begin_src R
 
@@ -96,7 +146,10 @@ Si todo sale bien podrán correr la siguiente línea sin ningún problema.
 #+begin_src org
 #+end_src
 
-#+REVEAL: split
+* Tarea 
+
+Las primeras tareas del semestre son básicamente configuración y es recomendable
+hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~. 
 
 * Bibliografía
 
