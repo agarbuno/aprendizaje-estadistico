@@ -7,11 +7,11 @@
 #+OPTIONS: num:nil toc:nil timestamp:nil
 #+REVEAL_REVEAL_JS_VERSION: 4
 #+REVEAL_THEME: night
-#+REVEAL_TRANS: convex
 #+REVEAL_SLIDE_NUMBER: t
 #+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
 #+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
 #+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session intro-aprendizaje :results output
 
@@ -65,3 +65,4 @@ Si todo sale bien podrán correr la siguiente línea sin ningún problema.
 : ── [1mConflicts[22m ──────────────────────────────────────────────────── tidyverse_conflicts() ──
 : [31m✖[39m [34mdplyr[39m::[32mfilter()[39m masks [34mstats[39m::filter()
 : [31m✖[39m [34mdplyr[39m::[32mlag()[39m    masks [34mstats[39m::lag()
+
