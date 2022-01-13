@@ -5,7 +5,7 @@
 
 * Ambiente de trabajo
 
-El curso es agnóstico al lenguaje de programación. Sin embargo, utilizaremos [[https://mc-stan.org/][Stan]] como lenguaje para definir y ajustar modelos bayesianos (tanto asintóticamente correctos , como aproximados). En particular utilizaremos la interfase de [[https://www.r-project.org/][R]] por medio de ~cmdstanr~ pero de igual manera son bienvenidos en utilizar la interfase de [[https://www.python.org/][python]]. 
+El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el material estará construido a partir de ~R~. En particular utilizaremos [[https://www.tidymodels.org/][tidymodels]] como herramienta de programación dentro de [[https://www.r-project.org/][R]] pues ofrece una ambiente unificado de distintas librerías enfocadas en modelos predictivos. Además, es una herramienta que representa muy bien la filosofía del curso. 
 
 Como herramienta de trabajo tendrán que utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún problema en ~Github~.
 
