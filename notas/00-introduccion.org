@@ -1,8 +1,8 @@
-#+TITLE: Introducción
-#+AUTHOR: Alfredo Garbuno Iñigo
+#+TITLE: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
 #+LANGUAGE: es
-#+OPTIONS: num:nil toc:nil
+#+OPTIONS: num:nil toc:nil date:nil
 #+REVEAL_THEME: moon
 #+REVEAL_ROOT: https://cdn.jsdelivr.net/npm/reveal.js
 #+REVEAL_TRANS: cube
@@ -14,7 +14,11 @@
 
 El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el material estará construido a partir de ~R~. En particular utilizaremos [[https://www.tidymodels.org/][tidymodels]] como herramienta de programación dentro de [[https://www.r-project.org/][R]] pues ofrece una ambiente unificado de distintas librerías enfocadas en modelos predictivos. Además, es una herramienta que representa muy bien la filosofía del curso. 
 
+#+REVEAL: split
+
 Como herramienta de trabajo tendrán que utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún problema en ~Github~.
+
+#+REVEAL: split
 
 *Nota*: Si van a utilizar ~R~ se recomienda tener instalada la versión ~4.1.1~ para tener la mejor compatibilidad con el código del curso.
 
@@ -31,7 +35,13 @@ Basta con clonar el repositorio en su máquina (contenedor?) y abrir un proyecto
 #+RESULTS:
 : * The library is already synchronized with the lockfile.
 
-Les pedirá confirmación para descargar los paquetes necesarios de las librerías. *Nota*: es posible que tengan que ir actualizando conforme avance el curso. Para esto la receta: =pull + restore= será bastante importante.
+#+REVEAL: split
+
+Les pedirá confirmación para descargar los paquetes necesarios de las librerías.
+
+*Nota*: es posible que tengan que ir actualizando conforme avance el curso. Para esto la receta: =pull + restore= será bastante importante.
+
+#+REVEAL: split
 
 Si todo sale bien podrán correr la siguiente línea sin ningún problema.
 
