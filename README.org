@@ -84,6 +84,7 @@ necesiten a lo largo del semestre.
 
 #+ATTR_REVEAL: :frag (appear)
 - La sesión del ~Lunes 7 de Febrero~ será una sesión de ~3 horas~. El miércoles 9 de Febrero *no habrá clase*.
+- La sesión del ~Lunes 21 de Marzo~ hay descanso obligatorio. 
 - Por solidaridad, el ~Miércoles 9 de Marzo~ *no habrá sesión de clase*. Tendremos una sesión de reflexión. 
 
 ** Grabaciones de clases
