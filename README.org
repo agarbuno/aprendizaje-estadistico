@@ -87,7 +87,28 @@ principios estadísticos que le dan sustento.
 * Recursos
 
 El contenido actual de esta iteración del curso se encuentra en la rama:
-[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]].
+[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]]. La
+estructura del repositorio se muestra a continuación donde tenemos a grandes
+razgos:
+
+#+begin_src bash :exports results :results org
+
+tree -L 1 -d 
+
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+.
+├── auto
+├── css
+├── docs
+└── notas
+
+4 directories
+#+end_src
+
+
 
 * Horarios
 
