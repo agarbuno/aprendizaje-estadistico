@@ -1,0 +1,67 @@
+#+TITLE: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: Primavera, 2022
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_EXTRA_CSS: https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css
+#+REVEAL_EXTERNAL_PLUGINS: (RevealChalkboard . "/Users/agarbuno/software/plugins.js/chalkboard/plugin.js")  (RevealCustomControls . "/Users/agarbuno/software/plugins.js/customcontrols/plugin.js") (RevealMenu . "/Users/agarbuno/software/menu.js/menu.js")
+#+REVEAL_PLUGINS: (RevealChalkboard RevealMenu notes)
+:END:
+#+PROPERTY: header-args:R :session aprendizaje :exports both :results output org :tangle ../rscripts/01-aprendizaje.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#qué-es-el-aprendizaje-estadístico][¿Qué es el aprendizaje estadístico?]]
+:END:
+
+
+* ¿Qué es el aprendizaje estadístico?
+
+#+begin_src R :results output org value
+
+  library(tidyverse)
+  library(patchwork)
+
+  data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
+  data |> colnames()
+  data |> head()
+
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+230.1	37.8	69.2	22.1
+44.5	39.3	45.1	10.4
+17.2	45.9	69.3	9.3
+151.5	41.3	58.5	18.5
+180.8	10.8	58.4	12.9
+8.7	48.9	75	7.2
+#+end_src
+
+
+#+HEADER: :width 12 :height 3.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/sales.svg :results output graphics file
+
+  g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
+  g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
+  g3 <- ggplot(data, aes(newspaper, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
+
+  g1 + g2 + g3
+#+end_src
+
+#+RESULTS:
+[[file:../img/sales.svg]]
+
