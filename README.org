@@ -40,13 +40,12 @@
 - [[#tarea][Tarea]]
 - [[#bibliografía][Bibliografía]]
 :END:
-
-
+    
 * Introducción
 
 Este es el repositorio con el contenido del curso en *Aprendizaje Estadístico*
-ofrecido a estudiantes de semestres avanzados en las licenciaturas de matemáticas aplicadas,
-ciencia de datos, actuaría, economía, etc.
+ofrecido a estudiantes de semestres avanzados en las licenciaturas de
+matemáticas aplicadas, ciencia de datos, actuaría, economía, etc.
 
 * Objetivo
 
@@ -109,17 +108,16 @@ tree -L 1 -d
 #+end_src
 
 
-
 * Horarios
 
 El curso será los días Lunes y Miércoles en un horario de 13:00 a 14:30.
 
 ** Formato
 
-El curso será remoto (vía Zoom) *por el momento*. Si las condiciones sanitarias lo
-permiten el formato de la clase será ~completamente presencial~ a partir del *14 de
-Febrero*. Por otro lado, salvo se indique lo contrario, ~las evaluaciones serán
-presenciales~.
+El curso será presencial salvo que las condiciones sanitarias lo ameriten. En
+las primeras dos semanas de clase se tendrá la opción de atender de manera
+remota en caso de que la situación del estudiante lo amerite.  Por otro lado,
+salvo se indique lo contrario, ~las evaluaciones serán presenciales~.
 
 ** Canvas
 
@@ -151,23 +149,36 @@ La entrega de los trabajos/tareas se realizará por medio de un [[https://github
 
 * Ambiente de trabajo
 
-El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el material estará construido a partir de [[https://www.r-project.org/][R]]. En particular utilizaremos [[https://www.tidymodels.org/][tidymodels]] como herramienta de programación dentro de ~R~ pues ofrece una ambiente unificado de distintas librerías enfocadas en modelos predictivos. Además, es una herramienta que representa muy bien la filosofía del curso. 
+El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el
+material estará construido a partir de [[https://www.r-project.org/][R]]. En particular utilizaremos [[https://www.tidymodels.org/][tidymodels]]
+como herramienta de programación dentro de ~R~ pues ofrece una ambiente unificado
+de distintas librerías enfocadas en modelos predictivos. Además, es una
+herramienta que representa muy bien la filosofía del curso.
 
 #+REVEAL: split
 
-Se sugiere utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún problema en ~Github~.
+Se sugiere utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus
+tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través
+de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún
+problema en ~Github~.
 
 #+REVEAL: split
 
-*Nota*: Es necesario tener instalada la versión ~4.1.1~ de ~R~ para tener la mejor compatibilidad con el código del curso.
+*Nota*: Es necesario tener instalada la versión ~4.1.1~ de ~R~ para tener la mejor
+compatibilidad con el código del curso.
 
 ** Configuración ~R~
 
-Utilizaremos ~renv~ para mantener actualizada las herramientas de ~R~ junto con el contenido del curso. En la carpeta =notas= se encuentran los archivos de requerimientos (=renv.lock=)  con el que podrán usar los archivos que se vayan decantando en la carpeta =rscripts=. Aún asi, la configuración se irá construyendo en los ejercicios de tarea que vayamos utilizando en el curso.
+Utilizaremos ~renv~ para mantener actualizada las herramientas de ~R~ junto con el
+contenido del curso. En la carpeta =notas= se encuentran los archivos de
+requerimientos (=renv.lock=) con el que podrán usar los archivos que se vayan
+decantando en la carpeta =rscripts=. Aún asi, la configuración se irá construyendo
+en los ejercicios de tarea que vayamos utilizando en el curso.
 
 ** Configuración ~renv~
 
-Se recomienda escribir en el archivo ~~/.Renviron~ la siguiente línea lo cual mantendrá el cache de ~renv~ en un lugar centralizado 
+Se recomienda escribir en el archivo ~~/.Renviron~ la siguiente línea lo cual
+mantendrá el cache de ~renv~ en un lugar centralizado
 
 #+begin_src conf :tangle ~/.Renviron :mkdirp yes
   RENV_PATHS_ROOT=~/.renv
@@ -180,7 +191,7 @@ Deseable, y próximo en anunciarse.
 * Tarea 
 
 Las primeras tareas del semestre son básicamente configuración y es recomendable
-hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~. 
+hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~.
 
 * Bibliografía
 
