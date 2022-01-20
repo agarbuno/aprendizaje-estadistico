@@ -13,5 +13,200 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-#+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org
+#+STARTUP: showall
+#+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org :tangle rscripts/00-introduccion.R :mkdirp yes
+#+EXCLUDE_TAGS: toc
 
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 2
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#caracteristicas-del-aprendizaje-estadístico][Caracteristicas del Aprendizaje Estadístico]]
+  - [[#filosofía-del-curso][Filosofía del curso]]
+  - [[#principios][Principios]]
+- [[#distinciones][Distinciones]]
+- [[#métodos][Métodos]]
+  - [[#tareas-de-predicción][Tareas de predicción]]
+- [[#notación][Notación]]
+- [[#ambiente-de-r][Ambiente de R]]
+  - [[#por-qué-utilizamos-tidymodels][¿Por qué utilizamos tidymodels?]]
+:END:
+
+* Introducción
+
+Herramientas para ~entender reglas de asociación~. Con el objetivo de ~generar
+predicciones acertadas~.  No es ~estadística~. No es ~inferencia causal~.
+
+** Caracteristicas del Aprendizaje Estadístico
+#+ATTR_REVEAL: :frag (appear)
+- Flexibilidad.
+- Procesamiento automático.
+- Complejidad (en datos).
+- Predicción.
+
+** Filosofía del curso
+
+Es importante entender los modelos, la intuición y fortalezas y debilidades de
+los métodos que se utilizan en tareas de aprendizaje ~supervisadas~ y ~no
+supervisadas~.
+
+** Principios
+
+*** Muchos métodos de aprendizaje son relevantes para una gran variedad de aplicaciones. 
+*** Aprendizaje estadístico *no* es una colección de cajas negras. 
+*** Una cosa es entender cómo funciona; otra, implementarlo desde cero. 
+*** Conocimiento de dominio. Obtención de información relevante. 
+* Distinciones
+
+En aprendizaje estadístico nos interesa comprender el proceso que genera los
+datos y su representatividad estadística.
+
+* Métodos
+
+Aprendizaje ~supervisado~ y ~aprendizaje no supervisado~.
+
+** Tareas de predicción
+
+- Clasificación
+- Regresión 
+
+* Notación 
+
+Denotamos por $n$ el número de observaciones; $p$ para el número de
+características de dichas observaciones.  Así que, $x_{ij}$ con $i = 1, \ldots,
+n$ y $j = 1, \ldots, p$ será el elemento de nuestras observaciones.
+
+#+REVEAL: split
+
+Usualmente tendremos una característica que queremos predecir y la denotamos por $y$ . Usualmente $y \in \mathbb{R}$ ó $y \in \{0,1\}$  ó $y \in \{1, 2, \ldots, K\}$.
+
+#+REVEAL: split
+
+El conjunto de datos lo denotamos por
+\begin{align}
+\mathcal{D} = \{ (x_1, y_1), \ldots (x_n, y_n) \}\,.
+\end{align}
+* Ambiente de ~R~
+
+#+begin_src R :exports code :results org
+  library(tidyverse)   # Herramientas de procesamiento
+  library(tidymodels)  # Herramientas de modelado 
+  library(ISLR)        # Datos del libro de texto
+  library(MASS)        # Datos de Boston
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#+end_src
+
+** ¿Por qué utilizamos ~tidymodels~?
+
+#+begin_quote
+La búsqueda ~CRAN Task View: Machine Learning & Statistical Learning~:
+#+end_quote
+
+abess (core)
+ahaz
+arules
+BART
+bartMachine
+BayesTree
+BDgraph
+biglasso
+bmrm
+Boruta
+bst
+C50
+caret
+CORElearn
+Cubist
+deepnet
+DoubleML
+e1071 (core)
+earth
+effects
+elasticnet
+evclass
+evtree
+frbs
+gamboostLSS
+gbm (core)
+ggRandomForests
+glmnet
+glmpath
+GMMBoost
+gradDescent
+grf
+grplasso
+grpreg
+h2o
+hda
+hdi
+hdm
+ICEbox
+ipred
+islasso
+joinet
+kernlab (core)
+klaR
+lars
+lasso2
+LiblineaR
+maptree
+mboost (core)
+mlpack
+mlr3
+mlr3proba
+mpath
+naivebayes
+ncvreg
+nnet (core)
+OneR
+opusminer
+pamr
+party
+partykit
+pdp
+penalized
+penalizedLDA
+picasso
+plotmo
+quantregForest
+randomForest (core)
+randomForestSRC
+ranger
+rattle
+Rborist
+RcppDL
+rdetools
+relaxo
+rgenoud
+RGF
+RLT
+Rmalschains
+rminer
+ROCR
+RoughSets
+rpart (core)
+RPMM
+RSNNS
+RWeka
+RXshrink
+sda
+SIS
+splitTools
+ssgraph
+stabs
+SuperLearner
+svmpath
+tensorflow
+tgp
+torch
+tree
+trtf
+varSelRF
+wsrf
+xgboost
