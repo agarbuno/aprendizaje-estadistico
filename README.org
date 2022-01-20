@@ -99,12 +99,13 @@ tree -L 1 -d
 #+RESULTS:
 #+begin_src org
 .
-├── auto
 ├── css
 ├── docs
-└── notas
+├── notas
+├── renv
+└── rscripts
 
-4 directories
+7 directories
 #+end_src
 
 
