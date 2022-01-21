@@ -23,8 +23,8 @@
 :END:
 :CONTENTS:
 - [[#qué-es-el-aprendizaje-estadístico][¿Qué es el aprendizaje estadístico?]]
-  - [[#-por-qué-estimar-f][¿ Por qué estimar $f$?]]
-  - [[#hay-una-f-que-sea-ideal][¿Hay una $f$ que sea ideal?]]
+  - [[#por-qué-estimar-f][¿Por qué estimar $f$?]]
+  - [[#hay-una-f-que-sea-óptima][¿Hay una $f$ que sea óptima?]]
 - [[#propiedades][Propiedades]]
   - [[#descomposción-del-error][Descomposción del error]]
 - [[#importante][Importante]]
@@ -84,14 +84,14 @@ Lo podemos expresar como
 Y = f(X) + \varepsilon\,.
 \end{align}
 
-** ¿ Por qué estimar $f$?
+** ¿Por qué estimar $f$?
 
 #+ATTR_REVEAL: :frag (appear)
 - Podemos hacer predicciones.
 - Podemos entender qué componentes de $X = (X_1, \ldots, X_p)$  son importantes.
 - Podemos tratar de entender la complejidad de $f$.
 
-** ¿Hay una $f$ que sea ideal?
+** ¿Hay una $f$ que sea óptima?
 
 Podríamos utilizar
 \begin{align}
@@ -110,6 +110,13 @@ La función de regresión ($f$) es ~óptima~ en términos del error cuadratico m
 para ~cualquier función~ $g$ evaluada en ~cualquier punto~ $x$. 
 
 El término $\varepsilon = Y - f(x)$ es el error ~irreducible~, 
+
+#+BEGIN_NOTES
+
+Definir la función de pérdida. Usar probabilidad condicional. Y evaluar sólo $\mathbb{E}_{Y|X}$ en lugar de $\mathbb{E}_X \mathbb{E}_{Y|X}$. 
+
+#+END_NOTES
+
 
 ** Descomposción del error
 
@@ -231,7 +238,7 @@ file:../img/tradeoff.png
 Supongamos que entrenamos un modelo $\hat f(x)$ sobre $\mathcal{D}_n$. ¿Cómo evaluamos su desempeño bajo el conjunto que se utilizó para entrenar?
 
 #+BEGIN_NOTES
-Error de entrenamiento / Error de prueba
+Función de pérdida / Error de entrenamiento / Error de prueba. 
 #+END_NOTES
 
 ** Ejemplo (Regresión)
@@ -267,6 +274,7 @@ Error de entrenamiento / Error de prueba
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
 #+begin_src R :file img/polyfit-single.svg :exports results :results output graphics file
 
+  # Grafica la función latente y observaciones 
   x_plot <- seq(0,1,0.01)
   y_plot <- f(x_plot)
   ggplot(datos, aes(x=x, y=y), colour='red')+
@@ -285,32 +293,11 @@ Error de entrenamiento / Error de prueba
     lm(y ~ poly(x, degree=m, raw = TRUE), data = datos) 
   }
 
-#+end_src
-
-#+RESULTS:
-#+begin_src org
-                                        coef
-(Intercept)                        0.4905712
-poly(x, degree = m, raw = TRUE)1  13.0178070
-poly(x, degree = m, raw = TRUE)2 -64.4863513
-poly(x, degree = m, raw = TRUE)3  62.9424938
-poly(x, degree = m, raw = TRUE)4  32.7114482
-poly(x, degree = m, raw = TRUE)5 -75.0164005
-poly(x, degree = m, raw = TRUE)6  32.2320558
-#+end_src
-
-
-#+begin_src R #+begin_src R :exports none :results none
-
   results <- tibble(grado = seq(1,9)) |>
       mutate(modelos    = map(grado, ajuste_mod),
              prediccion = map(modelos, predict,
                               newdata = data.frame(x = x_plot))) 
 
-#+end_src
-
-#+RESULTS:
-#+begin_src org
 #+end_src
 
 #+REVEAL: split
@@ -328,7 +315,7 @@ poly(x, degree = m, raw = TRUE)6  32.2320558
     geom_line() +
     facet_wrap(~grado) +
     ylim(c(-3,3)) + 
-    annotate("point",x=datos$x, y=datos$y, colour="black")
+    annotate("point", x=datos$x, y=datos$y, colour="black")
 
 #+end_src
 #+caption: Ajuste bajo distintos grados del polinomio
@@ -400,7 +387,7 @@ La predicción es sobre una $y_n$ que es cualitativa. Nos interesa el ~error de 
 
 #+BEGIN_NOTES
 
-Es decir nos interesa
+Definir función de pérdida. Es decir nos interesa
 \begin{align}
 \frac{1}{n} \sum_{i = 1}^{n} I(y_i \neq \hat y_i)\,.
 \end{align}
