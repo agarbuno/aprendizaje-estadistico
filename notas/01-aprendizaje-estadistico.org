@@ -12,28 +12,43 @@
 #+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
 #+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
 #+REVEAL_EXTRA_CSS: ./mods.css
-#+REVEAL_EXTRA_CSS: https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css
-#+REVEAL_EXTERNAL_PLUGINS: (RevealChalkboard . "/Users/agarbuno/software/plugins.js/chalkboard/plugin.js")  (RevealCustomControls . "/Users/agarbuno/software/plugins.js/customcontrols/plugin.js") (RevealMenu . "/Users/agarbuno/software/menu.js/menu.js")
-#+REVEAL_PLUGINS: (RevealChalkboard RevealMenu notes)
+#+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session aprendizaje :exports both :results output org :tangle ../rscripts/01-aprendizaje.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
 
-* Contenido                                                             :toc:
+* Contenido                                                             :toc:azul:
 :PROPERTIES:
 :TOC:      :include all  :ignore this :depth 3
 :END:
 :CONTENTS:
 - [[#qué-es-el-aprendizaje-estadístico][¿Qué es el aprendizaje estadístico?]]
+  - [[#-por-qué-estimar-f][¿ Por qué estimar $f$?]]
+  - [[#hay-una-f-que-sea-ideal][¿Hay una $f$ que sea ideal?]]
+- [[#propiedades][Propiedades]]
+  - [[#descomposción-del-error][Descomposción del error]]
+- [[#importante][Importante]]
+- [[#cómo-estimamos-f][¿Cómo estimamos $f$?]]
+  - [[#vecinos-cercanos][Vecinos cercanos]]
+  - [[#maldición-de-la-dimensionalidad][Maldición de la dimensionalidad]]
+- [[#modelos-paramétricos][Modelos paramétricos]]
+  - [[#compromisos][Compromisos]]
+- [[#evaluando-la-precisión-del-modelo][Evaluando la precisión del modelo]]
+  - [[#ejemplo-regresión][Ejemplo (Regresión)]]
+- [[#compromiso-entre-sesgo-y-varianza][Compromiso entre sesgo y varianza]]
+- [[#problemas-de-clasificación][Problemas de clasificación]]
+  - [[#objetivos][Objetivos]]
+  - [[#el-clasificador-óptimo][El clasificador óptimo]]
 :END:
 
 
 * ¿Qué es el aprendizaje estadístico?
 
-#+begin_src R :results output org value
+#+begin_src R :exports none :results none
 
   library(tidyverse)
   library(patchwork)
+  theme_set(theme_grey(base_size = 18)) 
 
   data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
   data |> colnames()
@@ -41,19 +56,9 @@
 
 #+end_src
 
-#+RESULTS:
-#+begin_src org
-230.1	37.8	69.2	22.1
-44.5	39.3	45.1	10.4
-17.2	45.9	69.3	9.3
-151.5	41.3	58.5	18.5
-180.8	10.8	58.4	12.9
-8.7	48.9	75	7.2
-#+end_src
-
-
+#+REVEAL: split
 #+HEADER: :width 12 :height 3.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/sales.svg :results output graphics file
+#+begin_src R :file img/sales.svg :results output graphics file :exports results
 
   g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
   g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
@@ -64,4 +69,372 @@
 
 #+RESULTS:
 [[file:../img/sales.svg]]
+
+Supongamos que tenemos datos de ventas de ciertas campañas de /marketing/ en ciertos canales de distribución.
+Queremos estimar la relación
+
+\begin{align}
+\texttt{Ventas} \approx f(\texttt {tv, radio, periodico})\,.
+\end{align}
+
+#+REVEAL: split
+Lo podemos expresar como
+
+\begin{align}
+Y = f(X) + \varepsilon\,.
+\end{align}
+
+** ¿ Por qué estimar $f$?
+
+#+ATTR_REVEAL: :frag (appear)
+- Podemos hacer predicciones.
+- Podemos entender qué componentes de $X = (X_1, \ldots, X_p)$  son importantes.
+- Podemos tratar de entender la complejidad de $f$.
+
+** ¿Hay una $f$ que sea ideal?
+
+Podríamos utilizar
+\begin{align}
+f(x) = \mathbb{E}[Y | x = 4]\,,
+\end{align}
+
+que recibe el nombre  ~función de regresión~.
+
+* Propiedades
+
+La función de regresión ($f$) es ~óptima~ en términos del error cuadratico medio: 
+\begin{align}
+\mathbb{E}\left[(Y - g(x))^2 | X = x\right]\,,
+\end{align}
+
+para ~cualquier función~ $g$ evaluada en ~cualquier punto~ $x$. 
+
+El término $\varepsilon = Y - f(x)$ es el error ~irreducible~, 
+
+** Descomposción del error
+
+Para cualquier estimador $\hat f(x)$ de  $f(x)$ tenemos
+
+\begin{align}
+\mathbb{E}[(Y-\hat f(x))^2 | X = x] = \underbrace{[f(x) - \hat f(x)]^2}_{\text{reducible}} + \underbrace{\mathbb{V}(\varepsilon)}_{\text{irreducible}}\,.
+\end{align}
+
+* Importante
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+ Hasta ahora sólo hemos hablado de un procedimiento ~predictivo~.
+
+ #+caption: "Predecir, predecir, predecir..."
+file:../img/predecir.gif
+
+#+REVEAL: split
+No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
+ #+ATTR_REVEAL: :frag (appear)
+- Qué predictores están asociados con la respuesta?
+- Qué tipo de relación tiene cada predictor con la respuesta?
+- Se puede resumir la relación de manera lineal?
+
+
+ 
+* ¿Cómo estimamos $f$?
+
+- Tenemos datos observados para la $x$ que nos interesa?
+- Podemos calcular $\mathbb{E}[Y | X = x]$ ?
+- Qué tal que relajamos:
+\begin{align}
+\hat f (x) = \mathsf{Promedio}(Y | X \in \mathcal{N}(x))\,.
+\end{align}
+
+
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent" 
+#+begin_src R :file img/loess.svg :exports results :results output graphics file
+
+    ggplot(data, aes(TV, sales)) +
+      geom_point(color = 'red') +
+      geom_smooth(method = "loess", span = .1, se = FALSE) 
+
+#+end_src
+
+#+RESULTS:
+[[file:../img/loess.svg]]
+
+** Vecinos cercanos
+
+Ejemplo de un modelo  ~no paramétrico~. Este modelo es bueno cuando $p$ es pequeño y $n$ es grande. Puede sobre-ajustar  rápidamente. 
+
+** Maldición de la dimensionalidad
+
+Los vecinos... no son tan cercanos en dimensiones moderadas/altas. 
+
+* Modelos paramétricos
+
+El modelo ~lineal~ es un modelo paramétrico de la forma
+
+\begin{align}
+f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
+\end{align}
+
+
+#+REVEAL: split
+
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/lineal.svg :exports results :results output graphics file
+
+    ggplot(data, aes(TV, sales)) +
+      geom_point(color = 'red') +
+      geom_smooth(method = "lm", se = FALSE) 
+
+
+#+end_src
+
+#+RESULTS:
+[[file:../img/lineal.svg]]
+
+
+#+REVEAL: split
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/quadratic.svg :exports results :results output graphics file
+
+    ggplot(data, aes(TV, sales)) +
+      geom_point(color = 'red') +
+      geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE, size = 1) 
+
+#+end_src
+
+#+RESULTS:
+[[file:../img/quadratic.svg]]
+
+
+#+REVEAL: split
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/polinomial.svg :exports results :results output graphics file
+
+    ggplot(data, aes(TV, sales)) +
+      geom_point(color = 'red') +
+      geom_smooth(method = "lm", formula = y ~ poly(x, 10), se = FALSE) 
+
+#+end_src
+
+#+RESULTS:
+[[file:../img/polinomial.svg]]
+
+** Compromisos
+
+- El modelo lineal es "fácil" de interpretar. Sin embargo, puede no tener un buen desempeño.
+- Hay un balance entre un /buen/ ajuste y sobre(sub)-ajuste. 
+- Complejidad vs Simplicidad
+#+caption: Tomado de citep:Fourati2021
+file:../img/tradeoff.png
+
+* Evaluando la precisión del modelo
+Supongamos que entrenamos un modelo $\hat f(x)$ sobre $\mathcal{D}_n$. ¿Cómo evaluamos su desempeño bajo el conjunto que se utilizó para entrenar?
+
+#+BEGIN_NOTES
+Error de entrenamiento / Error de prueba
+#+END_NOTES
+
+** Ejemplo (Regresión)
+
+#+begin_src R :exports none :results none
+
+  library(dplyr)
+  library(tidyr)
+
+  # Definimos la funcion
+  f <- function(x){
+    sin(2*pi*x) + cos(2*pi*x)
+  }
+
+  # Procedimiento de simulacion
+  simular  <- function(n_muestra, sigma){
+    x <- runif(n_muestra, 0, 1) 
+    y <- f(x) + rnorm(length(x), mean = 0, sd = sigma)
+    data.frame(x, y)
+  }
+
+  # Semilla para resultados reproducibles
+  set.seed(108727) 
+
+  # Simulamos
+  sd_mod <- 0.5
+  datos <- simular(20, sd_mod)
+
+#+end_src
+
+
+#+caption: Función con ruido observacional
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/polyfit-single.svg :exports results :results output graphics file
+
+  x_plot <- seq(0,1,0.01)
+  y_plot <- f(x_plot)
+  ggplot(datos, aes(x=x, y=y), colour='red')+
+    geom_point() +
+    annotate("line", x=x_plot, y=y_plot, linetype="dotted")
+
+#+end_src
+
+#+RESULTS:
+[[file:../img/polyfit-single.svg]]
+
+
+#+begin_src R :exports none :results none
+
+  ajuste_mod <- function(m){
+    lm(y ~ poly(x, degree=m, raw = TRUE), data = datos) 
+  }
+
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+                                        coef
+(Intercept)                        0.4905712
+poly(x, degree = m, raw = TRUE)1  13.0178070
+poly(x, degree = m, raw = TRUE)2 -64.4863513
+poly(x, degree = m, raw = TRUE)3  62.9424938
+poly(x, degree = m, raw = TRUE)4  32.7114482
+poly(x, degree = m, raw = TRUE)5 -75.0164005
+poly(x, degree = m, raw = TRUE)6  32.2320558
+#+end_src
+
+
+#+begin_src R #+begin_src R :exports none :results none
+
+  results <- tibble(grado = seq(1,9)) |>
+      mutate(modelos    = map(grado, ajuste_mod),
+             prediccion = map(modelos, predict,
+                              newdata = data.frame(x = x_plot))) 
+
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#+end_src
+
+#+REVEAL: split
+
+#+caption: Ajuste bajo distintos grados de complejidad
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/polyfit.svg :exports results :results output graphics file
+
+  results |>
+    unnest(prediccion) |>
+    mutate(x = rep(x_plot, 9),
+           verdadero = rep(y_plot, 9)) |>
+    pivot_longer(cols = c(prediccion, verdadero)) |>
+    ggplot(aes(x, value, linetype = name)) +
+    geom_line() +
+    facet_wrap(~grado) +
+    ylim(c(-3,3)) + 
+    annotate("point",x=datos$x, y=datos$y, colour="black")
+
+#+end_src
+#+caption: Ajuste bajo distintos grados del polinomio
+#+RESULTS:
+[[file:../img/polyfit.svg]]
+
+
+#+REVEAL: split
+#+begin_src R :exports none :results none
+
+  datos_prueba <- simular(1000, sd_mod)
+
+  errores <- results |>
+    mutate(prueba = map(modelos, function(modelo) {
+      predicciones <- predict(modelo, newdata = data.frame(x = datos_prueba$x))
+      predicciones - datos_prueba$y}),
+      entrenamiento = map(modelos, residuals)) |>
+    pivot_longer(cols = prueba:entrenamiento,
+                 names_to = "tipo", values_to = "residuales") |>
+    unnest(residuales) |>
+    group_by(grado, tipo) |>
+      summarise(error = mean((residuales)**2), .groups = "drop")
+
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#+end_src
+
+
+#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
+#+begin_src R :file img/mse-polyfit.svg :exports results :results output graphics file 
+
+  errores |>
+    ggplot(aes(grado, error, linetype = tipo)) +
+    geom_line() + geom_point() 
+
+#+end_src
+#+caption: Errores de entrenamiento / prueba
+#+RESULTS:
+[[file:../img/mse-polyfit.svg]]
+
+#+REVEAL: split
+#+caption: Poco ruido
+file:../img/mse-polyfit-noise.svg
+
+
+* Compromiso entre sesgo y varianza
+
+Supongamos que ajustamos un modelo $\hat f(x)$ a un conjunto de datos
+$\mathcal{D}_n$. Sea $(x_0, y_0)$ un punto no utilizado en el conjunto de
+entrenamiento. Si el modelo es $Y = f(X) + \varepsilon$. Entonces
+
+\begin{align}
+\mathbb{E}[(y_0 - \hat f(x_0))^2] = \mathbb{V}(\hat f(x_0)) + [\mathsf{Sesgo}(\hat f(x_0))]^2 + \mathbb{V}(\varepsilon)\,.
+\end{align}
+
+
+#+BEGIN_NOTES
+
+Valor esperado. Definición de Sesgo. Figura descomposición. 
+
+#+END_NOTES
+
+
+* Problemas de clasificación
+
+La predicción es sobre una $y_n$ que es cualitativa. Nos interesa el ~error de clasificación~.
+
+#+BEGIN_NOTES
+
+Es decir nos interesa
+\begin{align}
+\frac{1}{n} \sum_{i = 1}^{n} I(y_i \neq \hat y_i)\,.
+\end{align}
+
+#+END_NOTES
+
+
+** Objetivos
+
+- Construir un clasificador $C(X)$.
+- Medir la incertidumbre en la clase.
+- Entender los roles de los predictores.
+
+** El clasificador óptimo
+
+Supongamos que hay $K$ clases en $\mathcal{C}$ las cuales están numeradas. Sea
+
+\begin{align}
+p_k(x ) = \mathbb{P}(Y = k | X = x) \qquad k = 1, \ldots, K\,.
+\end{align}
+
+
+El ~clasificador óptimo Bayesiano~ es
+
+\begin{align}
+C(x) = j \text{ si } p_j(x) = \max\{p_1(x), \ldots, p_K(x)\}\,.
+\end{align}
+
+#+BEGIN_NOTES
+
+Prueba de optimalidad. Es el clasificador con menor error en la población. Se puede utilizar un modelo de ~vecinos mas cercanos~.
+
+#+END_NOTES
+
+
+
 
