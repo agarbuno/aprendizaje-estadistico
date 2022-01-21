@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<title>Aprendizaje Estadístico</title>
+<meta name="author" content="(Prof. Alfredo Garbuno Iñigo)"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js/dist/reveal.css"/>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js/dist/theme/night.css" id="theme"/>
+
+<link rel="stylesheet" href="./mods.css"/>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<meta name="description" content="Aprendizaje Estadístico">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide"><h1 class="title">Aprendizaje Estadístico</h1><h2 class="author">Prof. Alfredo Garbuno Iñigo</h2><h2 class="date">Primavera, 2022</h2>
+</section>
+
+<section>
+<section id="slide-orgfbb5b6c">
+<h2 id="orgfbb5b6c">¿Qué es el aprendizaje estadístico?</h2>
+</section>
+<section id="slide-orgfbb5b6c-split">
+
+<div id="orgecd80ee" class="figure">
+<p><object type="image/svg+xml" data="../img/sales.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+Supongamos que tenemos datos de ventas de ciertas campañas de <i>marketing</i> en ciertos canales de distribución.
+Queremos estimar la relación
+</p>
+
+<div>
+\begin{align}
+\texttt{Ventas} \approx f(\texttt {tv, radio, periodico})\,.
+\end{align}
+
+</div>
+
+</section>
+<section id="slide-orgfbb5b6c-split">
+<p>
+Lo podemos expresar como
+</p>
+
+<div>
+\begin{align}
+Y = f(X) + \varepsilon\,.
+\end{align}
+
+</div>
+
+</section>
+<section id="slide-org2105c2e">
+<h3 id="org2105c2e">¿Por qué estimar \(f\)?</h3>
+<ul>
+<li class="fragment appear">Podemos hacer predicciones.</li>
+<li class="fragment appear">Podemos entender qué componentes de \(X = (X_1, \ldots, X_p)\)  son importantes.</li>
+<li class="fragment appear">Podemos tratar de entender la complejidad de \(f\).</li>
+
+</ul>
+
+</section>
+<section id="slide-orgb1c26d3">
+<h3 id="orgb1c26d3">¿Hay una \(f\) que sea óptima?</h3>
+<p>
+Podríamos utilizar
+</p>
+<div>
+\begin{align}
+f(x) = \mathbb{E}[Y | x = 4]\,,
+\end{align}
+
+</div>
+
+<p>
+que recibe el nombre  <code>función de regresión</code>.
+</p>
+
+</section>
+</section>
+<section>
+<section id="slide-orgd0750f2">
+<h2 id="orgd0750f2">Propiedades</h2>
+<p>
+La función de regresión (\(f\)) es <code>óptima</code> en términos del error cuadratico medio: 
+</p>
+<div>
+\begin{align}
+\mathbb{E}\left[(Y - g(x))^2 | X = x\right]\,,
+\end{align}
+
+</div>
+
+<p>
+para <code>cualquier función</code> \(g\) evaluada en <code>cualquier punto</code> \(x\). 
+</p>
+
+<p>
+El término \(\varepsilon = Y - f(x)\) es el error <code>irreducible</code>, 
+</p>
+
+<aside class="notes">
+<p>
+
+</p>
+
+<p>
+Definir la función de pérdida. Usar probabilidad condicional. Y evaluar sólo \(\mathbb{E}_{Y|X}\) en lugar de \(\mathbb{E}_X \mathbb{E}_{Y|X}\). 
+</p>
+
+</aside>
+
+</section>
+<section id="slide-orgb010a0d">
+<h3 id="orgb010a0d">Descomposción del error</h3>
+<p>
+Para cualquier estimador \(\hat f(x)\) de  \(f(x)\) tenemos
+</p>
+
+<div>
+\begin{align}
+\mathbb{E}[(Y-\hat f(x))^2 | X = x] = \underbrace{[f(x) - \hat f(x)]^2}_{\text{reducible}} + \underbrace{\mathbb{V}(\varepsilon)}_{\text{irreducible}}\,.
+\end{align}
+
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orged542d9" data-background="#00468b">
+<h2 id="orged542d9">Importante</h2>
+<p>
+Hasta ahora sólo hemos hablado de un procedimiento <code>predictivo</code>.
+</p>
+
+
+<div id="org4f84457" class="figure">
+<p><img src="../img/predecir.gif" alt="predecir.gif" />
+</p>
+<p><span class="figure-number">Figura 2: </span>"Predecir, predecir, predecir&#x2026;"</p>
+</div>
+
+</section>
+<section id="slide-orged542d9-split" data-background="#00468b">
+<p>
+No hemos hablado de un procedimiento de <code>inferencia estadistica</code>. Por ejemplo,
+</p>
+<ul>
+<li class="fragment appear">Qué predictores están asociados con la respuesta?</li>
+<li class="fragment appear">Qué tipo de relación tiene cada predictor con la respuesta?</li>
+<li class="fragment appear">Se puede resumir la relación de manera lineal?</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org154cb88">
+<h2 id="org154cb88">¿Cómo estimamos \(f\)?</h2>
+<ul>
+<li>Tenemos datos observados para la \(x\) que nos interesa?</li>
+<li>Podemos calcular \(\mathbb{E}[Y | X = x]\) ?</li>
+<li>Qué tal que relajamos:</li>
+
+</ul>
+<div>
+\begin{align}
+\hat f (x) = \mathsf{Promedio}(Y | X \in \mathcal{N}(x))\,.
+\end{align}
+
+</div>
+
+
+
+<div id="org839263e" class="figure">
+<p><object type="image/svg+xml" data="../img/loess.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+</section>
+<section id="slide-orge8fdcdf">
+<h3 id="orge8fdcdf">Vecinos cercanos</h3>
+<p>
+Ejemplo de un modelo  <code>no paramétrico</code>. Este modelo es bueno cuando \(p\) es pequeño y \(n\) es grande. Puede sobre-ajustar  rápidamente. 
+</p>
+
+</section>
+<section id="slide-org4e2b740">
+<h3 id="org4e2b740">Maldición de la dimensionalidad</h3>
+<p>
+Los vecinos&#x2026; no son tan cercanos en dimensiones moderadas/altas. 
+</p>
+
+</section>
+</section>
+<section>
+<section id="slide-org38aa186">
+<h2 id="org38aa186">Modelos paramétricos</h2>
+<p>
+El modelo <code>lineal</code> es un modelo paramétrico de la forma
+</p>
+
+<div>
+\begin{align}
+f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
+\end{align}
+
+</div>
+
+
+</section>
+<section id="slide-org38aa186-split">
+
+
+<div id="orgeffff14" class="figure">
+<p><object type="image/svg+xml" data="../img/lineal.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+</section>
+<section id="slide-org38aa186-split">
+
+<div id="orgacc2615" class="figure">
+<p><object type="image/svg+xml" data="../img/quadratic.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+</section>
+<section id="slide-org38aa186-split">
+
+<div id="orge2f46fa" class="figure">
+<p><object type="image/svg+xml" data="../img/polinomial.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+</section>
+<section id="slide-org920c781">
+<h3 id="org920c781">Compromisos</h3>
+<ul>
+<li>El modelo lineal es "fácil" de interpretar. Sin embargo, puede no tener un buen desempeño.</li>
+<li>Hay un balance entre un <i>buen</i> ajuste y sobre(sub)-ajuste.</li>
+<li>Complejidad vs Simplicidad</li>
+
+</ul>
+
+<div id="org8f01e83" class="figure">
+<p><img src="../img/tradeoff.png" alt="tradeoff.png" />
+</p>
+<p><span class="figure-number">Figura 7: </span>Tomado de <a href="Fourati2021">Fourati2021</a></p>
+</div>
+
+<aside class="notes">
+<p>
+
+</p>
+
+<p>
+Dificultad de interpretación cuando hay datos observacionales. 
+</p>
+
+</aside>
+
+<p>
+t* Evaluando la precisión del modelo
+Supongamos que entrenamos un modelo \(\hat f(x)\) sobre \(\mathcal{D}_n\). ¿Cómo evaluamos su desempeño bajo el conjunto que se utilizó para entrenar?
+</p>
+
+<aside class="notes">
+<p>
+Función de pérdida / Error de entrenamiento / Error de prueba. 
+</p>
+
+</aside>
+
+</section>
+<section id="slide-org71c253c">
+<h3 id="org71c253c">Ejemplo (Regresión)</h3>
+
+<div id="org93e27eb" class="figure">
+<p><object type="image/svg+xml" data="../img/polyfit-single.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+</section>
+<section id="slide-org71c253c-split">
+
+
+<div id="orgde351fb" class="figure">
+<p><object type="image/svg+xml" data="../img/polyfit.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+<p><span class="figure-number">Figura 9: </span>Ajuste bajo distintos grados del polinomio</p>
+</div>
+
+
+</section>
+<section id="slide-org71c253c-split">
+
+<div id="orgd494f5b" class="figure">
+<p><object type="image/svg+xml" data="../img/mse-polyfit.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+<p><span class="figure-number">Figura 10: </span>Errores de entrenamiento / prueba</p>
+</div>
+
+</section>
+<section id="slide-org71c253c-split">
+
+<div id="org1efd6ce" class="figure">
+<p><object type="image/svg+xml" data="../img/mse-polyfit-noise.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+<p><span class="figure-number">Figura 11: </span>Poco ruido</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-org9961e5b">
+<h2 id="org9961e5b">Compromiso entre sesgo y varianza</h2>
+<p>
+Supongamos que ajustamos un modelo \(\hat f(x)\) a un conjunto de datos
+\(\mathcal{D}_n\). Sea \((x_0, y_0)\) un punto no utilizado en el conjunto de
+entrenamiento. Si el modelo es \(Y = f(X) + \varepsilon\). Entonces
+</p>
+
+<div>
+\begin{align}
+\mathbb{E}[(y_0 - \hat f(x_0))^2] = \mathbb{V}(\hat f(x_0)) + [\mathsf{Sesgo}(\hat f(x_0))]^2 + \mathbb{V}(\varepsilon)\,.
+\end{align}
+
+</div>
+
+
+<aside class="notes">
+<p>
+
+</p>
+
+<p>
+Valor esperado. Definición de Sesgo. Figura descomposición. 
+</p>
+
+</aside>
+
+</section>
+</section>
+<section>
+<section id="slide-orgcfa4747">
+<h2 id="orgcfa4747">Problemas de clasificación</h2>
+<p>
+La predicción es sobre una \(y_n\) que es cualitativa. Nos interesa el <code>error de clasificación</code>.
+</p>
+
+<aside class="notes">
+<p>
+
+</p>
+
+<p>
+Definir función de pérdida. Es decir nos interesa
+</p>
+<div>
+\begin{align}
+\frac{1}{n} \sum_{i = 1}^{n} I(y_i \neq \hat y_i)\,.
+\end{align}
+
+</div>
+
+</aside>
+
+</section>
+<section id="slide-org6cb8d8e">
+<h3 id="org6cb8d8e">Objetivos</h3>
+<ul>
+<li>Construir un clasificador \(C(X)\).</li>
+<li>Medir la incertidumbre en la clase.</li>
+<li>Entender los roles de los predictores.</li>
+
+</ul>
+
+</section>
+<section id="slide-org0d659bd">
+<h3 id="org0d659bd">El clasificador óptimo</h3>
+<p>
+Supongamos que hay \(K\) clases en \(\mathcal{C}\) las cuales están numeradas. Sea
+</p>
+
+<div>
+\begin{align}
+p_k(x ) = \mathbb{P}(Y = k | X = x) \qquad k = 1, \ldots, K\,.
+\end{align}
+
+</div>
+
+
+<p>
+El <code>clasificador óptimo Bayesiano</code> es
+</p>
+
+<div>
+\begin{align}
+C(x) = j \text{ si } p_j(x) = \max\{p_1(x), \ldots, p_K(x)\}\,.
+\end{align}
+
+</div>
+
+<aside class="notes">
+<p>
+
+</p>
+
+<p>
+Prueba de optimalidad. Es el clasificador con menor error en la población. Se puede utilizar un modelo de <code>vecinos mas cercanos</code>.
+</p>
+
+</aside>
+</section>
+</section>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js/plugin/notes/notes.js"></script>
+
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+plugins: [RevealNotes],
+width:1600, height:900, margin:.2
+});
+
+</script>
+</body>
+</html>
