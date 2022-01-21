@@ -1,3 +1,5 @@
+## Introducción ------------------------------------
+
 library(tidyverse)
 library(patchwork)
 theme_set(theme_grey(base_size = 18)) 
@@ -27,6 +29,8 @@ ggplot(data, aes(TV, sales)) +
 ggplot(data, aes(TV, sales)) +
   geom_point(color = 'red') +
   geom_smooth(method = "lm", formula = y ~ poly(x, 10), se = FALSE)
+
+## Ejemplo de regresión ----------------------------
 
 library(dplyr)
 library(tidyr)

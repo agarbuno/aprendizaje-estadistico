@@ -33,7 +33,6 @@
   - [[#maldición-de-la-dimensionalidad][Maldición de la dimensionalidad]]
 - [[#modelos-paramétricos][Modelos paramétricos]]
   - [[#compromisos][Compromisos]]
-- [[#evaluando-la-precisión-del-modelo][Evaluando la precisión del modelo]]
   - [[#ejemplo-regresión][Ejemplo (Regresión)]]
 - [[#compromiso-entre-sesgo-y-varianza][Compromiso entre sesgo y varianza]]
 - [[#problemas-de-clasificación][Problemas de clasificación]]
@@ -45,6 +44,8 @@
 * ¿Qué es el aprendizaje estadístico?
 
 #+begin_src R :exports none :results none
+
+  ## Introducción ------------------------------------
 
   library(tidyverse)
   library(patchwork)
@@ -117,7 +118,6 @@ Definir la función de pérdida. Usar probabilidad condicional. Y evaluar sólo 
 
 #+END_NOTES
 
-
 ** Descomposción del error
 
 Para cualquier estimador $\hat f(x)$ de  $f(x)$ tenemos
@@ -141,9 +141,6 @@ No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
 - Qué predictores están asociados con la respuesta?
 - Qué tipo de relación tiene cada predictor con la respuesta?
 - Se puede resumir la relación de manera lineal?
-
-
- 
 * ¿Cómo estimamos $f$?
 
 - Tenemos datos observados para la $x$ que nos interesa?
@@ -234,7 +231,13 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+caption: Tomado de citep:Fourati2021
 file:../img/tradeoff.png
 
-* Evaluando la precisión del modelo
+#+BEGIN_NOTES
+
+Dificultad de interpretación cuando hay datos observacionales. 
+
+#+END_NOTES
+
+t* Evaluando la precisión del modelo
 Supongamos que entrenamos un modelo $\hat f(x)$ sobre $\mathcal{D}_n$. ¿Cómo evaluamos su desempeño bajo el conjunto que se utilizó para entrenar?
 
 #+BEGIN_NOTES
@@ -244,6 +247,8 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 ** Ejemplo (Regresión)
 
 #+begin_src R :exports none :results none
+
+  ## Ejemplo de regresión ----------------------------
 
   library(dplyr)
   library(tidyr)
@@ -362,7 +367,6 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+caption: Poco ruido
 file:../img/mse-polyfit-noise.svg
 
-
 * Compromiso entre sesgo y varianza
 
 Supongamos que ajustamos un modelo $\hat f(x)$ a un conjunto de datos
@@ -380,7 +384,6 @@ Valor esperado. Definición de Sesgo. Figura descomposición.
 
 #+END_NOTES
 
-
 * Problemas de clasificación
 
 La predicción es sobre una $y_n$ que es cualitativa. Nos interesa el ~error de clasificación~.
@@ -393,7 +396,6 @@ Definir función de pérdida. Es decir nos interesa
 \end{align}
 
 #+END_NOTES
-
 
 ** Objetivos
 
