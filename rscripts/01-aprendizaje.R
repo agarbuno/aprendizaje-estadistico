@@ -50,6 +50,7 @@ set.seed(108727)
 sd_mod <- 0.5
 datos <- simular(20, sd_mod)
 
+# Grafica la función latente y observaciones 
 x_plot <- seq(0,1,0.01)
 y_plot <- f(x_plot)
 ggplot(datos, aes(x=x, y=y), colour='red')+
@@ -74,7 +75,7 @@ results |>
   geom_line() +
   facet_wrap(~grado) +
   ylim(c(-3,3)) + 
-  annotate("point",x=datos$x, y=datos$y, colour="black")
+  annotate("point", x=datos$x, y=datos$y, colour="black")
 
 datos_prueba <- simular(1000, sd_mod)
 
