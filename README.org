@@ -14,7 +14,7 @@
 #+REVEAL_PLUGINS: (notes)
 :END:
 #+STARTUP: showall
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc github
 
 * Contenido                                                             :toc:
 :PROPERTIES:
@@ -32,15 +32,16 @@
   - [[#fechas-importantes][Fechas importantes]]
   - [[#grabaciones-de-clases][Grabaciones de clases]]
 - [[#evaluación][Evaluación]]
+  - [[#proyecto-final][Proyecto final]]
 - [[#ambiente-de-trabajo][Ambiente de trabajo]]
   - [[#configuración-r][Configuración R]]
   - [[#configuración-renv][Configuración renv]]
   - [[#configuración-de-docker][Configuración de Docker]]
 - [[#tarea][Tarea]]
-- [[#bibliografía][Bibliografía]]
+- [[#referencias][Referencias]]
 :END:
     
-* Introducción
+* Introducción                                                       :github:
 
 Este es el repositorio con el contenido del curso en *Aprendizaje Estadístico*
 ofrecido a estudiantes de semestres avanzados en las licenciaturas de
@@ -85,9 +86,8 @@ principios estadísticos que le dan sustento.
 * Recursos
 
 El contenido actual de esta iteración del curso se encuentra en la rama:
-[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]]. La
-estructura del repositorio se muestra a continuación donde tenemos a grandes
-razgos:
+[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]]. La estructura del repositorio se muestra a continuación donde
+tenemos a grandes razgos:
 
 #+begin_src bash :exports results :results org
 
@@ -98,15 +98,16 @@ tree -L 1 -d
 #+RESULTS:
 #+begin_src org
 .
+├── auto
 ├── css
 ├── docs
+├── img
 ├── notas
 ├── renv
 └── rscripts
 
 7 directories
 #+end_src
-
 
 * Horarios
 
@@ -128,7 +129,7 @@ necesiten a lo largo del semestre.
 ** Fechas importantes
 
 #+ATTR_REVEAL: :frag (appear)
-- La sesión del ~Lunes 7 de Febrero~ será una sesión de ~3 horas~. El miércoles 9 de Febrero *no habrá clase*.
+- La sesión del ~Lunes 7 de Febrero~ será una sesión usual. El miércoles 9 de Febrero *no habrá clase*.
 - La sesión del ~Lunes 21 de Marzo~ hay descanso obligatorio. 
 - Por solidaridad, el ~Miércoles 9 de Marzo~ *no habrá sesión de clase*. Tendremos una sesión de reflexión. 
 
@@ -147,6 +148,13 @@ La evaluación del curso será por medio de:
 
 La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]]. 
 
+** Proyecto final
+
+Tarea de aprendizaje (supervisado/no supervisado) que deseen. \\
+Opciones: Conjunto de datos ó modelo que no hayamos visto en clase.  \\
+Entregables: Seguimiento (10%), reporte (20%) y presentación (10%). 
+
+
 * Ambiente de trabajo
 
 El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el
@@ -159,8 +167,7 @@ herramienta que representa muy bien la filosofía del curso.
 
 Se sugiere utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus
 tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través
-de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados sin ningún
-problema en ~Github~.
+de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados en ~Github~.
 
 #+REVEAL: split
 
@@ -193,7 +200,8 @@ Deseable, y próximo en anunciarse.
 Las primeras tareas del semestre son básicamente configuración y es recomendable
 hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~.
 
-* Bibliografía
+
+* Referencias
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
