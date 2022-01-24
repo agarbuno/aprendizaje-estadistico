@@ -5,8 +5,7 @@
 :REVEAL_PROPERTIES:
 #+LANGUAGE: es
 #+OPTIONS: num:nil toc:nil timestamp:nil
-#+REVEAL_EXTRA_CSS: ./css/mods.css
-#+REVEAL_EXTRA_CSS: https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css
+#+REVEAL_EXTRA_CSS: ./notas/mods.css
 #+REVEAL_THEME: night
 #+REVEAL_SLIDE_NUMBER: t
 #+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
@@ -14,7 +13,7 @@
 #+REVEAL_PLUGINS: (notes)
 :END:
 #+STARTUP: showall
-#+EXCLUDE_TAGS: toc github
+#+EXCLUDE_TAGS: toc github latex
 
 * Contenido                                                             :toc:
 :PROPERTIES:
@@ -200,8 +199,9 @@ Deseable, y próximo en anunciarse.
 Las primeras tareas del semestre son básicamente configuración y es recomendable
 hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~.
 
+* Referencias                                                         :latex:
 
-* Referencias
+\nocite{*}
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
