@@ -70,7 +70,7 @@
 #+end_src
 
 #+RESULTS:
-[[file:../images/sales.eps]]
+[[file:../images/sales.svg]]
 
 Supongamos que tenemos datos de ventas de ciertas campañas de /marketing/ en ciertos canales de distribución.
 Queremos estimar la relación
@@ -161,7 +161,7 @@ No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
 #+end_src
 
 #+RESULTS:
-[[file:../img/loess.svg]]
+[[file:../images/loess.svg]]
 
 ** Vecinos cercanos
 
@@ -193,7 +193,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+end_src
 
 #+RESULTS:
-[[file:../img/lineal.svg]]
+[[file:../images/lineal.svg]]
 
 
 #+REVEAL: split
@@ -207,7 +207,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+end_src
 
 #+RESULTS:
-[[file:../img/quadratic.svg]]
+[[file:../images/quadratic.svg]]
 
 
 #+REVEAL: split
