@@ -50,7 +50,9 @@
 
   library(tidyverse)
   library(patchwork)
-  theme_set(theme_grey(base_size = 18)) 
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_grey(base_size = 18))
+
 
   data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
   data |> colnames()
@@ -59,8 +61,8 @@
 #+end_src
 
 #+REVEAL: split
-#+HEADER: :width 12 :height 3.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/sales.svg :results output graphics file :exports results
+#+HEADER: :width 1200 :height 300 :R-dev-args
+#+begin_src R :file images/sales.jpeg :results output graphics file :exports results
 
   g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
   g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
@@ -70,7 +72,7 @@
 #+end_src
 
 #+RESULTS:
-[[file:../images/sales.svg]]
+[[file:../images/sales.png]]
 
 Supongamos que tenemos datos de ventas de ciertas campañas de /marketing/ en ciertos canales de distribución.
 Queremos estimar la relación
@@ -151,15 +153,15 @@ No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
 \end{align}
 
 
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent" 
-#+begin_src R :file images/loess.svg :exports results :results output graphics file
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent" 
+#+begin_src R :file images/loess.jpeg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
       geom_smooth(method = "loess", span = .1, se = FALSE) 
 
 #+end_src
-
+#+caption: Ajuste por medio de promedios locales.
 #+RESULTS:
 [[file:../images/loess.svg]]
 
@@ -181,9 +183,8 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 
 
 #+REVEAL: split
-
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/lineal.svg :exports results :results output graphics file
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/lineal.jpeg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
@@ -191,35 +192,35 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 
 
 #+end_src
-
-#+RESULTS:
-[[file:../images/lineal.svg]]
+#+caption: Ajuste lineal.
+#+RESULTS:  
+[[file:../images/lineal.jpeg]]
 
 
 #+REVEAL: split
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/quadratic.svg :exports results :results output graphics file
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/quadratic.jpeg :exports results :results output graphics file
 
-    ggplot(data, aes(TV, sales)) +
-      geom_point(color = 'red') +
-      geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE, size = 1) 
+  ggplot(data, aes(TV, sales)) +
+    geom_point(color = 'red') +
+    geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE, size = 1) 
 
 #+end_src
-
+#+caption: Ajuste cuadratico.
 #+RESULTS:
-[[file:../images/quadratic.svg]]
+[[file:../images/quadratic.jpeg]]
 
 
 #+REVEAL: split
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/polinomial.svg :exports results :results output graphics file
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/polinomial.jpeg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
       geom_smooth(method = "lm", formula = y ~ poly(x, 10), se = FALSE) 
 
 #+end_src
-
+#+caption: Ajuste polinomial. 
 #+RESULTS:
 [[file:../images/polinomial.svg]]
 
@@ -276,8 +277,8 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 
 
 #+caption: Función con ruido observacional
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/polyfit-single.svg :exports results :results output graphics file
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/polyfit-single.jpeg :exports results :results output graphics file
 
   # Grafica la función latente y observaciones 
   x_plot <- seq(0,1,0.01)
@@ -287,7 +288,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
     annotate("line", x=x_plot, y=y_plot, linetype="dotted")
 
 #+end_src
-
+#+caption: Función latente y observaciones. 
 #+RESULTS:
 [[file:../images/polyfit-single.svg]]
 
@@ -308,8 +309,8 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+REVEAL: split
 
 #+caption: Ajuste bajo distintos grados de complejidad
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/polyfit.svg :exports results :results output graphics file
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/polyfit.jpeg :exports results :results output graphics file
 
   results |>
     unnest(prediccion) |>
@@ -351,8 +352,8 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 
 
-#+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file images/mse-polyfit.svg :exports results :results output graphics file 
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/mse-polyfit.jpeg :exports results :results output graphics file 
 
   errores |>
     ggplot(aes(grado, error, linetype = tipo)) +
@@ -363,9 +364,9 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+RESULTS:
 [[file:../images/mse-polyfit.svg]]
 
-#+REVEAL: split
-#+caption: Poco ruido
-file:../images/mse-polyfit-noise.svg
+# #+REVEAL: split
+# #+caption: Poco ruido
+# file:../images/mse-polyfit-noise.svg
 
 * Compromiso entre sesgo y varianza
 
