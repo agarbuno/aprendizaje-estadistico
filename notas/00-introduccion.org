@@ -33,6 +33,7 @@
 - [[#notación][Notación]]
 - [[#ambiente-de-r][Ambiente de R]]
   - [[#por-qué-utilizamos-tidymodels][¿Por qué utilizamos tidymodels?]]
+- [[#código-de-r][Código de R.]]
 :END:
 
 * Introducción
@@ -267,6 +268,10 @@ trtf
 varSelRF
 wsrf
 xgboost
+
+* Código de ~R~.                                                         :github:
+
+file:../rscripts/00-introduccion.R  
 
 # bibliographystyle:abbrvnat
 # bibliography:references.bib
