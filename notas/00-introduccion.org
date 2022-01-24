@@ -91,6 +91,8 @@ No reinventaremos la rueda. El curso nos concentraremos en las ideas, no en la i
 #+END_NOTES
 #+REVEAL: split
 
+# \newpage
+
 - Conocimiento de dominio. Obtención de información relevante.
 
 #+BEGIN_NOTES
