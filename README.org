@@ -114,10 +114,10 @@ El curso será los días Lunes y Miércoles en un horario de 13:00 a 14:30.
 
 ** Formato
 
-El curso será presencial salvo que las condiciones sanitarias lo ameriten. En
-las primeras dos semanas de clase se tendrá la opción de atender de manera
-remota en caso de que la situación del estudiante lo amerite.  Por otro lado,
-salvo se indique lo contrario, ~las evaluaciones serán presenciales~.
+El curso será presencial. En las primeras dos semanas de clase se tendrá la
+opción de atender de manera remota en caso de que la situación del estudiante lo
+amerite.  Por otro lado, salvo se indique lo contrario, ~las evaluaciones serán
+presenciales~.
 
 ** Canvas
 
