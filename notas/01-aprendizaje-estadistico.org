@@ -33,6 +33,7 @@
   - [[#maldición-de-la-dimensionalidad][Maldición de la dimensionalidad]]
 - [[#modelos-paramétricos][Modelos paramétricos]]
   - [[#compromisos][Compromisos]]
+- [[#evaluando-la-precisión-del-modelo][Evaluando la precisión del modelo]]
   - [[#ejemplo-regresión][Ejemplo (Regresión)]]
 - [[#compromiso-entre-sesgo-y-varianza][Compromiso entre sesgo y varianza]]
 - [[#problemas-de-clasificación][Problemas de clasificación]]
@@ -59,7 +60,7 @@
 
 #+REVEAL: split
 #+HEADER: :width 12 :height 3.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/sales.svg :results output graphics file :exports results
+#+begin_src R :file images/sales.svg :results output graphics file :exports results
 
   g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
   g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
@@ -133,7 +134,7 @@ Para cualquier estimador $\hat f(x)$ de  $f(x)$ tenemos
  Hasta ahora sólo hemos hablado de un procedimiento ~predictivo~.
 
  #+caption: "Predecir, predecir, predecir..."
-file:../img/predecir.gif
+file:../images/predecir.gif
 
 #+REVEAL: split
 No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
@@ -152,7 +153,7 @@ No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
 
 
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent" 
-#+begin_src R :file img/loess.svg :exports results :results output graphics file
+#+begin_src R :file images/loess.svg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
@@ -183,7 +184,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+REVEAL: split
 
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/lineal.svg :exports results :results output graphics file
+#+begin_src R :file images/lineal.svg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
@@ -198,7 +199,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 
 #+REVEAL: split
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/quadratic.svg :exports results :results output graphics file
+#+begin_src R :file images/quadratic.svg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
@@ -212,7 +213,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 
 #+REVEAL: split
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/polinomial.svg :exports results :results output graphics file
+#+begin_src R :file images/polinomial.svg :exports results :results output graphics file
 
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
@@ -221,7 +222,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+end_src
 
 #+RESULTS:
-[[file:../img/polinomial.svg]]
+[[file:../images/polinomial.svg]]
 
 ** Compromisos
 
@@ -229,7 +230,7 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 - Hay un balance entre un /buen/ ajuste y sobre(sub)-ajuste. 
 - Complejidad vs Simplicidad
 #+caption: Tomado de citep:Fourati2021
-file:../img/tradeoff.png
+file:../images/tradeoff.png
 
 #+BEGIN_NOTES
 
@@ -237,7 +238,7 @@ Dificultad de interpretación cuando hay datos observacionales.
 
 #+END_NOTES
 
-t* Evaluando la precisión del modelo
+* Evaluando la precisión del modelo
 Supongamos que entrenamos un modelo $\hat f(x)$ sobre $\mathcal{D}_n$. ¿Cómo evaluamos su desempeño bajo el conjunto que se utilizó para entrenar?
 
 #+BEGIN_NOTES
@@ -277,7 +278,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 
 #+caption: Función con ruido observacional
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/polyfit-single.svg :exports results :results output graphics file
+#+begin_src R :file images/polyfit-single.svg :exports results :results output graphics file
 
   # Grafica la función latente y observaciones 
   x_plot <- seq(0,1,0.01)
@@ -289,7 +290,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 
 #+RESULTS:
-[[file:../img/polyfit-single.svg]]
+[[file:../images/polyfit-single.svg]]
 
 
 #+begin_src R :exports none :results none
@@ -309,7 +310,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 
 #+caption: Ajuste bajo distintos grados de complejidad
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/polyfit.svg :exports results :results output graphics file
+#+begin_src R :file images/polyfit.svg :exports results :results output graphics file
 
   results |>
     unnest(prediccion) |>
@@ -325,7 +326,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 #+caption: Ajuste bajo distintos grados del polinomio
 #+RESULTS:
-[[file:../img/polyfit.svg]]
+[[file:../images/polyfit.svg]]
 
 
 #+REVEAL: split
@@ -352,7 +353,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 
 
 #+HEADER: :width 10 :height 5.5 :R-dev-args bg="transparent"
-#+begin_src R :file img/mse-polyfit.svg :exports results :results output graphics file 
+#+begin_src R :file images/mse-polyfit.svg :exports results :results output graphics file 
 
   errores |>
     ggplot(aes(grado, error, linetype = tipo)) +
@@ -361,11 +362,11 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 #+caption: Errores de entrenamiento / prueba
 #+RESULTS:
-[[file:../img/mse-polyfit.svg]]
+[[file:../images/mse-polyfit.svg]]
 
 #+REVEAL: split
 #+caption: Poco ruido
-file:../img/mse-polyfit-noise.svg
+file:../images/mse-polyfit-noise.svg
 
 * Compromiso entre sesgo y varianza
 

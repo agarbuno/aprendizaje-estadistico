@@ -14,7 +14,7 @@
 #+REVEAL_PLUGINS: (notes)
 :END:
 #+STARTUP: showall
-#+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org :tangle rscripts/00-introduccion.R :mkdirp yes
+#+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org :tangle rscripts/00-introduccion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
 
 
@@ -27,7 +27,7 @@
   - [[#caracteristicas-del-aprendizaje-estadístico][Caracteristicas del Aprendizaje Estadístico]]
   - [[#filosofía-del-curso][Filosofía del curso]]
   - [[#principios][Principios]]
-- [[#distinciones][Distinciones]]
+- [[#distinciones-con-respecto-a-ml][Distinciones con respecto a ML]]
 - [[#métodos][Métodos]]
   - [[#tareas-de-predicción][Tareas de predicción]]
 - [[#notación][Notación]]
@@ -47,22 +47,64 @@ predicciones acertadas~.  No es ~estadística~. No es ~inferencia causal~.
 - Complejidad (en datos).
 - Predicción.
 
+#+BEGIN_NOTES
+
+En aprendizaje estadístico usualmente consideramos menos suposiciones de los datos en contraste con estadistica; pensamos que el procesamiento es automático; que los datos son complejos; y que el interés primordial es la *predicción*. 
+
+#+END_NOTES
+
 ** Filosofía del curso
 
 Es importante entender los modelos, la intuición y fortalezas y debilidades de
 los métodos que se utilizan en tareas de aprendizaje ~supervisadas~ y ~no
 supervisadas~.
 
-** Principios
+** Principios 
 
-*** Muchos métodos de aprendizaje son relevantes para una gran variedad de aplicaciones. 
-*** Aprendizaje estadístico *no* es una colección de cajas negras. 
-*** Una cosa es entender cómo funciona; otra, implementarlo desde cero. 
-*** Conocimiento de dominio. Obtención de información relevante. 
-* Distinciones
+Consideraremos los siguientes, tomados de citep:Kuhn2013.
+
+#+REVEAL: split
+
+-  Muchos métodos de aprendizaje son relevantes para una gran variedad de aplicaciones.
+
+#+BEGIN_NOTES
+
+No encasillar en el ámbito académico o estadístico. Por supuesto hay muchos mas modelos de los que veremos pero nos concentramos en los que no son de nicho.
+
+#+END_NOTES
+#+REVEAL: split
+
+- Aprendizaje estadístico *no* es una colección de cajas negras.  
+
+
+#+BEGIN_NOTES
+Lamentablemente no hay un método que sea exitoso para cualquier tipo de aplicación. Tenemos que conocer bien nuestras herramientas para saber cuál usar en qué situación. 
+#+END_NOTES
+#+REVEAL: split
+
+-  Una cosa es entender cómo funciona; otra, implementarlo desde cero.
+
+#+BEGIN_NOTES
+
+No reinventaremos la rueda. El curso nos concentraremos en las ideas, no en la implementación.
+
+#+END_NOTES
+#+REVEAL: split
+
+- Conocimiento de dominio. Obtención de información relevante.
+
+#+BEGIN_NOTES
+
+Espero poder transmitir la necesidad de pensar en la aplicación del modelo. Algo que no se ve dentro de una formulación matemática. Pero la cual, si no se es cuidadoso podría tener en consecuencia una herramienta inservible al mediano/largo plazo.
+
+#+END_NOTES
+
+
+* Distinciones con respecto a ML
 
 En aprendizaje estadístico nos interesa comprender el proceso que genera los
 datos y su representatividad estadística.
+
 
 * Métodos
 
@@ -75,20 +117,33 @@ Aprendizaje ~supervisado~ y ~aprendizaje no supervisado~.
 
 * Notación 
 
-Denotamos por $n$ el número de observaciones; $p$ para el número de
-características de dichas observaciones.  Así que, $x_{ij}$ con $i = 1, \ldots,
-n$ y $j = 1, \ldots, p$ será el elemento de nuestras observaciones.
+Denotamos por $n$ el ~número de observaciones~; $p$ para el ~número de
+características~ de dichas observaciones.  Así que, $x_{ij}$ con $i = 1, \ldots,
+n$ y $j = 1, \ldots, p$ será un elemento de nuestras observaciones.
 
 #+REVEAL: split
 
-Usualmente tendremos una característica que queremos predecir y la denotamos por $y$ . Usualmente $y \in \mathbb{R}$ ó $y \in \{0,1\}$  ó $y \in \{1, 2, \ldots, K\}$.
+Usualmente tendremos una característica que queremos predecir y la denotamos por $y$ . Consideraremos $y \in \mathbb{R}$ ó $y \in \{0,1\}$  ó $y \in \{1, 2, \ldots, K\}$.
 
 #+REVEAL: split
 
-El conjunto de datos lo denotamos por
+El conjunto de datos que tenemos ~disponible para entrenar~ modelos lo denotamos por
 \begin{align}
-\mathcal{D} = \{ (x_1, y_1), \ldots (x_n, y_n) \}\,.
+\mathcal{D}_n = \{ (x_1, y_1), \ldots (x_n, y_n) \}\,.
 \end{align}
+
+#+REVEAL: split
+
+Es ideal considerar que además tenemos datos adicionales para ~hacer pruebas~. A este conjunto lo denotaremos por
+\begin{align}
+\mathcal{T}_m = \{ (x_1, y_1), \ldots (x_m, y_m) \}\,.
+\end{align}
+
+#+REVEAL: split
+Posiblemente necesitemos notación mas especializada para hacer distinciones
+adicionales o el contexto nos ayude a requerir una notación mas laxa. Esto lo
+definiremos sobre la marcha.
+
 * Ambiente de ~R~
 
 #+begin_src R :exports code :results org
@@ -210,3 +265,6 @@ trtf
 varSelRF
 wsrf
 xgboost
+
+# bibliographystyle:abbrvnat
+# bibliography:references.bib
