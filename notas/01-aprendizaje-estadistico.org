@@ -70,7 +70,7 @@
 #+end_src
 
 #+RESULTS:
-[[file:../images/sales.svg]]
+[[file:../images/sales.eps]]
 
 Supongamos que tenemos datos de ventas de ciertas campañas de /marketing/ en ciertos canales de distribución.
 Queremos estimar la relación
@@ -126,7 +126,6 @@ Para cualquier estimador $\hat f(x)$ de  $f(x)$ tenemos
 \begin{align}
 \mathbb{E}[(Y-\hat f(x))^2 | X = x] = \underbrace{[f(x) - \hat f(x)]^2}_{\text{reducible}} + \underbrace{\mathbb{V}(\varepsilon)}_{\text{irreducible}}\,.
 \end{align}
-
 * Importante
 :PROPERTIES:
 :reveal_background: #00468b
@@ -425,6 +424,8 @@ Prueba de optimalidad. Es el clasificador con menor error en la población. Se p
 
 #+END_NOTES
 
+# bibliographystyle:abbrvnat
+# bibliography:references.bib
 
 
 
