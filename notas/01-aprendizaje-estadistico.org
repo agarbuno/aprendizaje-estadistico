@@ -70,7 +70,7 @@
 #+end_src
 
 #+RESULTS:
-[[file:../img/sales.svg]]
+[[file:../images/sales.svg]]
 
 Supongamos que tenemos datos de ventas de ciertas campañas de /marketing/ en ciertos canales de distribución.
 Queremos estimar la relación
@@ -133,8 +133,8 @@ Para cualquier estimador $\hat f(x)$ de  $f(x)$ tenemos
 :END:
  Hasta ahora sólo hemos hablado de un procedimiento ~predictivo~.
 
- #+caption: "Predecir, predecir, predecir..."
-file:../images/predecir.gif
+# #+caption: "Predecir, predecir, predecir..."
+# file:../images/predecir.gif
 
 #+REVEAL: split
 No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
