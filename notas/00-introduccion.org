@@ -271,7 +271,7 @@ xgboost
 
 * Código de ~R~.                                                         :github:
 
-file:../rscripts/00-introduccion.R  
+[[file:../rscripts/00-introduccion.R][Descarga]] el script de la clase. 
 
 # bibliographystyle:abbrvnat
 # bibliography:references.bib
