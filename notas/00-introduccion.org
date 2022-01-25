@@ -19,9 +19,8 @@
 
 
 #+BEGIN_NOTES
-
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022.\\
 *Objetivo*. Dar un panorame de lo que rige los principios del curso de aprendizaje estadístico y diferenciarlo de otras estrategias de modelado predictivo. Sentar la notación base. 
-
 #+END_NOTES
 
 

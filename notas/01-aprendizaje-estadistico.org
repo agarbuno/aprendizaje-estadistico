@@ -18,6 +18,7 @@
 #+EXCLUDE_TAGS: toc
 
 #+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022.\\
 *Objetivo*. Establecer las ideas básicas de aprendizaje estadistico. Ciertos criterios de optimalidad y descomposición del error. Discutiremos complejidad y compromiso entre sesgo y varianza. 
 #+END_NOTES
 
