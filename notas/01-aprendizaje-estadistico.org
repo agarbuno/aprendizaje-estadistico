@@ -17,6 +17,11 @@
 #+PROPERTY: header-args:R :session aprendizaje :exports both :results output org :tangle ../rscripts/01-aprendizaje.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
 
+#+BEGIN_NOTES
+*Objetivo*. Establecer las ideas básicas de aprendizaje estadistico. Ciertos criterios de optimalidad y descomposición del error. Discutiremos complejidad y compromiso entre sesgo y varianza. 
+#+END_NOTES
+
+
 * Contenido                                                             :toc:azul:
 :PROPERTIES:
 :TOC:      :include all  :ignore this :depth 3

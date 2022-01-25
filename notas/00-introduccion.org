@@ -15,7 +15,14 @@
 :END:
 #+STARTUP: showall
 #+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org :tangle ../rscripts/00-introduccion.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc github
+
+
+#+BEGIN_NOTES
+
+*Objetivo*. Dar un panorame de lo que rige los principios del curso de aprendizaje estadístico y diferenciarlo de otras estrategias de modelado predictivo. Sentar la notación base. 
+
+#+END_NOTES
 
 
 * Contenido                                                             :toc:
@@ -269,9 +276,13 @@ varSelRF
 wsrf
 xgboost
 
+# bibliographystyle:abbrvnat
+# bibliography:references.bib
+
+
 * Código de ~R~.                                                         :github:
 
 [[file:../rscripts/00-introduccion.R][Descarga]] el script de la clase. 
 
-# bibliographystyle:abbrvnat
-# bibliography:references.bib
+
+
