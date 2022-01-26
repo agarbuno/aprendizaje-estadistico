@@ -15,12 +15,13 @@
 #+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session aprendizaje :exports both :results output org :tangle ../rscripts/01-aprendizaje.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022.\\
-*Objetivo*. Establecer las ideas básicas de aprendizaje estadistico. Ciertos criterios de optimalidad y descomposición del error. Discutiremos complejidad y compromiso entre sesgo y varianza. 
-#+END_NOTES
+*Objetivo*. Establecer las ideas básicas de aprendizaje estadistico. Ciertos criterios de optimalidad y descomposición del error. Discutiremos complejidad y compromiso entre sesgo y varianza. \\
+*Lectura sugerida*: Capítulo 2, citep:James2021. 
+#+END_NOTES 
 
 
 * Contenido                                                             :toc:azul:
@@ -45,6 +46,7 @@
 - [[#problemas-de-clasificación][Problemas de clasificación]]
   - [[#objetivos][Objetivos]]
   - [[#el-clasificador-óptimo][El clasificador óptimo]]
+- [[#referencias][Referencias]]
 :END:
 
 
@@ -58,7 +60,6 @@
   library(patchwork)
   ## Cambia el default del tamaño de fuente 
   theme_set(theme_grey(base_size = 18))
-
 
   data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
   data |> colnames()
@@ -431,8 +432,12 @@ Prueba de optimalidad. Es el clasificador con menor error en la población. Se p
 
 #+END_NOTES
 
-# bibliographystyle:abbrvnat
-# bibliography:references.bib
+#+REVEAL: split
+
+* Referencias                                                         :latex:
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
 
 
 
