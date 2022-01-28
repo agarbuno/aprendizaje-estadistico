@@ -26,6 +26,8 @@
 #+LaTeX_HEADER: \usepackage{listings}
 #+LATEX_HEADER: \usepackage{xcolor}
 #+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
 #+LaTeX_HEADER: {}
 #+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.9\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
@@ -121,7 +123,7 @@ No reinventaremos la rueda. El curso nos concentraremos en las ideas, no en la i
 #+END_NOTES
 #+REVEAL: split
 
-# \newpage
+\newpage
 
 - Conocimiento de dominio. Obtención de información relevante.
 
@@ -301,8 +303,8 @@ varSelRF
 wsrf
 xgboost
 
-# bibliographystyle:abbrvnat
-# bibliography:references.bib
+bibliographystyle:abbrvnat
+bibliography:references.bib
 
 
 * Código de ~R~.                                                         :github:
