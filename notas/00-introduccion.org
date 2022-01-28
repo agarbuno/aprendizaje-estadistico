@@ -1,4 +1,4 @@
-#+TITLE: Aprendizaje Estadístico
+#+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: [Primavera, 2022]
@@ -12,6 +12,24 @@
 #+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
+:END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.9\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/00-introduccion.pdf
 :END:
 #+STARTUP: showall
 #+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org :tangle ../rscripts/00-introduccion.R :mkdirp yes :dir ../
@@ -56,7 +74,9 @@ predicciones acertadas~.  No es ~estadística~. No es ~inferencia causal~.
 
 #+BEGIN_NOTES
 
-En aprendizaje estadístico usualmente consideramos menos suposiciones de los datos en contraste con estadistica; pensamos que el procesamiento es automático; que los datos son complejos; y que el interés primordial es la *predicción*. 
+En aprendizaje estadístico usualmente consideramos menos suposiciones de los
+datos en contraste con estadistica; pensamos que el procesamiento es automático;
+que los datos son complejos; y que el interés primordial es la *predicción*.
 
 #+END_NOTES
 
@@ -76,7 +96,8 @@ Consideraremos los siguientes, tomados de citep:Kuhn2013.
 
 #+BEGIN_NOTES
 
-No encasillar en el ámbito académico o estadístico. Por supuesto hay muchos mas modelos de los que veremos pero nos concentramos en los que no son de nicho.
+No encasillar en el ámbito académico o estadístico. Por supuesto hay muchos mas
+modelos de los que veremos pero nos concentramos en los que no son de nicho.
 
 #+END_NOTES
 #+REVEAL: split
@@ -85,7 +106,9 @@ No encasillar en el ámbito académico o estadístico. Por supuesto hay muchos m
 
 
 #+BEGIN_NOTES
-Lamentablemente no hay un método que sea exitoso para cualquier tipo de aplicación. Tenemos que conocer bien nuestras herramientas para saber cuál usar en qué situación. 
+Lamentablemente no hay un método que sea exitoso para cualquier tipo de
+aplicación. Tenemos que conocer bien nuestras herramientas para saber cuál usar
+en qué situación.
 #+END_NOTES
 #+REVEAL: split
 
@@ -104,7 +127,10 @@ No reinventaremos la rueda. El curso nos concentraremos en las ideas, no en la i
 
 #+BEGIN_NOTES
 
-Espero poder transmitir la necesidad de pensar en la aplicación del modelo. Algo que no se ve dentro de una formulación matemática. Pero la cual, si no se es cuidadoso podría tener en consecuencia una herramienta inservible al mediano/largo plazo.
+Espero poder transmitir la necesidad de pensar en la aplicación del modelo. Algo
+que no se ve dentro de una formulación matemática. Pero la cual, si no se es
+cuidadoso podría tener en consecuencia una herramienta inservible al
+mediano/largo plazo.
 
 #+END_NOTES
 
