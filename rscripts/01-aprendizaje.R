@@ -1,10 +1,8 @@
 ## Introducción ------------------------------------
-
 library(tidyverse)
 library(patchwork)
 ## Cambia el default del tamaño de fuente 
 theme_set(theme_grey(base_size = 18))
-
 
 data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
 data |> colnames()

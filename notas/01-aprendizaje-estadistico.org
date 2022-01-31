@@ -70,9 +70,7 @@
 * ¿Qué es el aprendizaje estadístico?
 
 #+begin_src R :exports none :results none
-
   ## Introducción ------------------------------------
-
   library(tidyverse)
   library(patchwork)
   ## Cambia el default del tamaño de fuente 
@@ -96,7 +94,7 @@
 #+end_src
 
 #+RESULTS:
-[[file:../images/sales.png]]
+[[file:../images/sales.jpeg]]
 
 Supongamos que tenemos datos de ventas de ciertas campañas de /marketing/ en ciertos canales de distribución.
 Queremos estimar la relación
@@ -187,7 +185,7 @@ No hemos hablado de un procedimiento de ~inferencia estadistica~. Por ejemplo,
 #+end_src
 #+caption: Ajuste por medio de promedios locales.
 #+RESULTS:
-[[file:../images/loess.svg]]
+[[file:../images/loess.jpeg]]
 
 ** Vecinos cercanos
 
@@ -209,12 +207,9 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+REVEAL: split
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/lineal.jpeg :exports results :results output graphics file
-
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
       geom_smooth(method = "lm", se = FALSE) 
-
-
 #+end_src
 #+caption: Ajuste lineal.
 #+RESULTS:  
@@ -224,11 +219,9 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+REVEAL: split
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/quadratic.jpeg :exports results :results output graphics file
-
   ggplot(data, aes(TV, sales)) +
     geom_point(color = 'red') +
     geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE, size = 1) 
-
 #+end_src
 #+caption: Ajuste cuadratico.
 #+RESULTS:
@@ -238,15 +231,13 @@ f_L(x) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\,.
 #+REVEAL: split
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/polinomial.jpeg :exports results :results output graphics file
-
     ggplot(data, aes(TV, sales)) +
       geom_point(color = 'red') +
       geom_smooth(method = "lm", formula = y ~ poly(x, 10), se = FALSE) 
-
 #+end_src
 #+caption: Ajuste polinomial. 
 #+RESULTS:
-[[file:../images/polinomial.svg]]
+[[file:../images/polinomial.jpeg]]
 
 ** Compromisos
 
@@ -314,7 +305,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 #+caption: Función latente y observaciones. 
 #+RESULTS:
-[[file:../images/polyfit-single.svg]]
+[[file:../images/polyfit-single.jpeg]]
 
 
 #+begin_src R :exports none :results none
@@ -350,7 +341,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 #+caption: Ajuste bajo distintos grados del polinomio
 #+RESULTS:
-[[file:../images/polyfit.svg]]
+[[file:../images/polyfit.jpeg]]
 
 
 #+REVEAL: split
@@ -386,7 +377,7 @@ Función de pérdida / Error de entrenamiento / Error de prueba.
 #+end_src
 #+caption: Errores de entrenamiento / prueba
 #+RESULTS:
-[[file:../images/mse-polyfit.svg]]
+[[file:../images/mse-polyfit.jpeg]]
 
 # #+REVEAL: split
 # #+caption: Poco ruido
