@@ -14,26 +14,6 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.9\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/02-regresion.pdf
-:END:
 #+PROPERTY: header-args:R :session regresion :exports both :results output org :tangle ../rscripts/02-regresion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
@@ -72,6 +52,7 @@
   - [[#interacciones-y-modelos-múltiples][Interacciones y modelos múltiples]]
   - [[#problemas-con-supuestos][Problemas con supuestos.]]
 - [[#generalizaciones][Generalizaciones]]
+- [[#referencias][Referencias]]
 :END:
 
 
@@ -197,6 +178,7 @@ Qué deficiencia encuentras en el ajuste?
   ### Resumenes de modelos --------------------------
 #+end_src
 
+#+caption: Resumen del modelo. 
 #+begin_src R :results org
   model |>
     summary()
@@ -225,6 +207,7 @@ F-statistic:  312 on 1 and 198 DF,  p-value: <2e-16
 #+end_src
 
 #+REVEAL: split
+#+caption: Resumen del modelo (/tidy/). 
 #+begin_src R
   model |>
     broom::tidy() |>
@@ -415,6 +398,7 @@ La prueba de hipótesis que formularíamos sería probar contra alguna $\beta_j 
 #+end_src
 
 #+REVEAL: split
+#+caption: Resumen global del modelo (/tidy/). 
 #+begin_src R :exports both :results org
   model |>
     broom::glance() |>
@@ -561,7 +545,7 @@ El efecto de incrementar el presupuesto en un canal de ventas puede aumentar la 
 - Interacciones.
 - Regularización. 
 
-# * Referencias                                                         :latex:
+* Referencias                                                         :latex:
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
