@@ -1,7 +1,7 @@
 #+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
-#+DATE: Primavera, 2021
+#+DATE: ~Regresión lineal~
 #+STARTUP: showall
 :REVEAL_PROPERTIES:
 #+LANGUAGE: es
@@ -14,13 +14,36 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER: \usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, \:\:, /},extendedchars=false,commentstyle={\ttfamily\itshape\color{codegreen}},keywordstyle={\color{blue}},morekeywords={mutate, select}, stringstyle={\color{red}}, morekeywords={mutate, select}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/02-regresion.pdf
+:END:
 #+PROPERTY: header-args:R :session regresion :exports both :results output org :tangle ../rscripts/02-regresion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022.\\
 *Objetivo*. Repasaremos los conceptos de regresión lineal desde un punto de vista de inferencia. Haremos conexiones interesantes con conceptos clave en probabilidad y teoria de la información. Veremos métricas de desempeño para modelos de regresión. Nos llevará a cuestionar el modelo bajo el enfoque de predicción.\\
-*Lectura recomendada*: Capítulo 3 de citep:James2021. 
+*Lectura recomendada*: Capítulo 3 de citet:James2021. 
 #+END_NOTES
 
 
@@ -29,7 +52,7 @@
 :TOC:      :include all  :ignore this :depth 3
 :END:
 :CONTENTS:
-- [[#regresión-lineal][Regresión lineal]]
+- [[#introducción][Introducción]]
   - [[#datos-de-marketing][Datos de marketing]]
 - [[#el-modelo-simple][El modelo simple]]
   - [[#estimación-de-parámetros][Estimación de parámetros]]
@@ -52,11 +75,10 @@
   - [[#interacciones-y-modelos-múltiples][Interacciones y modelos múltiples]]
   - [[#problemas-con-supuestos][Problemas con supuestos.]]
 - [[#generalizaciones][Generalizaciones]]
-- [[#referencias][Referencias]]
 :END:
 
 
-* Regresión lineal
+* Introducción
 
 Aproximamos $f(X)$ como una combinación lineal de las entradas.
 
@@ -180,8 +202,8 @@ Qué deficiencia encuentras en el ajuste?
 
 #+caption: Resumen del modelo. 
 #+begin_src R :results org
-  model |>
-    summary()
+  model |> 
+        summary()
 #+end_src
 
 #+RESULTS:
@@ -246,7 +268,7 @@ F-statistic:  312 on 1 and 198 DF,  p-value: <2e-16
 #+REVEAL: split
 #+begin_src R :exports code :results org
   simulacion <-  tibble(id = seq(1, 10)) |>
-      mutate(datos = map(id, genera_datos),
+      mutate(datos  = map(id, genera_datos),
              modelo = map(datos, ajusta_modelo),
              ajuste = map(modelo, broom::tidy))
 #+end_src
@@ -390,7 +412,7 @@ F = \frac{(\mathsf{TSS} - \mathsf{RSS})/p}{\mathsf{RSS}/(n - p -1)} \sim F_{p, n
 \end{align}
 
 #+BEGIN_NOTES
-La prueba de hipótesis que formularíamos sería probar contra alguna $\beta_j \neq 0$ . Se puede probar que si el supuesto del modelo lineal es correcto y bajo la hipótesis nula el cociente será cercano a 1. En caso de que la hipótesis nula sea cierta entonces $F > 1$. 
+La prueba de hipótesis que formularíamos sería probar contra alguna $\beta_j \neq 0$ . Se puede probar que si el supuesto del modelo lineal es correcto y bajo la hipótesis nula el cociente será cercano a 1. En caso de que la hipótesis ~alternativa~ sea cierta entonces $F > 1$. 
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -415,9 +437,9 @@ La prueba de hipótesis que formularíamos sería probar contra alguna $\beta_j 
 #+REVEAL: split
 -  ¿Por qué tenemos que evaluar en conjunto?  
 
-  #+BEGIN_NOTES
-  ¿Qué que pasa en el caso con 100 predictores donde no hay relación?
-  #+END_NOTES
+#+BEGIN_NOTES
+  ¿Qué pasa en el caso con 100 predictores donde no hay relación?
+#+END_NOTES
 
 ** ¿Cuáles son los predictores importantes?
 
@@ -545,7 +567,7 @@ El efecto de incrementar el presupuesto en un canal de ventas puede aumentar la 
 - Interacciones.
 - Regularización. 
 
-* Referencias                                                         :latex:
+# * Referencias                                                         :latex:
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
