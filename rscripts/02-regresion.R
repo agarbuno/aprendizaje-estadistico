@@ -34,8 +34,8 @@ data |>
 
 ### Resumenes de modelos --------------------------
 
-model |>
-  summary()
+model |> 
+      summary()
 
 model |>
   broom::tidy() |>
@@ -54,7 +54,7 @@ ajusta_modelo <- function(datos){
 }
 
 simulacion <-  tibble(id = seq(1, 10)) |>
-    mutate(datos = map(id, genera_datos),
+    mutate(datos  = map(id, genera_datos),
            modelo = map(datos, ajusta_modelo),
            ajuste = map(modelo, broom::tidy))
 
