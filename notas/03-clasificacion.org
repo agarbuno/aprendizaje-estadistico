@@ -14,8 +14,31 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/03-clasificacion.pdf
+:END:
 #+PROPERTY: header-args:R :session clasificacion :exports both :results output org :tangle ../rscripts/03-clasificacion.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+begin_src R :exports none
 
@@ -52,11 +75,14 @@
 :END:
 :CONTENTS:
 - [[#introducción][Introducción]]
+  - [[#ejercicio][Ejercicio]]
+  - [[#créditos-a-estudiantes][Créditos a estudiantes]]
   - [[#podemos-utilizar-un-modelo-de-regresión-lineal][¿Podemos utilizar un modelo de regresión lineal?]]
   - [[#el-problema][El problema]]
-  - [[#extensiones][Extensiones]]
+  - [[#otros-ejemplos-problemas-multiclase][Otros ejemplos: Problemas multiclase.]]
 - [[#regresión-logística][Regresión logística]]
   - [[#estimando-los-parámetros][Estimando los parámetros]]
+  - [[#una-situación-interesante][Una situación interesante]]
 - [[#clasificación-para-mas-de-dos-clases][Clasificación para mas de dos clases]]
 - [[#análisis-discriminante][Análisis discriminante]]
   - [[#la-regla-de-bayes][La regla de Bayes]]
@@ -69,13 +95,12 @@
 - [[#lda-en-datos][LDA en datos]]
   - [[#evaluación-de-modelos][Evaluación de modelos]]
   - [[#el-punto-de-corte][El punto de corte]]
-- [[#otros-modelo-discriminantes][Otros modelo discriminantes]]
+- [[#otros-modelos-discriminantes][Otros modelos discriminantes]]
   - [[#análisis-discriminante-cuadrático][Análisis discriminante cuadrático]]
   - [[#clasificador-ingenuo-bayesiano][Clasificador ingenuo Bayesiano]]
 - [[#relación-entre-clasificadores][Relación entre clasificadores]]
 - [[#resumen][Resumen]]
-- [[#temas-fuera][Temas fuera]]
-- [[#referencias][Referencias]]
+- [[#otros-modelos-útiles][Otros modelos útiles]]
 :END:
 
 
@@ -87,7 +112,21 @@ Nos interesa hacer predicciones sobre respuestas ~qualitativas~. Donde suponemos
 La tarea de predicción es: considerando que tenemos un vector de *características* $X$ queremos predecir la *respuesta* $Y \in \mathcal{C}$ por medio de una función $C : \mathcal{X} \rightarrow \mathcal{C}$.
 
 #+REVEAL: split
-Usualmente resolvemos buscando poder predecir la ~probabilidad~ de que $X$ pertenezca a la categoría $\mathcal{C}$.
+/Usualmente/ resolvemos esto buscando poder predecir la ~probabilidad~ de que $X$ pertenezca a la categoría $\mathcal{C}$.
+
+#+BEGIN_NOTES
+Los modelos que estudiaremos en esta sección no son tan computacionalmente intensivos como otras alternativas. 
+#+END_NOTES
+
+
+** Ejercicio
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+¿Puedes pensar en situaciones que podrían interesarles como un problema de clasificación?
+
+** Créditos a estudiantes
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/datos-credito.jpeg :exports results :results output graphics file
@@ -142,8 +181,24 @@ Podríamos ajustar un modelo lineal y calificar como ~Si~ si tenemos $\hat Y > 0
 #+END_NOTES
 
 ** El problema
-La respuesta del modelo lineal no la podemos interpretar como una probabilidad.
+La respuesta del modelo lineal no la podemos interpretar como una probabilidad. Además implícitamente estaríamos dispuestos a otorgar cierto orden a las categorías.
 
+#+REVEAL: split
+Por ejemplo, consideremos un problema de clasificación con mas categorías:
+\begin{align}
+Y = \begin{cases}
+1 \qquad \text{  llueve }\\
+2 \qquad \text{  está nublado }\\
+3 \qquad \text{ tiembla}\,.
+\end{cases}
+\end{align}
+
+#+BEGIN_NOTES
+Asumimos un orden. Suponemos que la condición de que el día esté nublado está entre lluvia y temblor. Además, reflejamos que la diferencia entre lluvia y nubes, y nubes y temblores es la misma. 
+#+END_NOTES
+
+
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/linear-logistic-credit.jpeg :exports results :results output graphics file
 
@@ -171,9 +226,7 @@ La respuesta del modelo lineal no la podemos interpretar como una probabilidad.
 #+RESULTS:
 [[file:../images/linear-logistic-credit.jpeg]]
 
-** Extensiones
-
-Antes habíamos considerado predictores multiclase. Lo mismo podríamos pensar para una predicción en múltiples clases.
+** Otros ejemplos: Problemas multiclase. 
 
 #+DOWNLOADED: screenshot @ 2022-02-16 12:13:34
 #+caption: Ejemplo multiclase típico ([[https://en.wikipedia.org/wiki/MNIST_database][MNIST]]). 
@@ -187,7 +240,7 @@ Antes habíamos considerado predictores multiclase. Lo mismo podríamos pensar p
 [[file:images/20220216-121524_screenshot.png]]
 
 #+REVEAL: split
-Por supuesto un ~predictor binario~ no es apropiado y necesitamos considerar otros modelos (que veremos mas adelante) como ~Regresión logística multiclase~ o ~Análisis Discriminante~. 
+Por supuesto un modelo de regresión o un ~predictor binario~ no es apropiado y necesitamos considerar otros modelos (que veremos mas adelante) como ~Regresión logística multiclase~ o ~Análisis Discriminante~. 
 
 * Regresión logística
 
@@ -197,7 +250,7 @@ p(X) = \frac{e^{\beta_0 + \beta_1 X}}{1 + e^{\beta_0 +\beta_1 X}}\,.
 \end{align}
 
 #+BEGIN_NOTES
-La función $\sigma(x) = e^x / (1 + e^x)$  se conoce como ~función logística~. Análogamente, la función $\sigma(x) = 1/ (1 + e^{-x})$ se conoce como la ~función sigmoide~. Son... lo mismo.
+La función $p(X)$ es la podemos interpretar como un /score/. Pues, en el contexto de nuestro ejemplo, un banco estaría dispuesto a ser conservador para clasificar a un cliente como un cliente que no pagará si $P(X) > 0.15$.   La función $\sigma(x) = e^x / (1 + e^x)$  se conoce como ~función logística~. Análogamente, la función $\sigma(x) = 1/ (1 + e^{-x})$ se conoce como la ~función sigmoide~. Son... lo mismo.
 #+END_NOTES
 
 #+REVEAL: split
@@ -333,6 +386,74 @@ Number of Fisher Scoring iterations: 8
 4  studentYes -6.5e-01   2.4e-01     -2.74  6.2e-03
 #+end_src
 
+** Una situación interesante
+
+#+begin_src R :exports none :results none
+  modelo.1 <- glm(default ~ student,
+                  data = data,
+                family = "binomial")
+
+  modelo.2 <- glm(default ~ balance + income + student,
+                data = data,
+                family = "binomial")
+#+end_src
+
+#+begin_src R :exports results 
+  modelo.1 |> tidy() |> as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+         term estimate std.error statistic  p.value
+1 (Intercept)   -3.504    0.0707    -49.55 0.000000
+2  studentYes    0.405    0.1150      3.52 0.000431
+#+end_src
+
+#+begin_src R :exports results 
+  modelo.2 |> tidy() |> as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+         term  estimate std.error statistic   p.value
+1 (Intercept) -1.09e+01  4.92e-01    -22.08 4.91e-108
+2     balance  5.74e-03  2.32e-04     24.74 4.22e-135
+3      income  3.03e-06  8.20e-06      0.37  7.12e-01
+4  studentYes -6.47e-01  2.36e-01     -2.74  6.19e-03
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/simpson-paradox.jpeg :exports results :results output graphics file
+  g1 <- data |>
+    filter(balance <= 2200) |>
+      mutate(balance.discrete = cut(balance, breaks = 20)) |>
+    group_by(student, balance.discrete) |>
+    summarise(count = n(),
+              defaults = sum(ifelse(default == 'Yes', 1, 0)),
+              rate  = defaults/count) |>
+    ungroup() |>
+    ggplot(aes(balance.discrete, rate)) +
+    geom_line(aes(group = student, color = student)) +
+    geom_hline(data = data |>
+                 group_by(student) |>
+                 summarise(rate = mean(ifelse(default == "Yes", 1, 0))),
+               aes(yintercept = rate, color = student), lty = 2) + 
+    sin_leyenda + sin_lineas +
+    theme(axis.text.x = element_blank()) +
+    xlab("balance") + ylab("Tasa default")
+
+  g2 <- data |>
+    ggplot(aes(student, balance)) +
+    geom_boxplot(aes(fill = student)) + sin_lineas + sin_leyenda
+
+  g1 + g2
+#+end_src
+#+caption: Aparente paradoja para la tasa de /Default/. 
+#+RESULTS:
+[[file:../images/simpson-paradox.jpeg]]
+
+
 * Clasificación para mas de dos clases
 
 Podemos extender a un problema ~multi-clase~
@@ -401,8 +522,6 @@ donde
 - En casos con clases ~separables~, los estimadores de regresión logística son inestables. 
 - Si $n$ es pequeña y las densidades son aproximadamente normales en cada una de las clases entonces LDA es mas estable.
 - LDA nos permite visualizaciones de dimensiones bajas.
-
-
 ** LDA con $p =1$.
 
 Asumimos $\sigma_k = \sigma$ para toda $k$, para poder escribir nuestra $p_k(x)$.
@@ -430,7 +549,6 @@ Prueba que para el caso $K = 2$ y $\pi_1 = \pi_2 = .5$ la frontera de la decisi�
 x = \frac{\mu_1 + \mu_2}{2}\,.
 \end{align}
 
-
 ** ¿Y en la vida real?
 
 Estimamos los parámetros con los criterios usuales.
@@ -438,7 +556,6 @@ Estimamos los parámetros con los criterios usuales.
 #+BEGIN_NOTES
 Los parámetros que se ajustarán serán: $\pi_k, \mu_k, \sigma_k, \sigma$. 
 #+END_NOTES
-
 
 ** LDA con $p >1$. 
 
@@ -515,6 +632,14 @@ Una vez que tenemos ajustadas nuestras $\hat \delta_k(x)$ podemos utilizarlas pa
 6      No     Yes     920   7492
 #+end_src
 
+#+begin_src R :exports none :results none
+
+  data <- data |>
+    mutate(default = factor(default, levels = c("Yes", "No")))
+
+#+end_src
+
+
 #+REVEAL: split
 #+caption: Modelo ajustado para los datos de crédito de estudiantes. 
 #+begin_src R :exports code :results none
@@ -534,9 +659,9 @@ Una vez que tenemos ajustadas nuestras $\hat \delta_k(x)$ podemos utilizarlas pa
 #+RESULTS:
 #+begin_src org
           Truth
-Prediction   No  Yes
-       No  9643  257
-       Yes   24   76
+Prediction  Yes   No
+       Yes   76   24
+       No   257 9643
 #+end_src
 
 #+REVEAL: split
@@ -560,7 +685,7 @@ La tasa de errores de clasificación es: $(24+257)/10,000 \approx 0.028$.
 
 ** Evaluación de modelos
 
-La proporción de ~aciertos~ para la clase ~No~ es: 
+La proporción de ~aciertos~ para la clase ~Si~ es: 
 #+begin_src R
   data |>
     recall(truth = default, estimate = predicted) |>
@@ -570,13 +695,13 @@ La proporción de ~aciertos~ para la clase ~No~ es:
 #+RESULTS:
 #+begin_src org
   .metric .estimator .estimate
-1  recall     binary     0.998
+1  recall     binary     0.228
 #+end_src
 
-La proporción de ~errores~ para la clase ~No~ se le llama ~Tasa de Falsos Positivos~ (apróx. 0.2%).
+La proporción de ~errores~ para la clase ~Si~ se le llama ~Tasa de Falsos Positivos~ (apróx. 77.2%).
 
 #+REVEAL: split
-La proporción de ~aciertos~ para la clase ~Si~ es: 
+La proporción de ~aciertos~ para la clase ~No~ es: 
 #+begin_src R
   data |>
     recall(truth = default, estimate = predicted, event_level = 'second') |>
@@ -586,10 +711,10 @@ La proporción de ~aciertos~ para la clase ~Si~ es:
 #+RESULTS:
 #+begin_src org
   .metric .estimator .estimate
-1  recall     binary     0.228
+1  recall     binary     0.998
 #+end_src
 
-La proporción de ~errores~ para la clase ~Si~ se le llama ~Tasa de Falsos Negativos~ (apróx. 73%).
+La proporción de ~errores~ para la clase ~No~ se le llama ~Tasa de Falsos Negativos~ (apróx. 0.2%).
 
 #+REVEAL: split
 Una combinación de ambos
@@ -602,13 +727,60 @@ Una combinación de ambos
 #+RESULTS:
 #+begin_src org
   .metric .estimator .estimate
-1  f_meas     binary     0.986
+1  f_meas     binary     0.351
 #+end_src
 
 ** El punto de corte
 
 Para las métricas anteriores consideramos que si $\hat p(x) > .5$ entonces la predicción de clase será ~Si~. Si cambiamos el punto de corte podemos modificar la tasa de error en ambas.
 
+#+begin_src R :exports none :results none
+  ### Modificamos el punto de corte ---------------------
+#+end_src
+
+#+begin_src R :exports code :results none
+    data <- data |>
+      mutate(predicted.score = factor(ifelse(probability >= .2,"Yes", "No"), levels = c("Yes", "No")))
+#+end_src
+
+#+begin_src R :exports results :results org
+  data |>
+    accuracy(truth = default, estimate = predicted.score) |>
+    as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+   .metric .estimator .estimate
+1 accuracy     binary     0.963
+#+end_src
+
+#+begin_src R :exports results :results org
+  data |>
+    recall(truth = default, estimate = predicted.score) |>
+    as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  recall     binary     0.586
+#+end_src
+
+#+begin_src R :exports results :results org
+  data |>
+    recall(truth = default, estimate = predicted.score, event_level = 'second') |>
+    as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  recall     binary     0.976
+#+end_src
+
+
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/roc-curve-credit.jpeg :exports results :results output graphics file
   g1 <- data |>
@@ -629,7 +801,7 @@ Para las métricas anteriores consideramos que si $\hat p(x) > .5$ entonces la p
 
   g1 + g2
 #+end_src
-
+#+caption: Gráfico ROC (/Receiver Characteristic Curve/). 
 #+RESULTS:
 [[file:../images/roc-curve-credit.jpeg]]
 
@@ -647,11 +819,11 @@ También podemos pedir un resumen de la gráfica por medio del área bajo la cur
 1 roc_auc     binary     0.948
 #+end_src
 
-* Otros modelo discriminantes
+* Otros modelos discriminantes
 
 Si asumimos diferentes formas para $f_k(x)$ podemos recuperar diferentes modelos discriminantes clásicos.
 - Si consideramos un modelo Gaussiano con distintas $\Sigma_k$ entonces tenemos un ~modelo discriminante cuadrático~.
-- Si consideramos un modelo Guassiano con $\Sigma_k$ una matriz diagonal tenemos el ~clasificador Bayesiano ingenuo~.
+- Si consideramos que /dentro de cada clase/ las /características son independientes/ tenemos el ~clasificador Bayesiano ingenuo~.
 - Hay muchos mas que se pueden explorar considerando estimadores no-paramétricos. 
 
 ** Análisis discriminante cuadrático
@@ -661,7 +833,7 @@ Si dejamos que el término de varianzas cambie con respecto a  ${\color{orange}k
 \delta_k(x) = -\frac{1}{2} (x - \mu_k)^\top \Sigma_k^{-1}(x - \mu_k) + \log \pi_k - \frac{1}{2} \log |\Sigma_k|\,.
 \end{align}
 
-** Clasificador ingenuo Bayesiano
+** Clasificador ingenuo /Bayesiano/
 
 Cada atributo es independiente de los demás. Tiene muy buenas capacidades predictivas cuando $p$ es grande.
 \begin{align}
@@ -675,27 +847,25 @@ Se puede utilizar con mezcla de atributos /mixtos/. Es decir, cuando tenemos atr
 * Relación entre clasificadores
 
 En el caso binario se puede mostrar que LDA y la función /liga/ de regresión logística tienen la misma forma. La diferencia es cómo se estiman los parámetros:
-- Con regresión logística aprendemos $\mathbb{P}(Y|X)$ (que se conoce como ~aprendizaje discrimnante~).
+- Con regresión logística aprendemos $\mathbb{P}(Y|X)$ (que se conoce como ~aprendizaje discriminante~).
 - Con LDA aprendemos $\mathbb{P}(X,Y)$ (que se conoce como ~aprendizaje generativo~).
 
 #+BEGIN_NOTES
-En la práctica los resultados son muy similares. 
+En la práctica los resultados entre un modelo logístico y un LDA son muy similares. 
 #+END_NOTES
-
 
 * Resumen
 
 - Regresión logistica es popular, especialmente en clasificación binaria.
-- LDA es útil cuando $n$ es pequeña o las clases son separables, y además los supuestos Gaussianos son razonables.
+- LDA es útil cuando $n$ es pequeña o las clases son separables, y /además/ los supuestos Gaussianos son razonables.
 - El clasificador ingenuo Bayesiano es útil cuando tenemos muchas categorías. 
 
+* Otros modelos útiles
 
-* Temas fuera
+- Modelos lineales generalizados.
+- Vecinos más cercanos. 
 
-- /Confounders/. 
-- Case-Control sampling. 
-
-* Referencias                                                         :latex:
+# * Referencias                                                         :latex:
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
