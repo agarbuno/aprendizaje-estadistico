@@ -90,6 +90,8 @@ model |>
   select(statistic, p.value, df, df.residual) |>
   as.data.frame()
 
+## Modelos con interacciones ------------------------
+
 model.1 <- lm(sales ~ TV + radio, data)
 model.2 <- lm(sales ~ TV + radio + TV:radio, data)
 

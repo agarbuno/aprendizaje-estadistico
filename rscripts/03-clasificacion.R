@@ -263,3 +263,40 @@ g1 + g2
 data |>
   roc_auc(default, probability) |>
   as.data.frame()
+
+data |>
+  ## Bin the probability in buckets
+  mutate(bins = cut(probability,
+                    seq(0,1,length.out = 11))) |>
+  ## Group by bin to get summaries
+  group_by(bins) |>
+  summarise(events = sum(ifelse(default == "Yes", 1, 0)),
+            count = n(),
+            observed.rate = events/count) |>
+  ## Compute expected rates
+  mutate(predicted.rate = seq(5,100,by=10)/100) |>
+  ggplot(aes(predicted.rate, observed.rate)) +
+  geom_line() + geom_point() +
+  geom_abline(slope = 1, intercept = 0, lty = 2, color = 'grey') +
+  sin_lineas
+
+g1 <- data |>
+  ## Muestreo aleatorio 
+  group_by(default) |>
+  sample_n(300, replace = FALSE) |>
+  ungroup() |>
+  ## Ordenamos por score
+  arrange(-probability) |>
+  mutate(found = cumsum(ifelse(default == "Yes", 1, 0))/3,
+         tested = 1:n()/n()*100) |>
+  select(probability, found, tested) |>
+  ggplot(aes(tested, found)) +
+  geom_polygon(data = tibble(x = c(0,50,100),
+                             y = c(0,100,100)),
+               aes(x,y), alpha = .4, fill = 'gray') +
+  geom_abline(slope = 1, intercept = 0, lty = 2, color = 'gray') +
+  geom_line() +
+  sin_lineas +
+  ylab("Casos encontrados (%)") +
+  xlab("Casos probados (%)")  
+g1
