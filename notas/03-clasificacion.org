@@ -43,7 +43,7 @@
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Clasificación. \\
 *Objetivo*. Conceptos de clasificación. Regresión logística. Análisis discriminante. Clases desbalanceadas. Curva ROC. \\
-*Lectura recomendada*: Capítulo 4 de citep:James2021. 
+*Lectura recomendada*: Capítulo 4 de citep:James2021. Capítulo 11 de citep:Kuhn2013. 
 #+END_NOTES
 
 * Contenido                                                             :toc:
