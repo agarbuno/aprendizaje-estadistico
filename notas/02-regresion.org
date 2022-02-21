@@ -14,6 +14,29 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/02-regresion.pdf
+:END:
 #+PROPERTY: header-args:R :session regresion :exports both :results output org :tangle ../rscripts/02-regresion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
@@ -52,7 +75,6 @@
   - [[#interacciones-y-modelos-múltiples][Interacciones y modelos múltiples]]
   - [[#problemas-con-supuestos][Problemas con supuestos.]]
 - [[#generalizaciones][Generalizaciones]]
-- [[#referencias][Referencias]]
 :END:
 
 
@@ -456,8 +478,11 @@ Modelo con respuestas binarias (1D). ¿Qué tal que tenemos mas categorias?
 ** Interacciones
 
 Eliminar el ~supuesto aditivo~: /interacciones/ y /no-linealidad/.
-
+#+begin_src R :exports none :results none
+  ## Modelos con interacciones ------------------------
+#+end_src
 #+REVEAL: split
+#+caption: Ajuste de modelos sin/con interacciones. 
 #+begin_src R :exports code :results none
   model.1 <- lm(sales ~ TV + radio, data)
   model.2 <- lm(sales ~ TV + radio + TV:radio, data)
@@ -474,7 +499,7 @@ Eliminar el ~supuesto aditivo~: /interacciones/ y /no-linealidad/.
     select(tipo, term, estimate, p.value) |>
     as.data.frame() 
 #+end_src
-
+#+caption: Resúmenes sobre los coeficientes.
 #+RESULTS:
 #+begin_src org
          tipo        term estimate p.value
@@ -496,7 +521,7 @@ Eliminar el ~supuesto aditivo~: /interacciones/ y /no-linealidad/.
     select(r.squared, sigma, AIC, deviance) |>
     as.data.frame()
 #+end_src
-
+#+caption: Resúmenes globales de los modelos. 
 #+RESULTS:
 #+begin_src org
   r.squared sigma AIC deviance
@@ -515,9 +540,7 @@ El efecto de incrementar el presupuesto en un canal de ventas puede aumentar la 
 
 ** Interacciones y modelos múltiples
 
-
 #+REVEAL: split
-
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/students.jpeg :exports results :results output graphics file
   data <- ISLR::Credit
@@ -545,7 +568,7 @@ El efecto de incrementar el presupuesto en un canal de ventas puede aumentar la 
 - Interacciones.
 - Regularización. 
 
-* Referencias                                                         :latex:
+# * Referencias                                                         :latex:
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
