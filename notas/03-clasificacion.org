@@ -37,7 +37,7 @@
   sin_leyenda <- theme(legend.position = "none")
   sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 
-  #+end_src
+#+end_src
   
 
 #+BEGIN_NOTES
