@@ -281,7 +281,7 @@ data |>
   sin_lineas
 
 g1 <- data |>
-  ## Muestreo aleatorio 
+  ## Muestreo aleatorio para mantener clases balanceadas 50%
   group_by(default) |>
   sample_n(300, replace = FALSE) |>
   ungroup() |>

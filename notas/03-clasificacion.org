@@ -834,7 +834,7 @@ También podemos pedir un resumen de la gráfica por medio del área bajo la cur
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/curva-lift.jpeg :exports results :results output graphics file
   g1 <- data |>
-    ## Muestreo aleatorio 
+    ## Muestreo aleatorio para mantener clases balanceadas 50%
     group_by(default) |>
     sample_n(300, replace = FALSE) |>
     ungroup() |>
