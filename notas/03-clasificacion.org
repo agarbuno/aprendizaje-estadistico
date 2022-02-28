@@ -14,6 +14,29 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/03-clasificacion.pdf
+:END:
 #+PROPERTY: header-args:R :session clasificacion :exports both :results output org :tangle ../rscripts/03-clasificacion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
@@ -79,7 +102,6 @@
 - [[#relación-entre-clasificadores][Relación entre clasificadores]]
 - [[#resumen][Resumen]]
 - [[#otros-modelos-útiles][Otros modelos útiles]]
-- [[#referencias][Referencias]]
 :END:
 
 
@@ -713,6 +735,14 @@ Una combinación de ambos
 1  f_meas     binary     0.351
 #+end_src
 
+#+BEGIN_NOTES
+La métrica $F$ es un compromiso entre las dos métricas que hemos visto anteriormente. Es decir, el /recall/ (la tasa con la que podemos identificar los objetos que buscamos) y la *precisión* (la tasa con la que correctamente identificamos ambos casos). De tal manera, que la métrica $F$ (el caso particular para $F_1$) es
+\begin{align}
+F = 2 \cdot \frac{\text{precision}\quad \text{recall}}{\text{precision} + \text{recall}}\,.
+\end{align}
+#+END_NOTES
+
+
 ** El punto de corte
 
 Para las métricas anteriores consideramos que si $\hat p(x) > .5$ entonces la predicción de clase será ~Si~. Si cambiamos el punto de corte podemos modificar la tasa de error en ambas.
@@ -808,6 +838,17 @@ También podemos pedir un resumen de la gráfica por medio del área bajo la cur
 
 ** Post-procesando las /probabilidades/
 
+#+BEGIN_NOTES
+La predicción de probabilidad de clase (por ejemplo, $\hat p_1(x)$) en general
+no puede entenderse como una probabilidad. Lo podemos interpretar cómo un /score/
+de pertenencia a la clase $1$. Nos encantaría poder interpretar dicha predicción
+como una probabilidad. En el sentido frecuentista nos encantaría buscar que la
+frecuencia relativa de la categoría $1$ dentro de los individuos con las
+características $x$ sea cercana a $\hat p_1(x)$. Esto lo podemos estudiar a
+través de un ~gráfico de calibración~ de probabilidades, donde evaluamos la
+/cobertura/ de dichos /scores/ (ver mas en Capítulo 11 de citep:Kuhn2013).
+#+END_NOTES
+
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/probabilidades-calibradas.jpeg :exports results :results output graphics file
   data |>
@@ -829,6 +870,18 @@ También podemos pedir un resumen de la gráfica por medio del área bajo la cur
 #+caption: Gráfico de calibración de probabilidades. 
 #+RESULTS:
 [[file:../images/probabilidades-calibradas.jpeg]]
+
+#+BEGIN_NOTES
+En la práctica es importante contextualizar los costos de una mala
+clasificación. Por ejemplo, el costo de no identificar a los clientes que te van
+a dejar de pagar un crédito, o los pacientes que no necesitan un tratamiento
+médico. La curva /lift/ nos ayuda a contextualizar esto y en consecuencia buscar
+un punto de corte apropiado para el problema de predicción de clases. Si
+pensamos en que estudiaremos con mayor cuidado las predicciones mas seguras,
+querríamos que nuestro modelo sea capaz de /encontrar/ a los individuos de interés
+con tan sólo ordenarlos por esas /probabilidades/. Puedes consultar mas de esto en
+el Capítulo 11 de citep:Kuhn2013.
+#+END_NOTES
 
 #+REVEAL: split
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
@@ -905,7 +958,7 @@ En la práctica los resultados entre un modelo logístico y un LDA son muy simil
 - Modelos lineales generalizados.
 - Vecinos más cercanos. 
 
-* Referencias                                                         :latex:
+# * Referencias                                                         :latex:
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
