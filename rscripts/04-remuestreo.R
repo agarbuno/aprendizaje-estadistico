@@ -69,33 +69,32 @@ ajusta_modelo <- function(split){
     ## Separa en entrenamiento / validacion
     train <- analysis(split)
     valid <- assessment(split)
-
     ## Entrena y evalua
     tibble(degree = 1:10) |>
       mutate(model = map(degree, fit_model, train),
              error = map_dbl(model, eval_error, valid))
   }
 
-  g.loo <- data |>
+g.loo <- data |>
     rsample::loo_cv() |>
     mutate(results = map(splits, ajusta_modelo)) |>
     unnest(results) |>
     group_by(degree) |>
     summarise(error.loo = mean(error)) |>
-      ggplot(aes(degree, error.loo)) +
-      geom_line() + geom_point() +
+    ggplot(aes(degree, error.loo)) +
+    geom_line() + geom_point() +
     ggtitle("Leave-one out") +
-    ylim(18, 25)+ sin_lineas
+    ylim(16, 26)+ sin_lineas
 
-  g.cv <- data |>
+g.cv <- data |>
     vfold_cv(10, repeats = 10) |>
     mutate(results = map(splits, ajusta_modelo)) |>
-      unnest(results) |>
-      group_by(id, degree) |>
-      summarise(error.cv = mean(error)) |>
-      ggplot(aes(degree, error.cv, color = id)) +
+    unnest(results) |>
+    group_by(id, degree) |>
+    summarise(error.cv = mean(error)) |>
+    ggplot(aes(degree, error.cv, color = id)) +
     geom_line() + geom_point() + sin_leyenda +
     ggtitle("Validación cruzada K=10") +
-    ylim(18, 25)+ sin_lineas
+    ylim(16, 26)+ sin_lineas
 
   g.loo + g.cv

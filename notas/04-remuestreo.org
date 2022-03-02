@@ -43,7 +43,7 @@
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Remuestreo.\\
 *Objetivo*: Estudiaremos estrategias para cuantificar el error de generalización utilizando la información disponible. Revisaremos conceptos separación de muestras, validación cruzada y Bootstrap.\\
-*Lectura recomendada*: Capítulo 5 de citep:James2021. 
+*Lectura recomendada*: Capítulo 5 de citep:James2021 y Capítulo 4 de citep:Kuhn2013. 
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -84,6 +84,7 @@
   - [[#observaciones][Observaciones]]
   - [[#y-para-clasificación][¿Y para clasificación?]]
   - [[#un-caso-para-pensar][Un caso para pensar]]
+  - [[#cómo-escoger-k][¿Cómo escoger $K$?]]
 - [[#bootstrap][Bootstrap]]
   - [[#observaciones][Observaciones]]
   - [[#cuantificando-el-error-de-generalización][Cuantificando el error de generalización]]
@@ -182,7 +183,7 @@ El error cuantificado en el conjunto de validación nos da un estimador del erro
 
   g1 + g2
 #+end_src
-#+caption: Error de validación utilizando una partición del conjunto de datos (izquierda). Error de validación con distintas particiones de los datos (derecha). 
+#+caption: Error de validación utilizando /una/ partición del conjunto de datos (izquierda). Error de validación con distintas particiones de los datos (derecha). 
 #+RESULTS:
 [[file:../images/error-entrenamiento-validacion.jpeg]]
 
@@ -238,31 +239,30 @@ h_i = \frac{1}{n} + \frac{(x_i - \bar x_n)^2}{\sum_{j = 1}^{n}(x_j - \bar x_n)^2
       ## Separa en entrenamiento / validacion
       train <- analysis(split)
       valid <- assessment(split)
-
       ## Entrena y evalua
       tibble(degree = 1:10) |>
         mutate(model = map(degree, fit_model, train),
                error = map_dbl(model, eval_error, valid))
     }
 
-    g.loo <- data |>
+  g.loo <- data |>
       rsample::loo_cv() |>
       mutate(results = map(splits, ajusta_modelo)) |>
       unnest(results) |>
       group_by(degree) |>
       summarise(error.loo = mean(error)) |>
-        ggplot(aes(degree, error.loo)) +
-        geom_line() + geom_point() +
+      ggplot(aes(degree, error.loo)) +
+      geom_line() + geom_point() +
       ggtitle("Leave-one out") +
       ylim(16, 26)+ sin_lineas
 
-    g.cv <- data |>
+  g.cv <- data |>
       vfold_cv(10, repeats = 10) |>
       mutate(results = map(splits, ajusta_modelo)) |>
-        unnest(results) |>
-        group_by(id, degree) |>
-        summarise(error.cv = mean(error)) |>
-        ggplot(aes(degree, error.cv, color = id)) +
+      unnest(results) |>
+      group_by(id, degree) |>
+      summarise(error.cv = mean(error)) |>
+      ggplot(aes(degree, error.cv, color = id)) +
       geom_line() + geom_point() + sin_leyenda +
       ggtitle("Validación cruzada K=10") +
       ylim(16, 26)+ sin_lineas
@@ -307,6 +307,21 @@ Para ajustar un modelo lo que hacemos es:
 #+begin_quote
 ¿Está bien esta estrategia?
 #+end_quote
+
+** ¿Cómo escoger $K$?
+
+La elección usual es 5 ó 10 (en principio cualquier elección en este intervalo). Lo que queremos es poder estimar el error de generalización. Sin embargo, el estimador de error por validación cruzada puede tener tanto =sesgo= o =varianza= elevada.
+
+#+REVEAL: split
+Como mencionamos antes, con ~LOO-CV~ tenemos bloques altamente correlacionados lo cual nos contamina la estimación de varianza (error estándar) de nuestro estimador aunque  con un sesgo mas pequeño.
+
+#+REVEAL: split
+Validación cruzada  con un número limitado de bloques nos puede ayudar a controlar la varianza (¿por qué?) aunque a un costo de aumento en sesgo.
+
+#+REVEAL: split
+En la práctica, podemos hacer varias réplicas del procedimiento de validación cruzada (utilizando distintas particiones en $K$ bloques) para mejorar nuestras estimaciones del error estándar y /mejorar/ nuestra cuantificación del valor esperado del estimador.
+
+*Nota*: Por /mejorar/ no hacemos referencia a disminuir la incertidumbre (error estándar o amplitud de un intervalo) si no a una estimación mas cercana a los valores reales. 
 
 * /Bootstrap/
 
