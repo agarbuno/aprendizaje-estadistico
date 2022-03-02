@@ -79,7 +79,7 @@
   - [[#qué-alternativas-tenemos][¿Qué alternativas tenemos?]]
 - [[#utilizando-un-conjunto-de-validación][Utilizando un conjunto de validación]]
 - [[#validación-cruzada][Validación cruzada]]
-  - [[#detalles][Detalles]]
+  - [[#detalles-regresión][Detalles (regresión)]]
   - [[#caso-especial-loo-cv][Caso especial: LOO-CV]]
   - [[#observaciones][Observaciones]]
   - [[#y-para-clasificación][¿Y para clasificación?]]
@@ -95,10 +95,20 @@
 Estudiaremos métodos de ~remuestreo~: validación cruzada y /bootstrap/ como mecanismos computacionales para obtener información adicional sobre el modelo ajustado.
 
 #+REVEAL: split
+Queremos evaluar la capacidad predictiva de nuestro modelo en instancias que no habíamos visto antes. El error cuantificado en el conjunto de entrenamiento usualmente es =optimista= en el sentido de estar sujeto a predecir en instancias ya observadas.
+
+#+REVEAL: split
+Esto es relevante en instancias donde hay parámetros (~hiper-parámetros~) que no son ajustados en el procedimiento de entrenamiento. Por ejemplo, el grado de polinomio en una regresión polinomial o el número de vecinos en un algoritmos de =vecinos mas cercanos=.
+
+#+REVEAL: split
 Hasta ahora, hemos considerado $\mathcal{D}_n$ y $\mathcal{T}_m$ como la separación de datos en dos conjuntos /provenientes/ de la misma población.
 Nos permiten cuantificar:
 - El *error de entrenamiento* $\mathcal{L}(\mathcal{D}_n)$ .
 - El *error de prueba* o ~generalización~ $\mathcal{L}(\mathcal{T}_m | \mathcal{D}_n)$ .
+
+#+BEGIN_NOTES
+La idea es poder predecir nuevas observaciones con el mismo nivel de precisión que observamos en el conjunto de entrenamiento. ¿Qué garantías tenemos para poder confiar en un modelo entrenado? Por supuesto, estamos tratando bajo los supuestos de que nuestros datos son representativos de la población sobre la cual haremos predicciones. Estamos sujetos al problema de ~sobre-ajuste~. 
+#+END_NOTES
 
 #+DOWNLOADED: screenshot @ 2022-02-27 08:59:36
 #+caption: Comportamiento típico del error de generalización y entrenamiento. 
@@ -179,7 +189,7 @@ El error cuantificado en el conjunto de validación nos da un estimador del erro
 #+BEGIN_NOTES
 Nota que las estimaciones son muy variables. Son altamente sensibles al conjunto
 de entrenamiento y validación que se utillizaron. Podríamos estar
-*sobre-estimando* el error de validación pues dejamos de lado un conjunto de datos
+*sobre-estimando* el error de generalización pues dejamos de lado un conjunto de datos
 para entrenar el modelo.
 #+END_NOTES
 
@@ -190,7 +200,7 @@ Es una técnica que nos permite elegir la /mejor/ configuración de un modelo y 
 2. Utilizar un método iterativo para ajustar modelos con $K-1$ bloques y
    registrar el error de ajuste con el bloque fuera del entrenamiento.
 
-** Detalles
+** Detalles (regresión)
 
 Sean $K$ bloques y utilicemos  $C_1, C_2, \ldots C_K$ para denotar con $C_k$ el conjunto de índices en el bloque $k$. En total tenemos $n_k$ observaciones en cada bloque. El caso particular es $n_k = n / K$.
 
@@ -266,13 +276,23 @@ h_i = \frac{1}{n} + \frac{(x_i - \bar x_n)^2}{\sum_{j = 1}^{n}(x_j - \bar x_n)^2
 ** Observaciones
 
 Utilizamos conjuntos de datos mas pequeños para entrenar. Por lo tanto tenemos
-un sesgo en el error mas grande de los que hubiéramos querido.
+un sesgo en el error mas grande de lo que hubiéramos querido.
 
 El sesgo se /puede eliminar/ al tomar $K = n$ pero tiene una /gran varianza/.
 
-En la práctica un /buen compromiso/ se puede establecer con $K = 5$ ó $10$ (experimentación empírica).
+#+BEGIN_NOTES
+Al tener bloques de entrenamiento de tamaño $n-1$ con una alta probabilidad
+habrá correlación en los $\mathsf{MSE}_k$ lo que ocasiona que se infle la
+varianza.
+#+END_NOTES
+
+
+En la práctica un /buen compromiso/ se puede establecer con $K = 5$ ó $10$
+(experimentación empírica).
 
 ** ¿Y para clasificación?
+
+
 
 ** Un caso para pensar
 :PROPERTIES:
@@ -318,13 +338,24 @@ cual podemos extraer percentiles para construir un intervalo de confianza.
 Muchas veces hay que tener cuidado con la forma en que generamos las
 remuestras. Por ejemplo, en situaciones con datos temporales o geográficos.
 
-
 ** Cuantificando el error de generalización
 
-En validación cruzada los bloques no tienen traslape. Esto es ventajoso para cuantificar el error y su variación.
+En validación cruzada los bloques no tienen traslape. Esto es ventajoso para
+cuantificar el error y su variación.
 
 #+REVEAL: split
-Si utilizáramos /bootstrap/ entonces los bloques ocasionarían problemas con los estimadores.
+Si utilizáramos /bootstrap/ entonces los bloques ocasionarían problemas con los
+estimadores. Esto es por que aproximadamente el 63% de las observaciones se
+repiten en el muestreo con reemplazo. Esto es equivalente a una validación
+cruzada con $K \approx 2$ bloques.
+
+#+BEGIN_NOTES
+Utilizar /bootstrap/ implica utilizar un mecanismo de muestreo aleatorio *con* reeemplazo. Si tenemos una colección de $n$ instancias y queremos calcular la probabilidad de escoger *al menos una vez* la instancia $i$ -ésima, lo calculamos por medio de
+\begin{align}
+1 - \mathbb{P}(\text{no escoger el índice } i) = 1 - \left( 1 - \frac1n  \right)^n \approx 1 - e^{-1} \approx 63.2 \% \,.
+\end{align}
+#+END_NOTES
+
 
 # * Referencias                                                         :latex:
 
