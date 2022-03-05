@@ -35,15 +35,15 @@
 #+LaTeX_HEADER: {}
 #+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/05-seleccion.pdf
+#+EXPORT_FILE_NAME: ../docs/05-regularizacion.pdf
 :END:
 #+PROPERTY: header-args:R :session seleccion  :exports both :results output org :tangle ../rscripts/05-regularizacion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Métodos de selección.\\
-*Objetivo*: Detalles en selección de variables. /Shrinkage/ y penalización. Reducción de dimensiones.\\
-*Lectura recomendada*: Referencia.
+*Objetivo*: Detalles en métodos de selección de variables. Veremos las estrategias de regularización y penalización para ajustar modelos controlando el sesgo predictivo hacia el conjunto de entrenamiento. Utilizaremos validación cruzada para probar configuraciones y elegir la /mejor/. Hablaremos sobre reducción de dimensiones y su combinación con métodos predictivos.\\
+*Lectura recomendada*: Capítulo 6 de citep:James2021. Sección 6.4 de citep:Kuhn2013. Aunque el enfoque es regresión los principios de validación cruzada para escoger modelos penalizados en el contexto de clasificación son análogos. Puedes leer la sección 12.5 de citep:Kuhn2013. 
 #+END_NOTES
 
 
@@ -96,8 +96,13 @@
     - [[#para-pensar][Para pensar:]]
   - [[#ridge-datos-de-crédito][Ridge: datos de crédito]]
   - [[#regresión-lasso][Regresión LASSO]]
-  - [[#least-angle-regression][Least angle regression]]
-  - [[#partial-least-squares][Partial least squares]]
+  - [[#lasso-datos-de-crédito][LASSO: datos de crédito]]
+  - [[#comparación-ridge-v-lasso][Comparación: Ridge v. LASSO]]
+  - [[#conclusiones][Conclusiones]]
+    - [[#para-pensar][Para pensar:]]
+- [[#métodos-de-reducción-de-dimensiones][Métodos de reducción de dimensiones]]
+  - [[#regresión-con-reducción-de-dimensiones][Regresión con reducción de dimensiones]]
+  - [[#otros-métodos-de-reducción-de-dimensiones][Otros métodos de reducción de dimensiones]]
 :END:
 
 * Introducción
@@ -128,7 +133,8 @@ Estudiaremos estrategias para mejorar modelos lineales a través de procedimient
 - Selección por subconjuntos.
 - Reducción de coeficientes (regularización).
 - Reducción de dimensiones.
-
+\newpage
+  
 ** Selección por subconjuntos
 
 1. Utilizar el modelo nulo $\mathcal{M}_0$ (sin predictores).
@@ -142,9 +148,8 @@ Estudiaremos estrategias para mejorar modelos lineales a través de procedimient
 :reveal_background: #00468b
 :END:
 
-¿Por qué no puedes utilizar el criterio de ~RSS~?
+¿Por qué no puedes utilizar el criterio de ~RSS~ para escoger entre las opciones $\mathcal{M}_1, \ldots, \mathcal{M}_p$?
 
-\newpage
 
 ** En el contexto de clasificación 
 
@@ -170,7 +175,6 @@ haber incorporado estas nuevas características.
 #+begin_src R :exports none :results none
   ## Seleccion iterativa -------------------------------------
   library(ISLR)
-  library(olsrr)
   library(rsample)
   data <- as_tibble(Credit) |>
     select(-ID, -Ethnicity) |>
@@ -181,24 +185,23 @@ haber incorporado estas nuevas características.
 #+begin_src R :exports results :results org
   data |> sample_n(5) |> as.data.frame()
 #+end_src
-#+caption: Muestra de datos del connjunto ~Credit~. 
+#+caption: Muestra de datos del conjunto ~Credit~. 
 #+RESULTS:
 #+begin_src org
   Income Limit Rating Cards Age Education Gender Student Married Balance
-1     54  5891    434     4  82        10 Female      No      No     712
-2     23  5443    407     4  49        13   Male      No     Yes     912
-3     49  5145    389     3  71        13 Female      No     Yes     503
-4     16  4788    360     1  39        14   Male      No     Yes     689
-5     24  4523    338     4  31        15   Male      No      No     601
+1     18  2860    235     4  63        16 Female      No      No      89
+2     23  4923    355     1  47        18 Female      No     Yes     663
+3     40  3969    301     2  27        20   Male      No     Yes     211
+4     16  5466    413     4  66        10   Male      No     Yes     957
+5     45  5765    437     3  53        13 Female     Yes      No    1246
 #+end_src
 
 #+REVEAL: split
-El objetivo es predecir ~Saldo~ en términos utilizando las demás características. El ejemplo de citep:James2021 ha implementado la búsqueda por subconjuntos y la búsqueda iterativa hacia adelante. Estos son los mejores modelos encontrados. 
+El objetivo es predecir ~Saldo~ en utilizando las demás características. El ejemplo de citep:James2021 ha implementado la búsqueda por subconjuntos y la búsqueda iterativa hacia adelante. Estos son los mejores modelos encontrados. 
 
 #+DOWNLOADED: screenshot @ 2022-03-02 17:02:05
 #+caption: Método de selección para los datos de créditos. Tomada de citep:James2021. 
 #+attr_html: :width 700 :align center
-
 [[file:images/20220302-170205_screenshot.png]]
 
 #+BEGIN_NOTES
@@ -287,15 +290,15 @@ El objetivo es predecir el ~Saldo~ en términos de los demás predictores.
     train <- analysis(split)
     valid <- assessment(split)
     ## Entrena y evalua
-    modelo.nulo <- lm(Balance ~ 1, train)
+    modelo.nulo     <- lm(Balance ~ 1, train)
     modelo.completo <- lm(Balance ~ ., train)
     adelante <- step(modelo.nulo, direction='forward', scope=formula(modelo.completo), trace=0)
     predictores <- attributes(adelante$terms)$term.labels
     ## Itero sobre los predictores
     tibble(predictors = 1:length(predictores)) |>
-      mutate(model = map(predictors, function(p){
-        ## Filtro predictores para entrenar y ajusto modelo
-        train.d <- train |> select(predictores[1:p], Balance)
+      mutate(model = map(predictors, function(k){
+        ## Filtro predictores (1:k) para entrenar y ajusto modelo
+        train.d <- train |> select(predictores[1:k], Balance)
         model.d <- lm(Balance ~ ., train.d)
         model.d
       }), error = map_dbl(model, function(m){
@@ -312,19 +315,22 @@ El objetivo es predecir el ~Saldo~ en términos de los demás predictores.
 #+begin_src R :file images/errror-validacion-cruzada-swf.jpeg :exports results :results output graphics file :eval never
   set.seed(108727)
   data |>
+    ## Separo en bloques y realizo procedimiento en cada bloque
     vfold_cv(10, strat = Student) |>
     mutate(results = map(splits, ajusta_adelante)) |>
     unnest(results) |>
+    ## Tengo resultados para cada eleccion de k en cada bloque
     group_by(predictors) |>
     summarise(cv.error = mean(error),
               se.error = sd(error)) |>
+    ## grafico 
     ggplot(aes(predictors, cv.error)) +
     geom_line(color = 'gray') + 
     geom_linerange(aes(ymin = cv.error - se.error,
                        ymax = cv.error + se.error), size = 2) +
     geom_linerange(aes(ymin = cv.error - 2 * se.error,
                        ymax = cv.error + 2 * se.error)) +
-    geom_point(color = 'red', size = 4) +
+    geom_point(color = 'red', size = 4) + sin_lineas +
     xlab("Numero de predictores") +
     ylab("Error Validación Cruzada")
 #+end_src
@@ -369,24 +375,28 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
 
   atributos <- model.matrix(Balance ~ . - 1, data)
   respuesta <- data |> pull(Balance)
+#+end_src
 
+#+begin_src R :exports none :results none
   separa_procesa <- function(split){
     ## Separa datos
     train <- analysis(split)
     valid <- assessment(split)
-    ## Preparo objetivo 
+    ## Preparo el objetivo del modelo 
     rec <- recipe(respuesta ~ .,  data = train)
     ## Defino procesamiento de datos
     estandarizador <- rec |>
       step_normalize(Income, Limit, Rating, Cards, Age, Education, respuesta)
     ## Calculo medias y desviaciones estandar en entrenamiento
     estandarizador.ajustado <- prep(estandarizador, train)
-    ##
+    ## Normalizo ambos conjuntos
     valid.std <- bake(estandarizador.ajustado, valid)
     train.std <- bake(estandarizador.ajustado, train)
     list(train = train.std, valid = valid.std)
   }
+#+end_src
 
+#+begin_src R :exports none :results none
   ajusta_ridge <- function(split){
     ## Separo en entrenamiento / validacion
     split <- separa_procesa(split)
@@ -400,7 +410,7 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
     tibble(lambda = 10**seq(-4, 2, length.out = 50)) |>
       mutate(modelo = map(lambda, function(lam){
         ## Ajusto modelo con lambda fija
-        glmnet(y = ytrain, x = xtrain, lambda = lam)
+        glmnet(y = ytrain, x = xtrain, lambda = lam, alpha = 0)
       }), residuales = map(modelo, function(mod){
         ## Calculo residuales 
         predict(mod, newx = xvalid) - yvalid
@@ -415,6 +425,7 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
 
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/ridge-credit.jpeg :exports results :results output graphics file
+  ## Muestro la trayectoria para una bloque 
   g1 <- cv.results |>
     filter(id == "Fold01") |>
     unnest(results) |>
@@ -423,7 +434,7 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
     unnest(estimates) |>
     filter(term != "(Intercept)") |>
     complete(term, lambda, fill = list(estimate = 0)) |>
-    ggplot(aes(lambda, estimate, color= term)) +
+    ggplot(aes(lambda, estimate, color= term)) + sin_lineas +
     geom_line() + scale_x_log10() + xlab(expression(lambda))
   g1
 #+end_src
@@ -440,6 +451,7 @@ Al penalizar sobre los coeficientes necesitamos que todos /platiquen/ en el mism
 #+REVEAL: split
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/ridge-cv-credit.jpeg :exports results :results output graphics file
+  ## Cuantifico el error de validacion
   g2 <- cv.results |>
     unnest(results) |>
     mutate(valid.error = map_dbl(residuales, function(x){mean(x**2)})) |>
@@ -461,31 +473,194 @@ Al penalizar sobre los coeficientes necesitamos que todos /platiquen/ en el mism
 #+caption: Error de validación calculada con $K=10$. Nota que graficamos contra $1/\lambda$. 
 #+RESULTS:
 [[file:../images/ridge-cv-credit.jpeg]]
- 
+
+Con validación cruzada podemos identificar qué valor de $\lambda$ es el adecuado para penalizar. Una vez realizada esta elección, re-entrenamos el modelo utilizando ~todo~ el conjunto de datos para predecir situaciones/observaciones futuras. 
+
 ** Regresión /LASSO/
 
-Nuestra formulación anterior consideraba encontrar $\beta_0, \beta_1, \ldots, \beta_n$ minimizando
+En la práctica Ridge no elimina completamente los predictores. Podemos cambiar la penalización para incorporar un ~término de penalización~ en la función objetivo
 \begin{align}
-\mathsf{RSS} = \sum_{i = 1}^{n}\left(  y_i - \beta_0 - \sum_{j= 1}^{p}\beta_jx_j\right)^2\,.
-\end{align}
-Lo que haremos ahora será incorporar un ~término de penalización~ en la función objetivo
-\begin{align}
-\mathsf{RSS} + \lambda \sum_{j=1}^{p} \beta_j^2\,,
+\mathsf{RSS} + \lambda \sum_{j=1}^{p} |\beta_j|\,,
 \end{align}
 donde $\lambda \geq0$  es un ~hiper-parámetro~.
 
 #+REVEAL: split
-El objetivo sigue siendo el mismo, ajustar el modelo lo mejor posible. El término adicional favorece soluciones con $\beta_1, \ldots, \beta_p$ pequeños.
-El parámetro $\lambda$ controla qué tanto penalizamos el /tamaño/ de los coeficientes.
+Igual que antes... el objetivo sigue siendo el mismo, ajustar el modelo lo mejor
+posible. El término adicional favorece soluciones con $\beta_1, \ldots, \beta_p$
+pequeños.  El parámetro $\lambda$ controla qué tanto penalizamos el /tamaño/ de
+los coeficientes.
+
+#+REVEAL: split
+LASSO tiene la propiedad de eliminar completamente los predictores ($\beta = 0$)
+por lo que es un mecanismo de selección automática de variables.
+
+** LASSO: datos de crédito
+
+#+begin_src R :exports none :results none
+  ## LASSO -------------------------------------
+  library(glmnet)
+  library(recipes)
+
+  atributos <- model.matrix(Balance ~ . - 1, data)
+  respuesta <- data |> pull(Balance)
+
+  separa_procesa <- function(split){
+    ## Separa datos
+    train <- analysis(split)
+    valid <- assessment(split)
+    ## Preparo objetivo 
+    rec <- recipe(respuesta ~ .,  data = train)
+    ## Defino procesamiento de datos
+    estandarizador <- rec |>
+      step_normalize(Income, Limit, Rating, Cards, Age, Education, respuesta)
+    ## Calculo medias y desviaciones estandar en entrenamiento
+    estandarizador.ajustado <- prep(estandarizador, train)
+    ##
+    valid.std <- bake(estandarizador.ajustado, valid)
+    train.std <- bake(estandarizador.ajustado, train)
+    list(train = train.std, valid = valid.std)
+  }
+#+end_src
+
+#+begin_src R :exports none :results none
+  ajusta_lasso <- function(split){
+  ## Separo en entrenamiento / validacion
+  split <- separa_procesa(split)
+  ## Extraigo atributos / respuesta 
+  xtrain <- split$train |> select(-respuesta) |> as.matrix()
+  ytrain <- split$train |> pull(respuesta) |> as.matrix()
+  xvalid <- split$valid |> select(-respuesta) |> as.matrix()
+  yvalid <- split$valid |> pull(respuesta) |> as.matrix()
+
+  ## Ajusta modelos para trayectoria de lambda
+  tibble(lambda = 10**seq(-4, 2, length.out = 50)) |>
+    mutate(modelo = map(lambda, function(lam){
+      ## Ajusto modelo con lambda fija
+      glmnet(y = ytrain, x = xtrain, lambda = lam, alpha = 1)
+    }), residuales = map(modelo, function(mod){
+      ## Calculo residuales 
+      predict(mod, newx = xvalid) - yvalid
+    }))
+  }
+#+end_src
+
+#+begin_src R :exports none :results none
+  cv.results <- cbind(atributos, respuesta) |>
+    as_tibble() |>
+    vfold_cv(10) |>
+    mutate(results = map(splits, ajusta_lasso))
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/lasso-credit.jpeg :exports results :results output graphics file
+  g1 <- cv.results |>
+    filter(id == "Fold01") |>
+    unnest(results) |>
+    mutate(estimates = map(modelo, tidy)) |>
+    select(-lambda) |>
+    unnest(estimates) |>
+    filter(term != "(Intercept)") |>
+    complete(term, lambda, fill = list(estimate = 0)) |>
+    ggplot(aes(lambda, estimate, color= term)) + sin_lineas +
+    geom_line() + scale_x_log10() + xlab(expression(lambda))
+  g1
+#+end_src
+#+caption: Trayectorias de los coeficientes al aumentar la penalización $\lambda$. 
+#+RESULTS:
+[[file:../images/lasso-credit.jpeg]]
 
 
+#+REVEAL: split
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/lasso-cv-credit.jpeg :exports results :results output graphics file
+  g2 <- cv.results |>
+    unnest(results) |>
+    mutate(valid.error = map_dbl(residuales, function(x){mean(x**2)})) |>
+    group_by(lambda) |>
+    summarise(cv.error = mean(valid.error),
+              se.error = sd(valid.error)) |> 
+    ggplot(aes(1/lambda, cv.error)) +
+    geom_line(color = 'gray') + 
+    geom_linerange(aes(ymin = cv.error - se.error,
+                       ymax = cv.error + se.error), size = 2) +
+    geom_linerange(aes(ymin = cv.error - 2 * se.error,
+                       ymax = cv.error + 2 * se.error)) +
+    geom_point(color = 'red', size = 2) + sin_lineas + 
+    xlab(expression(1/lambda)) +
+    ylab("Error Validación Cruzada") +
+    scale_x_log10()
+  g2
+#+end_src
+#+caption: Error de validación calculada con $K=10$. Nota que graficamos contra $1/\lambda$. 
+#+RESULTS:
+[[file:../images/lasso-cv-credit.jpeg]]
 
-** /Least angle regression/
 
-Ruta completa de LASSO en un pasada. En cada paso identifica la mejor variable para incluir y después ajusta la solución de mínimos cuadrados. Pero sólo deja entrar una fracción de esa variable. Encuentra la variable con mayor correlación con la respuesta. Cambia el coeficiente de la variable continuamente hasta que otra variable /alcance/ una correlación con los residuales. 
+** Comparación: Ridge v. LASSO 
 
-** /Partial least squares/
+El problema de optimización (Ridge) se puede reescribir de la siguiente manera
+\begin{align}
+\text{minimizar } \mathsf{RSS}, \qquad \text{ sujeto a}   \sum_{j=1}^{p} \beta_j^2 \leq s\,,
+\end{align}
+y el respectivo de LASSO
+\begin{align}
+\text{minimizar } \mathsf{RSS}, \qquad \text{ sujeto a}   \sum_{j=1}^{p} |\beta_j| \leq s\,.
+\end{align}
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-03-04 12:58:28
+#+caption: Curvas de nivel de los problemas de optimización. Tomada de citep:James2021.
+#+attr_html: :width 700 :align center
+[[file:images/20220304-125828_screenshot.png]]
 
+
+** Conclusiones
+
+En la práctica no hay una estrategia dominante. LASSO podría ser preferido cuando el número de parámetros es pequeño. Pero eso implica conocer /a priori/ el número de predictores para usar en el modelo. 
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿cómo escogerías entre Ridge o LASSO?
+
+* Métodos de reducción de dimensiones
+
+LASSO o Ridge utilizan el concepto de regularización para ~restringir~ los modelos posibles. Una alternativa es ~transformar~ primero los predictores (el espacio de los predictores) y ~ajustar~ un modelo con ese subespacio.
+
+** Regresión con reducción de dimensiones
+
+Denotemos por $Z_1, Z_2, \ldots Z_M$ combinaciones lineales de nuestros predictores originales ($M<p$). Lo escribimos como
+\begin{align}
+Z_m = \sum_{j = 1}^{p}\phi_{mj} X_j\,,
+\end{align}
+con algunas constantes $\phi_{mj}$ (que se escogen con alguna estrategia).
+
+#+REVEAL: split
+Podemos ajustar un modelo de regresión por medio de
+\begin{align}
+y_i = \theta_0 + \sum_{m = 1}^{M}\theta_m z_{im} + \epsilon_i\,,
+\end{align}
+utilizando mínimos cuadrados.
+
+#+REVEAL: split
+Nota que podemos rescribir
+\begin{align}
+\sum_{m = 1}^{M} \theta_m z_{im} = \sum_{m= 1}^{M} \theta_m \sum_{j = 1}^{p} \phi_{mj}x_{ij} = \sum_{j = 1}^{p}  \beta_j x_{ij}\,,
+\end{align}
+donde
+\begin{align}
+\beta_j = \sum_{m=1}^{M} \theta_m \phi_{mj}\,.
+\end{align}
+
+#+BEGIN_NOTES
+El modelo restringe automáticamente las $\beta_j$ pues tienen que tomar una forma muy particular. Si las $\phi_{mj}$ se escogen bien, incluso pueden realizar un mejor trabajo que el modelo de mínimos cuadrados en las variables originales. 
+#+END_NOTES
+
+** Otros métodos de reducción de dimensiones
+
+- Utilizar componentes principales (~varianza máxima~ entre ~predictores~).
+- Utilizar /partial least squares/ (~varianza máxima~ entre ~predictores y respuesta~).
+- Utilizar /least angle regression/ (trayectoria de ~contribución lineal predictiva~ de atributos). 
 
 # * Referencias                                                         :latex:
 bibliographystyle:abbrvnat
