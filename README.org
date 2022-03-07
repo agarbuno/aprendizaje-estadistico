@@ -213,7 +213,7 @@ hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
-* COMMENT Plan de trabajo [5/15][33%]                              :noexport:
+* COMMENT Plan de trabajo [6/16][37%]                              :noexport:
 :PROPERTIES:
 :UNNUMBERED: notoc
 :END:
@@ -227,7 +227,9 @@ CLOSED: [2022-03-04 Fri 19:51]
 CLOSED: [2022-03-04 Fri 19:51]
 ** DONE Separación de muestras
 CLOSED: [2022-03-04 Fri 19:53]
-** NEXT Validación cruzada
+** DONE Validación cruzada
+CLOSED: [2022-03-07 Mon 14:47]
+** NEXT Bootstrap
 ** TODO Regularizacion
 ** TODO Modelos  no lineales (intro)
 ** TODO Arboles de decisión
