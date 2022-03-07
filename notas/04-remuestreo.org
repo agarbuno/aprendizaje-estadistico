@@ -24,7 +24,6 @@
 #+END_NOTES
 
 #+begin_src R :exports none :results none
-
   ## Setup --------------------------------------------
   library(tidyverse)
   library(patchwork)
@@ -55,9 +54,11 @@
   - [[#cuál-es-la-mejor-manera-para-estimar-de-manera-confiable-el-error-de-generalización][¿Cuál es la mejor manera para estimar de manera confiable el error de generalización?]]
   - [[#qué-alternativas-tenemos][¿Qué alternativas tenemos?]]
 - [[#utilizando-un-conjunto-de-validación][Utilizando un conjunto de validación]]
+  - [[#ejercicio-autos][Ejercicio: Autos]]
 - [[#validación-cruzada][Validación cruzada]]
   - [[#detalles-regresión][Detalles (regresión)]]
   - [[#caso-especial-loo-cv][Caso especial: LOO-CV]]
+  - [[#pseudocódigo---validación-cruzada][Pseudocódigo - validación cruzada]]
   - [[#observaciones][Observaciones]]
   - [[#y-para-clasificación][¿Y para clasificación?]]
   - [[#un-caso-para-pensar][Un caso para pensar]]
@@ -111,22 +112,53 @@ Utilizamos una partición de nuestro conjunto de datos: ~datos de entrenamiento~
 El error cuantificado en el conjunto de validación nos da un estimador del error de prueba. Típicamente utilizamos el mismo criterio de error con el que entrenamos (RMSE, precisión, etc.). 
 #+END_NOTES
 
-#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
-#+begin_src R :file images/error-entrenamiento-validacion.jpeg :exports results :results output graphics file
+** Ejercicio: Autos
+
+Obtener una predicción del rendimiento de combustible en términos de la potencia del motor. 
+
+#+begin_src R :exports code :results none
   ## Separación entrenamiento - prueba ---------------------------
   library(rsample)
 
   data <- read.csv("https://www.statlearning.com/s/Auto.csv") |>
     as_tibble() |>
     mutate(horsepower = as.numeric(horsepower)) |>
+    select(-name) |> 
     filter(!is.na(horsepower))
+#+end_src
 
+#+REVEAL: split
+#+begin_src R :exports results :results org
+  data |> head() |> as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  mpg cylinders displacement horsepower weight acceleration year origin
+1  18         8          307        130   3504           12   70      1
+2  15         8          350        165   3693           12   70      1
+3  18         8          318        150   3436           11   70      1
+4  16         8          304        150   3433           12   70      1
+5  17         8          302        140   3449           10   70      1
+6  15         8          429        198   4341           10   70      1
+#+end_src
+
+#+REVEAL: split
+Dividimos nuestro conjunto en ~entrenamiento~ y ~prueba~. 
+
+#+caption: Separación de datos en entrenamiento validación. 
+#+begin_src R :exports code :results none
   set.seed(108790)
   sample_rows <- sample(1:nrow(data), nrow(data)/2)
 
   data_train <- data[sample_rows,]
   data_test <- data[-sample_rows,]
+#+end_src
 
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/error-entrenamiento-validacion.jpeg :exports results :results output graphics file
   fit_model <- function(power, data){
     lm(mpg ~ poly(horsepower, power), data)
   }
@@ -169,7 +201,7 @@ El error cuantificado en el conjunto de validación nos da un estimador del erro
 Nota que las estimaciones son muy variables. Son altamente sensibles al conjunto
 de entrenamiento y validación que se utillizaron. Podríamos estar
 *sobre-estimando* el error de generalización pues dejamos de lado un conjunto de datos
-para entrenar el modelo.
+para entrenar el modelo. 
 #+END_NOTES
 
 * Validación cruzada
@@ -181,9 +213,10 @@ Es una técnica que nos permite elegir la /mejor/ configuración de un modelo y 
 
 ** Detalles (regresión)
 
-Sean $K$ bloques y utilicemos  $C_1, C_2, \ldots C_K$ para denotar con $C_k$ el conjunto de índices en el bloque $k$. En total tenemos $n_k$ observaciones en cada bloque. El caso particular es $n_k = n / K$.
+Sean $K$ bloques y utilicemos  $C_1, C_2, \ldots C_K$ para denotar con $C_k$ el conjunto de índices en el bloque $k$. En total tenemos $n_k$ observaciones en cada bloque. Un caso particular es $n_k = n / K$.
 
-Calculamos
+#+REVEAL: split
+En cada iteración ($k$) ~calculamos el error de predicción~ ($\mathsf{MSE}_k$) sobre el ~conjunto que dejamos fuera del entrenamiento~. Promediamos todos los errores para reportar el error de pérdida bajo validación cruzada. 
 \begin{align}
 \mathsf{CV}_{(K)} = \sum_{k = 1}^{K} \frac{n_k}{n} \mathsf{MSE}_k\,.
 \end{align}
@@ -193,7 +226,7 @@ Calculamos
 Si utilizamos $K = n$, entonces tenemos lo que se conoce como /leave-one out cross-validation/ (~LOO-CV~).
 
 #+REVEAL: split
-En el caso de estimadores lineales por mínimos cuadrados (como regresión polinomial) tenemos un /atajo/ para calcular con /un sólo ajuste/
+En el ~caso de estimadores lineales~ por mínimos cuadrados (como regresión polinomial) tenemos un /atajo/ para calcular con /un sólo ajuste/
 \begin{align}
 \mathsf{CV}_{(n)} = \frac{1}{n}\sum_{i= 1}^{n}\left( \frac{y_i - \hat y_i}{1 - h_i} \right)^2\,.
 \end{align}
@@ -208,21 +241,36 @@ h_i = \frac{1}{n} + \frac{(x_i - \bar x_n)^2}{\sum_{j = 1}^{n}(x_j - \bar x_n)^2
 #+END_NOTES
 
 
-#+REVEAL: split
+** Pseudocódigo - validación cruzada
 
-#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
-#+begin_src R :file images/valdicion-cruzada-loo.jpeg :exports results :results output graphics file
+Podemos usar las funciones de la librería [[https://rsample.tidymodels.org/][~rsample~]].
+
+#+REVEAL: split
+#+caption: Código ejemplo para procesar datos en entrenamiento y validación. 
+#+begin_src R :exports code :results none
   ## Validación cruzada -----------------------------------
   ajusta_modelo <- function(split){
       ## Separa en entrenamiento / validacion
-      train <- analysis(split)
+      train <-  analysis(split)
       valid <- assessment(split)
       ## Entrena y evalua
       tibble(degree = 1:10) |>
         mutate(model = map(degree, fit_model, train),
                error = map_dbl(model, eval_error, valid))
     }
+#+end_src
 
+#+REVEAL: split
+#+caption: Funciones para hacer los bloques de validación cruzada. 
+#+begin_src R :exports code :results none
+  data |> vfold_cv(5)
+  data |> loo_cv()
+#+end_src
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/valdicion-cruzada-loo.jpeg :exports results :results output graphics file
   g.loo <- data |>
       rsample::loo_cv() |>
       mutate(results = map(splits, ajusta_modelo)) |>
