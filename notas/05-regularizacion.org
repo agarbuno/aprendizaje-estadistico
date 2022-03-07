@@ -14,7 +14,30 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-#+PROPERTY: header-args:R :session seleccion  :exports both :results output org :tangle ../rscripts/05-regularizacion.R :mkdirp yes :dir ../
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/05-regularizacion.pdf
+:END:
+#+PROPERTY: header-args:R :session regularizacion  :exports both :results output org :tangle ../rscripts/05-regularizacion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
@@ -66,7 +89,7 @@
   - [[#el-criterio-de-información-de-akaike-aic][El criterio de información de Akaike (AIC)]]
     - [[#ejercicio][Ejercicio:]]
   - [[#r2-ajustada][$R^2$ ajustada]]
-  - [[#validación-cruzada][Validación cruzada]]
+  - [[#objetivo][Objetivo]]
     - [[#selección-de-modelo-datos-de-crédito][Selección de modelo: Datos de crédito]]
 - [[#regularización][Regularización]]
   - [[#regresión-ridge][Regresión Ridge]]
@@ -80,16 +103,21 @@
 - [[#métodos-de-reducción-de-dimensiones][Métodos de reducción de dimensiones]]
   - [[#regresión-con-reducción-de-dimensiones][Regresión con reducción de dimensiones]]
   - [[#otros-métodos-de-reducción-de-dimensiones][Otros métodos de reducción de dimensiones]]
-- [[#referencias][Referencias]]
 :END:
 
 * Introducción
 
-Como hemos visto es natural ~extender~ el modelo lineal
+Ya hemos visto cómo cuantificar el ~error de generalización~ en un proceso de
+aprendizaje. Es decir, cuantificar los ~errores de predicción~ sobre nuevas
+observaciones y, además, ~cuantificar la variabilidad~ de esta predicción. En
+esta parte estudiaremos cómo incorporar lo aprendido para ~escoger un modelo
+sobre otro~.
+
+#+REVEAL: split
+Por ejemplo, hemos visto que es natural ~extender~ el modelo lineal
 \begin{align}
 Y = \beta_0 + \beta_1 X_1 + \cdots + \beta_p X_p + \epsilon \,.
 \end{align}
-
 Veremos (mas adelante) la idea de incorporar relaciones ~no lineales~ manteniendo el supuesto de ~aditividad~.
 
 #+REVEAL: split
@@ -99,7 +127,7 @@ Incluso aunque el modelo lineal es sencillo, tiene sus ventajas pues nos ayuda a
 El libro de citet:Kuhn2013 tiene una buena discusión sobre las ventajas algorítmicas de un modelo lineal. Usualmente en la práctica queremos tener nuestro modelo en un ambiente productivo. Lo cual necesita que las predicciones sean fácilmente calculables. ¿Qué pasaría si en la plataforma de Netflix o Amazon se tarda mucho en aparecer las sugerencias? Los modelos lineales son fácilmente calculables en prácticamente cualquier ambiente productivo. 
 #+END_NOTES
 
-Estudiaremos estrategias para mejorar modelos lineales a través de procedimientos alternativos de ajuste.
+Estudiaremos estrategias para mejorar modelos lineales a través de procedimientos alternativos de ajuste. 
 
 ** Opciones para ajustar modelos
 
@@ -115,11 +143,13 @@ Estudiaremos estrategias para mejorar modelos lineales a través de procedimient
   
 ** Selección por subconjuntos
 
-1. Utilizar el modelo nulo $\mathcal{M}_0$ (sin predictores).
-2. Para $k = 1, \ldots, p$:
-   1. Ajustar todos modelos posibles con $k$ predictores.
-   2. Elegir el /mejor/ de esa colección de modelos, le pondremos $\mathcal{M}_k$.
-3. Elegir el mejor modelo dentro de la colección $\mathcal{M}_0, \ldots, \mathcal{M}_p$ utilizando un criterio de comparación de modelos. 
+El mecanismo sería el siguiente. 
+
+1. Utilizar el ~modelo nulo~ $\mathcal{M}_0$ (sin predictores).
+2. Para ${\color{orange} k} = 1, \ldots, p$:
+   1. Ajustar todos modelos posibles con ${\color{orange} k}$ predictores.
+   2. Elegir el /mejor/ de esa colección de modelos, le pondremos $\mathcal{M}_{\color{orange} k}$.
+3. Elegir el mejor modelo dentro de la colección $\mathcal{M}_0, \ldots, \mathcal{M}_p$ utilizando un ~criterio de comparación de modelos~. 
 
 *** Para pensar:
 :PROPERTIES:
@@ -142,10 +172,12 @@ haber incorporado estas nuevas características.
 
 ** Pseudo-código (selección hacia adelante)
 
+El proceso sería el siguiente.
+
 1. Denotamos por $\mathcal{M}_0$ el modelo ~nulo~.
-2. Para $k = 1, \ldots, p -1$:
-   1. Considera todos los $p-k$ modelos que aumentan el modelo en la iteración anterior $\mathcal{M}_k$ con un predictor adicional.
-   2. Escoge el ~mejor~ de estos $p-k$ modelos y llámale $\mathcal{M}_{k+1}$ .
+2. Para ${\color{orange} k} = 0, \ldots, p -1$:
+   1. Considera todos los $p-{\color{orange} k}$ modelos que aumentan el modelo en la iteración anterior $\mathcal{M}_{\color{orange} k}$ con un predictor adicional.
+   2. Escoge el ~mejor~ de estos $p-{\color{orange}  k}$ modelos y llámale $\mathcal{M}_{{\color{orange}  k}+1}$ .
 3. Escoge el mejor de los modelos entre $\mathcal{M}_0, \ldots, \mathcal{M}_{p}$ utilizando un criterio de comparación de modelos.
 
 ** Aplicación: créditos
@@ -175,8 +207,8 @@ haber incorporado estas nuevas características.
 #+end_src
 
 #+REVEAL: split
-El objetivo es predecir ~Saldo~ en utilizando las demás características. El ejemplo de citep:James2021 ha implementado la búsqueda por subconjuntos y la búsqueda iterativa hacia adelante. Estos son los mejores modelos encontrados. 
-
+El objetivo es predecir ~Saldo~ utilizando las demás características. El ejemplo de citep:James2021 ha implementado la búsqueda por subconjuntos y la búsqueda iterativa hacia adelante. Estos son los mejores modelos encontrados. 
+   
 #+DOWNLOADED: screenshot @ 2022-03-02 17:02:05
 #+caption: Método de selección para los datos de créditos. Tomada de citep:James2021. 
 #+attr_html: :width 700 :align center
@@ -212,11 +244,11 @@ Nota que el mecanismo iterativo no tiene garantía de encontrar el mejor modelo 
 
 ** Selección iterativa hacia atrás
 
-Empezamos con el modelo completo que contenga los $p$ predictores. Eliminando variables, una a la vez, cuando un predictor no sea tan útil. La única restricción que necesitamos es que $n>p$ .
+Empezamos con el ~modelo completo~ que contenga los $p$ predictores. Eliminando variables, una a la vez, cuando un predictor no sea tan útil. La única restricción que necesitamos es que $n>p$ .
 
 * Métricas de desempeño
 
-Si utilizáramos el ~RSS~  para comparar entre $\mathcal{M}_0, \ldots, \mathcal{M}_k$ tendríamos un problema pues eliminar predictores siempre perjudicaría la capacidad predictiva del modelo. Necesitamos ~compensar~ por el sesgo de sobre-ajuste. Es decir, considerar una métrica que pueda estimar el error de ~generalización~. 
+Si utilizáramos el ~RSS~  para comparar entre $\mathcal{M}_0, \ldots, \mathcal{M}_k$ tendríamos un problema pues eliminar (aumentar) predictores siempre perjudicaría (beneficia) la capacidad predictiva del modelo. Necesitamos ~compensar~ por el sesgo de sobre-ajuste. Es decir, considerar una métrica que pueda estimar el error de ~generalización~. 
 
 ** $C_p$ de Mallow
 
@@ -254,13 +286,38 @@ Es una métrica de correlación entre predicción ($\hat y$) y respuesta ($y$)
 por la inclusión de variables inecesarias/redundantes.
 
 
-** Validación cruzada
+** Objetivo
 
-Cada uno de los procedimientos de selección de variables regresa una secuencia de modelos $\mathcal{M}_k$. Lo que queremos es escoger la $k^\star$ de acuerdo al error de generalización. El error de generalización estimado tiene la ventaja de no hacer la estimación de $\sigma^2$. 
+Cada uno de los procedimientos de selección de variables regresa una secuencia de modelos $\mathcal{M}_k$. Lo que queremos es escoger la $k^\star$ de acuerdo al ~error de generalización~. El error de generalización obtenido por ~validación cruzada~  tiene la ventaja de no hacer la estimación de $\sigma^2$. 
 
 *** Selección de modelo: Datos de crédito
 
-El objetivo es predecir el ~Saldo~ en términos de los demás predictores. 
+El objetivo es predecir el ~Saldo~ en términos de los demás predictores. Se seleccionarán las variables de acuerdo a un proceso iterativo. En este caso por ~búsqueda hacia adelante~.
+
+#+REVEAL: split
+~Funciones a utilizar~:
+#+caption: Separación de muestras
+#+begin_src R :exports code :results none :tangle no :eval never
+  train <- analysis(split)
+  valid <- assessment(split)
+#+end_src
+
+#+REVEAL: split
+#+caption: Ajuste de modelos ~esquina~. 
+#+begin_src R :exports code :results none :tangle no :eval never
+  modelo.nulo     <- lm(Balance ~ 1, train)
+  modelo.completo <- lm(Balance ~ ., train)
+#+end_src
+
+#+REVEAL: split
+#+caption: Instrucción de ajuste iterativo. 
+#+begin_src R :exports code :results none :tangle no :eval never
+  adelante <- step(modelo.nulo,
+                   direction='forward',
+                   scope=formula(modelo.completo),
+                   trace=0)
+  predictores <- attributes(adelante$terms)$term.labels
+#+end_src
 
 #+begin_src R :exports none :results none
   ajusta_adelante <- function(split){
@@ -320,7 +377,7 @@ Escogemos el modelo con el error mas pequeño. Sin embargo, validación cruzada 
 
 * Regularización 
 
-Los procedimientos selección de variables discretos/iterativos pueden generar una varianza muy alta en las estimaciones del error y podría no reducir el error de predicción del modelo completo. Estudiaremos dos métodos de regularización, ~Ridge~ y ~LASSO~, donde ajustamos un modelo con todas las características /penalizando/ de alguna manera la complejidad del modelo. 
+Los procedimientos ~selección de variables discretos/iterativos~ pueden generar una ~varianza~ muy alta en las estimaciones del error y podría no reducir el error de predicción del modelo completo. Estudiaremos dos métodos de regularización, ~Ridge~ y ~LASSO~, donde ajustamos un modelo con todas las características /penalizando/ de alguna manera la complejidad del modelo. 
 
 ** Regresión /Ridge/
 
@@ -346,6 +403,8 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
 
 ** Ridge: datos de crédito
 
+Usaremos Ridge como mecanismo de reducción de coeficientes para ajustar modelos parsimoniosos.
+
 #+begin_src R :exports none :results none
   ## Ridge -------------------------------------
   library(glmnet)
@@ -354,6 +413,7 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
   atributos <- model.matrix(Balance ~ . - 1, data)
   respuesta <- data |> pull(Balance)
 #+end_src
+
 
 #+begin_src R :exports none :results none
   separa_procesa <- function(split){
@@ -420,10 +480,34 @@ Un valor muy pequeño para $\lambda$ implica una penalización ~pequeña~, por l
 #+RESULTS:
 [[file:../images/ridge-credit.jpeg]]
 
+Observa que conforme ~aumenta la penalización~ los ~coeficientes disminuyen~ gradualmente.  
 
 #+BEGIN_NOTES
 Al penalizar sobre los coeficientes necesitamos que todos /platiquen/ en el mismo idioma. Es por esto que tenemos que estandarizar los predictores. Si queremos estimar el error de generalización métodos de separación de muestras, ¿en qué momento lo hacemos? Es decir, ¿antes de separar los datos o en cada paso del proceso de ajuste?
 #+END_NOTES
+
+#+REVEAL: split
+~Instrucciones útiles~:
+
+#+caption: Definir procesamiento de normalización con [[https://recipes.tidymodels.org/][~recipes~]]. 
+#+begin_src R :exports code :results none :tangle no :eval never
+  ## Preparo el objetivo del modelo 
+  rec <- recipe(respuesta ~ .,  data = train)
+  ## Defino procesamiento de datos
+  estandarizador <- rec |>
+    step_normalize(Income, Limit, Rating, Cards, Age, Education, respuesta)
+#+end_src
+
+#+REVEAL: split
+#+caption: Aplicación del proceso de normalización. 
+#+begin_src R :exports code :results none :tangle no :eval never
+  ## Calculo medias y desviaciones estandar en entrenamiento
+  estandarizador.ajustado <- prep(estandarizador, train)
+  ## Normalizo ambos conjuntos
+  valid.std <- bake(estandarizador.ajustado, valid)
+  train.std <- bake(estandarizador.ajustado, train)
+  list(train = train.std, valid = valid.std)
+#+end_src
 
 
 #+REVEAL: split
@@ -467,10 +551,6 @@ Igual que antes... el objetivo sigue siendo el mismo, ajustar el modelo lo mejor
 posible. El término adicional favorece soluciones con $\beta_1, \ldots, \beta_p$
 pequeños.  El parámetro $\lambda$ controla qué tanto penalizamos el /tamaño/ de
 los coeficientes.
-
-#+REVEAL: split
-LASSO tiene la propiedad de eliminar completamente los predictores ($\beta = 0$)
-por lo que es un mecanismo de selección automática de variables.
 
 ** LASSO: datos de crédito
 
@@ -547,6 +627,8 @@ por lo que es un mecanismo de selección automática de variables.
 #+RESULTS:
 [[file:../images/lasso-credit.jpeg]]
 
+Observa que LASSO tiene la propiedad de eliminar completamente los predictores
+($\beta = 0$) por lo que es un mecanismo de ~selección automática de variables~.
 
 #+REVEAL: split
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
@@ -607,9 +689,9 @@ LASSO o Ridge utilizan el concepto de regularización para ~restringir~ los mode
 
 ** Regresión con reducción de dimensiones
 
-Denotemos por $Z_1, Z_2, \ldots Z_M$ combinaciones lineales de nuestros predictores originales ($M<p$). Lo escribimos como
+Denotemos por $Z_1, Z_2, \ldots Z_M$ combinaciones lineales de nuestros predictores originales. Lo escribimos como
 \begin{align}
-Z_m = \sum_{j = 1}^{p}\phi_{mj} X_j\,,
+Z_m = \sum_{j = 1}^{p}\phi_{mj} X_j, \qquad m = 1, \ldots, M\,, 
 \end{align}
 con algunas constantes $\phi_{mj}$ (que se escogen con alguna estrategia).
 
@@ -640,6 +722,6 @@ El modelo restringe automáticamente las $\beta_j$ pues tienen que tomar una for
 - Utilizar /partial least squares/ (~varianza máxima~ entre ~predictores y respuesta~).
 - Utilizar /least angle regression/ (trayectoria de ~contribución lineal predictiva~ de atributos). 
 
-* Referencias                                                         :latex:
+# * Referencias                                                         :latex:
 bibliographystyle:abbrvnat
 bibliography:references.bib
