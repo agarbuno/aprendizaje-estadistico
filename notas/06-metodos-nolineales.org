@@ -1,7 +1,7 @@
 #+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
-#+DATE: Primavera, 2022
+#+DATE: ~Modelos aditivos~
 #+STARTUP: showall
 :REVEAL_PROPERTIES:
 #+LANGUAGE: es
@@ -41,7 +41,7 @@
 #+EXCLUDE_TAGS: toc
 
 #+BEGIN_NOTES
-*Profesor*: Alfredo Garbuno Iñigo | Primavera, 202| Modelo no lineales (Polinomios, /Splines/). \\
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 202| Modelos aditivos. \\
 *Objetivo*: En esta sección estudiaremos modelos que empiezan desviarse de los supuesto lineales. Retendremos el componente aditivo por cuestiones de interpretabilidad. Estudiaremos métodos lineales por regiones, funciones polinomiales y la familia de modelos basados en /splines/ con fines predictivos y como mecanismos de pre-procesamiento. \\
 *Lectura recomendada*: Capítulo 7 de citep:James2021. Finalmente, el libro citep:Wood2017 presenta un tratamiento completo sobre modelos aditivos generalizados.
 #+END_NOTES
@@ -556,9 +556,9 @@ Consideremos el problema de ajustar un función continua y diferenciable $g(\cdo
   \end{align}
 
   #+BEGIN_NOTES
-    La solución al problema de optimización se logra por medio de $f(x) = \sum_{j = 1}^{N} \theta_j \, N_j(x)$ donde $N_j$ denota la base de funciones para el espacio de /splines/ naturales. De esta manera la función objetivo se puede reescribir como
+    La solución al problema de optimización se logra por medio de $f(x) = \sum_{j = 1}^{N} \beta_j \, N_j(x)$ donde $N_j$ denota la base de funciones para el espacio de /splines/ naturales. De esta manera la función objetivo se puede reescribir como
     \begin{align}
-    \mathcal{J}(\theta) = (y - N\theta)^\top (y - N\theta) + \lambda \theta^\top \Omega_N \theta\,,
+    \mathcal{J}(\beta) = (y - N\beta)^\top (y - N\beta) + \lambda \beta^\top \Omega_N \beta\,,
    \end{align}
   donde $\{\Omega_N\}_{jk} = \int N''_j(t) N''_k(t) \text{d}t$, cuya solución se puede escribir de manera analítica.  
   #+END_NOTES
@@ -647,7 +647,27 @@ curvatura. Esto es por que existe una ~relación inversa~ entre $\lambda$ y $\ma
 * Regresión local
 
 Ajustar un modelo por regiones donde tengamos una función de peso que sólo considere una vecindad. El ajuste se realiza por medio de mínimos cuadrados ~ponderados~. Los pesos alrededor de un punto base  $x_0$ usualmente están definidos por funciones /kernel/ $K_\lambda(x, x_0)$
-donde $\lambda$ determina el tamaño de la vecindad. 
+donde $\lambda$ determina el tamaño de la vecindad.
+
+#+REVEAL: split
+El problema de regresión que se resuelve es un problema puntual en cada $x_0$ que queramos evaluar
+\begin{align}
+ \min_{{\color{orange}  \alpha(x_0), \beta(x_0)}} \sum_{i = 1}^{N} K_\lambda(x_0, x_i) [y_i - {\color{orange} \alpha (x_0)} - {\color{orange} \beta(x_0)} x_i]^2\,.
+\end{align}
+
+#+REVEAL: split
+La solución a este problema está dada por mínimos cuadrados ~ponderados~ donde en especifico tenemos la expresión
+\begin{subequations}
+\begin{align}
+\hat f(x_0) &= b(x_0)^\top (B^\top W(x_0) B)^{-1} B^\top W(x_0) y \,,\\
+&= \sum_{i=1}^{N} c_i(x_0) y_i\,.
+\end{align}
+\end{subequations}
+
+#+BEGIN_NOTES
+El planteamiento y la solución de este problema de regresión se conoce como el suavizador de Watson-Nadaraya suavizado citep:Hastie2009c. Aunque parezca un problema con una vasta historia aún sigue siendo motivo de estudio. De hecho su aplicación se encuentra en el centro de los modelos del estado del arte en Procesamiento de Lenguaje Natural (NLP, por sus siglas en inglés) como BERT, GPT-3, etc. citep:Zhang2021c.
+#+END_NOTES
+
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-regresion-loess.jpeg :exports results :results output graphics file
