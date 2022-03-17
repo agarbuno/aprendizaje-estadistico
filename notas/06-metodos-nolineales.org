@@ -41,9 +41,9 @@
 #+EXCLUDE_TAGS: toc
 
 #+BEGIN_NOTES
-*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022.\\
-*Objetivo*: Splines. Troncos. Modelos aditivos. \\
-*Lectura recomendada*: Capítulo 7 de citep:James2021. citep:Wood2017.
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 202| Modelo no lineales (Polinomios, /Splines/). \\
+*Objetivo*: En esta sección estudiaremos modelos que empiezan desviarse de los supuesto lineales. Retendremos el componente aditivo por cuestiones de interpretabilidad. Estudiaremos métodos lineales por regiones, funciones polinomiales y la familia de modelos basados en /splines/ con fines predictivos y como mecanismos de pre-procesamiento. \\
+*Lectura recomendada*: Capítulo 7 de citep:James2021. Finalmente, el libro citep:Wood2017 presenta un tratamiento completo sobre modelos aditivos generalizados.
 #+END_NOTES
 
 
@@ -82,6 +82,7 @@
   - [[#observaciones][Observaciones]]
 - [[#funciones-simples][Funciones simples]]
   - [[#observaciones][Observaciones]]
+  - [[#extensiones][Extensiones]]
 - [[#modelos-por-segmentos][Modelos por segmentos]]
   - [[#splines][Splines]]
   - [[#splines-lineales][Splines lineales]]
@@ -105,6 +106,13 @@ Hasta ahora hemos utilizado modelos predictivos basados en ~supuestos
 lineales~. Aunque el modelo lineal es un modelo sencillo. Hasta ahora hemos visto
 como ~reducir la complejidad~ del modelo utilizando el concepto de
 regularización, pues ayuda a reducirla controlando la ~varianza~ de los estimadores. 
+
+#+BEGIN_NOTES
+Un modelo lineal es una aproximación que muchas veces usamos por
+conveniencia. El modelo es conveniente pues representa una aproximación
+interpretable a primer orden. Es decir, corresponde a una aproximación lineal de
+primer orden de Taylor.
+#+END_NOTES
 
 #+REVEAL: split
 En esta sección del curso estudiaremos modelos que rompen el supuesto de
@@ -245,7 +253,6 @@ f(x) = \beta_0 + \beta_1 C_1(x) + \cdots + \beta_4 C_4(x)\,.
 #+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-local-regression.jpeg :exports results :results output graphics file
-  library(splines)
   g.reg <- data |>
     mutate(age.group = cut(age, breaks = c(-Inf, 35, 50, 65, Inf), right = FALSE)) |>
     ggplot(aes(age, wage, group = age.group)) +
@@ -292,6 +299,46 @@ Para graficar (~ggplot2~) basta con pedir la predicción constante con los gráf
   ggplot(data, aes(age, wage, group = age.group)) +
   geom_sooth(formula = y ~ 1)
 #+end_src
+
+** Extensiones
+
+Una noción natural de incrementar la complejidad del modelo y al mismo tiempo mejorar la capacidad predictiva de éste sería ajustar una recta en cada región, ver [[fig:local-linear]]. 
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/wage-local-linear-regression.jpeg :exports results :results output graphics file
+  g.reg <- data |>
+    mutate(age.group = cut(age, breaks = c(-Inf, 35, 50, 65, Inf), right = FALSE)) |>
+    ggplot(aes(age, wage, group = age.group)) +
+    geom_point(color = "gray") + 
+    geom_smooth(method = "lm",
+                formula = y ~ x,
+                se = TRUE,
+                fill = "salmon") + sin_lineas +
+    xlab("Edad") + ylab("Ingreso")
+
+  g.log <- data |>
+    mutate(wage.plt = ifelse(hi.income == 1, .20, 0 )) |>
+    mutate(age.group = cut(age, breaks = c(-Inf, 35, 50, 65, Inf), right = FALSE)) |>
+    ggplot(aes(age, wage.plt, group = age.group)) +
+    geom_point(color = "gray") + # geom_jitter(color = "gray", width = 1, height = .01) + 
+    geom_smooth(aes(age, hi.income),
+                formula = y ~ x,
+                method = "glm",
+                method.args = list(family = "binomial"),
+                se = TRUE,
+                fill = "salmon") + sin_lineas +
+    xlab("Edad") + ylab(expression(paste(P,"( Ingreso >",250,"|Edad)", sep = ""))) +
+    coord_cartesian(ylim = c(0, 0.20))
+
+  g.reg + g.log
+#+end_src
+#+caption: Predicción con regresión lineal local.
+#+name: fig:local-linear
+#+RESULTS:
+[[file:../images/wage-local-linear-regression.jpeg]]
+
+
 
 
 * Modelos por segmentos
@@ -497,14 +544,34 @@ Consideremos el problema de ajustar un función continua y diferenciable $g(\cdo
 ** Solución 
 
 - La ~solución~ es un /spline/ natural con polinomios cúbicos. Los nodos se localizan en cada uno de los datos de entrenamiento $x_i$. La suavidad del estimador es controlada por medio de $\lambda$.
+
+  #+BEGIN_NOTES
+    El término de regularización afecta directamente en los coeficientes. Logrando así, eliminar la aparente complejidad de considerar tantos nodos como observaciones tengamos. 
+  #+END_NOTES
+
+  
 - El vector de $n$ predicciones se puede escribir como
   \begin{align}
   \hat g_\lambda = S_\lambda y\,.
   \end{align}
+
+  #+BEGIN_NOTES
+    La solución al problema de optimización se logra por medio de $f(x) = \sum_{j = 1}^{N} \theta_j \, N_j(x)$ donde $N_j$ denota la base de funciones para el espacio de /splines/ naturales. De esta manera la función objetivo se puede reescribir como
+    \begin{align}
+    \mathcal{J}(\theta) = (y - N\theta)^\top (y - N\theta) + \lambda \theta^\top \Omega_N \theta\,,
+   \end{align}
+  donde $\{\Omega_N\}_{jk} = \int N''_j(t) N''_k(t) \text{d}t$, cuya solución se puede escribir de manera analítica.  
+  #+END_NOTES
+
+  
 - El ~número efectivo de grados de libertad~  se puede calcular a través de
   \begin{align}
    \mathsf{df}_\lambda = \sum_{i = 1}^{n} \{S_\lambda\}_{ii}\,.
   \end{align}
+  #+BEGIN_NOTES
+  Los grados de libertad efectivos en el contexto de /splines/  fueron definidos (citep:Hastie2009c) en analogía con que $M = \text{tr}(H) = \text{tr}(X(X^\top X)^{-1} X^\top)$ nos da la dimensión del espacio en donde se proyectan las predicciones de mínimos cuadrados para el modelo lineal. 
+  #+END_NOTES
+
 
 *** Bonus:
 :PROPERTIES:
@@ -513,14 +580,15 @@ Consideremos el problema de ajustar un función continua y diferenciable $g(\cdo
 
 El error de validación cruzada se puede calcular por medio de
 \begin{align}
-\mathsf{RSS}_{\mathsf{CV }}(\lambda) = \sum_{i =1}^{n} (y_i - \hat g_{\lambda}^{(-i)}(x_i))^2 = \sum_{i = 1}^{n} \left[ \frac{y_i - g_\lambda(x_i)}{1 - \{S_\lambda\}_{ii}}\right]^2\,.
+\mathsf{RSS}_{\mathsf{CV }}(\lambda) = \sum_{i =1}^{n} (y_i - \hat g_{\lambda}^{(-i)}(x_i))^2 = \sum_{i = 1}^{n} \left[ \frac{y_i - \hat g_\lambda(x_i)}{1 - \{S_\lambda\}_{ii}}\right]^2\,.
 \end{align}
 
 ** Ajuste de suavizador 
 
-Para ajustar el suavizador podemos controlar por los grados de libertad
-($\mathsf{df}$) en lugar de utilizar el coeficiente de penalización de
-curvatura.
+Para ajustar el suavizador podemos ~controlar por los grados de libertad~
+($\mathsf{df}_\lambda$) en lugar de utilizar el coeficiente de penalización de
+curvatura. Esto es por que existe una ~relación inversa~ entre $\lambda$ y $\mathsf{df}_\lambda$ . 
+
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wages-smoothing-splines.jpeg :exports results :results output graphics file
@@ -572,16 +640,19 @@ curvatura.
 
   g1.ssplines + g2.ssplines + g3.ssplines
 #+end_src
-#+caption: Suavizamiento por /splines/. Controlamos por grados de libertad ($\mathsf{df}$). 
+#+caption: Suavizamiento por /splines/. Controlamos por grados de libertad ($\mathsf{df}_\lambda$). 
 #+RESULTS:
 [[file:../images/wages-smoothing-splines.jpeg]]
 
 * Regresión local
 
-Ajustar un modelo por regiones donde tengamos una función de peso que sólo considere una vecindad. El ajuste se realiza por medio de mínimos cuadrados ~ponderados~.
+Ajustar un modelo por regiones donde tengamos una función de peso que sólo considere una vecindad. El ajuste se realiza por medio de mínimos cuadrados ~ponderados~. Los pesos alrededor de un punto base  $x_0$ usualmente están definidos por funciones /kernel/ $K_\lambda(x, x_0)$
+donde $\lambda$ determina el tamaño de la vecindad. 
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-regresion-loess.jpeg :exports results :results output graphics file
+    ## Regresión local ----------------------------------
+
     set.seed(108727)
     data.plt <- data |>
       sample_frac(.1) |>
@@ -753,8 +824,6 @@ La linealidad se mantiene y se pueden explorar las contribuciones de cada térmi
 \begin{align}
 \log \left( \frac{p_i}{1 - p_i} \right) = \beta_0 + \beta_1 f_{1}(x_{i1}) + \cdots + \beta_p f_{p}(x_{ip}) \,.
 \end{align}
-
-
 
 
 bibliographystyle:abbrvnat

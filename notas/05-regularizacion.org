@@ -20,7 +20,7 @@
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Métodos de selección.\\
 *Objetivo*: Detalles en métodos de selección de variables. Veremos las estrategias de regularización y penalización para ajustar modelos controlando el sesgo predictivo hacia el conjunto de entrenamiento. Utilizaremos validación cruzada para probar configuraciones y elegir la /mejor/. Hablaremos sobre reducción de dimensiones y su combinación con métodos predictivos.\\
-*Lectura recomendada*: Capítulo 6 de citep:James2021. Sección 6.4 de citep:Kuhn2013. Aunque el enfoque es regresión los principios de validación cruzada para escoger modelos penalizados en el contexto de clasificación son análogos. Puedes leer la sección 12.5 de citep:Kuhn2013. 
+*Lectura recomendada*: Capítulo 6 de citep:James2021. Sección 6.4 de citep:Kuhn2013. Aunque el enfoque es regresión, los principios de validación cruzada para escoger modelos penalizados son análogos en el contexto de clasificación. Puedes leer la sección 12.5 de citep:Kuhn2013. 
 #+END_NOTES
 
 
@@ -266,7 +266,12 @@ por la inclusión de variables inecesarias/redundantes.
 
 ** Objetivo
 
-Cada uno de los procedimientos de selección de variables regresa una secuencia de modelos $\mathcal{M}_k$. Lo que queremos es escoger la $k^\star$ de acuerdo al ~error de generalización~. El error de generalización obtenido por ~validación cruzada~  tiene la ventaja de no hacer la estimación de $\sigma^2$. 
+Cada uno de los procedimientos de selección de variables regresa una secuencia de modelos $\mathcal{M}_k$. Lo que queremos es escoger la $k^\star$ de acuerdo al ~error de generalización~. El error de generalización obtenido por ~validación cruzada~  tiene la ventaja de no hacer la estimación de $\sigma^2$.
+
+#+BEGIN_NOTES
+Estimar $\sigma^2$ es una tarea complicada. Implica, bajo el modelo de regresión, estimar el mejor modelo y encontrar la precisión de la familia de modelos que estamos utilizando. 
+#+END_NOTES
+
 
 *** Selección de modelo: Datos de crédito
 
@@ -371,7 +376,7 @@ donde $\lambda \geq0$  es un ~hiper-parámetro~.
 
 #+REVEAL: split
 El objetivo sigue siendo el mismo, ajustar el modelo lo mejor posible. El término adicional favorece soluciones con $\beta_1, \ldots, \beta_p$ pequeños.
-El parámetro $\lambda$ controla qué tanto penalizamos el /tamaño/ de los coeficientes.
+El parámetro $\lambda$ controla qué tanto ~penalizamos~ el /tamaño/ de los coeficientes.
 
 *** Para pensar:
 :PROPERTIES:
@@ -646,7 +651,7 @@ y el respectivo de LASSO
 \end{align}
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2022-03-04 12:58:28
-#+caption: Curvas de nivel de los problemas de optimización. Tomada de citep:James2021.
+#+caption: Curvas de nivel de los problemas de optimización: LASSO (izquierda) y Ridge (derecha). Tomada de citep:James2021.
 #+attr_html: :width 700 :align center
 [[file:images/20220304-125828_screenshot.png]]
 
