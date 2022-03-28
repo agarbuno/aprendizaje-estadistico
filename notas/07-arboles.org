@@ -1,0 +1,168 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Arboles de decisión~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/07-arboles.pdf
+:END:
+#+PROPERTY: header-args:R :session arboles :exports both :results output org :tangle ../rscripts/07-arboles.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Arboles de decisión.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Capítulo 8 de citep:James2021. 
+#+END_NOTES
+
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 2)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+#+begin_src R :exports none :results none
+  ## Paquetes de arboles
+  library(tidymodels)
+  library(rpart.plot)
+  library(vip)
+#+end_src
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#ejemplo-baseball][Ejemplo: Baseball]]
+:END:
+
+* Introducción
+
+En esta sección estudiaremos modelos basados en ~árboles de decisión~. Los cuales
+estratifican el espacio de los atributos en regiones sencillas para efectuar
+predicciones. Reciben su nombre pues la segmentación que se utiliza para
+realizar predicciones es una secuencia de ~decisiones binarias~.
+
+
+** Ejemplo: /Baseball/
+
+Consideremos los datos de salarios de jugadores profesionales de /baseball/. Lo
+que queremos es predecir el Sueldo en funciones de las características de
+carrera de cada jugador.
+
+#+begin_src R :exports results :results org 
+  library(ISLR2)
+  hitters <- as_tibble(Hitters) |>
+    select(Hits, Years, Salary) |>
+    filter(complete.cases(Salary))
+  hitters |> head() |> as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  Hits Years Salary
+1   81    14    475
+2  130     3    480
+3  141    11    500
+4   87     2     92
+5  169    11    750
+6   37     2     70
+#+end_src
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-dispersion.jpeg :exports results :results output graphics file
+  hitters |>
+    ggplot(aes(Years, Hits)) +
+    geom_point(aes(color = Salary)) +
+    ## scale_color_gradient2(midpoint = 536, low = "blue", mid = "white", high = "red") +
+    scale_color_viridis_c(option = "plasma") +
+    sin_leyenda + sin_lineas
+#+end_src
+#+caption: Salario codificado por color: salarios bajos (azul, morado) y salarios altos (naranja, amarillo). 
+#+RESULTS:
+[[file:../images/baseball-dispersion.jpeg]]
+
+#+begin_src R :exports results :results org 
+  tree_spec <- decision_tree(tree_depth = 2) |>
+    set_engine("rpart")
+
+  reg_tree_spec <- tree_spec |>
+    set_mode("regression")
+
+  reg_tree_fit <- reg_tree_spec |>
+    fit(Salary ~ ., data = hitters)
+
+  reg_tree_fit |>
+    extract_fit_engine() |>
+    rpart.rules(roundint = FALSE)
+#+end_src
+#+caption: Segmentacion de datos utilizando un árbol de decisión. 
+#+RESULTS:
+#+begin_src org
+ Salary                                
+    226 when Years <  4.5              
+    465 when Years >= 4.5 & Hits <  118
+    949 when Years >= 4.5 & Hits >= 118
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-arbol.jpeg :exports results :results output graphics file
+  reg_tree_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación grafica de un árbol de decisión. 
+#+RESULTS:
+[[file:../images/baseball-arbol.jpeg]]
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib

@@ -58,6 +58,13 @@
       "Repository": "CRAN",
       "Hash": "bc04429c6428a790926f7053a6fa4815"
     },
+    "ISLR2": {
+      "Package": "ISLR2",
+      "Version": "1.3-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "3488cc44fd1c13ff4da3babe8bb83836"
+    },
     "KernSmooth": {
       "Package": "KernSmooth",
       "Version": "2.23-20",
@@ -1316,6 +1323,13 @@
       "Repository": "CRAN",
       "Hash": "9787c1fcb680e655d062e7611cadf78e"
     },
+    "rpart.plot": {
+      "Package": "rpart.plot",
+      "Version": "3.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "587cfc04ea9ba4931777e9ddf4db5fed"
+    },
     "rprojroot": {
       "Package": "rprojroot",
       "Version": "2.0.2",
@@ -1546,6 +1560,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "ecf749a1b39ea72bd9b51b76292261f1"
+    },
+    "vip": {
+      "Package": "vip",
+      "Version": "0.3.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "70e6da4dbf60a40e80c57901ffef043d"
     },
     "viridis": {
       "Package": "viridis",
