@@ -35,10 +35,10 @@
 #+LaTeX_HEADER: {}
 #+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/06-metodos-nolineales.pdf
+#+EXPORT_FILE_NAME: ../docs/06-modelos-nolineales.pdf
 :END:
 #+PROPERTY: header-args:R :session nolineal :exports both :results output org :tangle ../rscripts/06-metodos-nolineales.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 202| Modelos aditivos. \\
@@ -98,14 +98,16 @@
   - [[#observaciones][Observaciones]]
 - [[#modelo-aditivos-generalizados][Modelo aditivos generalizados]]
   - [[#clasificación][Clasificación]]
+- [[#conclusiones][Conclusiones]]
 :END:
 
 * Introducción 
 
 Hasta ahora hemos utilizado modelos predictivos basados en ~supuestos
-lineales~. Aunque el modelo lineal es un modelo sencillo. Hasta ahora hemos visto
-como ~reducir la complejidad~ del modelo utilizando el concepto de
-regularización, pues ayuda a reducirla controlando la ~varianza~ de los estimadores. 
+lineales~. Aunque el modelo lineal es un modelo sencillo y bastante útil en la
+práctica tiene sus ~limitaciones~. Hemos explorado la idea de hace mas complejo el
+modelo lineal --utilizando mas covariables-- utilizando el concepto de
+~regularización~ para mantener cierta garantía en la generalización del modelo.  
 
 #+BEGIN_NOTES
 Un modelo lineal es una aproximación que muchas veces usamos por
@@ -116,7 +118,7 @@ primer orden de Taylor.
 
 #+REVEAL: split
 En esta sección del curso estudiaremos modelos que rompen el supuesto de
-linealidad por medio de ~regresión polinomial, funciones de salto, splines,
+linealidad por medio de ~regresión polinomial, funciones simples, splines,
 regresión local, y modelos aditivos~.
 
 * Regresión polinomial
@@ -186,6 +188,7 @@ Datos demográficos y de ingreso para individuos que viven en región central de
 
   g.reg + g.log
 #+end_src
+#+name: fig:wage-preds
 #+caption: Predicción con polinomio de grado 4 con bandas predictivas. 
 #+RESULTS:
 [[file:../images/wage-polynomial.jpeg]]
@@ -194,13 +197,16 @@ Datos demográficos y de ingreso para individuos que viven en región central de
 Nuestro interés es en la capacidad predictiva del modelo (no en los
 coeficientes). Nos interesa evaluar
 \begin{align}
-\hat f(x_0) = \hat \beta_0 + \hat \beta_1 x_0 + \hat \beta_2 x_0^2 + \hat \beta_3 x_0^3 + \hat \beta_4 x_0^4
+\hat f(x_0) = \hat \beta_0 + \hat \beta_1 x_0 + \hat \beta_2 x_0^2 + \hat \beta_3 x_0^3 + \hat \beta_4 x_0^4\,,
 \end{align}
-Y dado que la respuesta es una combinación lineal de los coeficientes podemos evaluar
+donde notamos la respuesta es una combinación lineal de los coeficientes. Esto
+nos ayuda a calcular
 \begin{align}
 \mathbb{V}(\hat f(x_o))\,.
 \end{align}
-En la figura anterior (regresión) calculamos intervalos de la forma
+
+#+REVEAL: split
+En el panel de regresión ([[fig:wage-preds]]) calculamos intervalos de la forma
 \begin{align}
 \hat f(x_0) \pm 2 \cdot \mathsf{SE}(\hat f(x_0))\,,
 \end{align}
@@ -214,21 +220,19 @@ Para calcular la varianza de la predicción utilizamos la combinación lineal de
 \begin{align}
 \mathbb{V}(\hat f(x_0)) = \mathbb{V}(x_0^\top \hat \beta) = x_0^\top \mathbb{V}(\hat \beta) x_0\,.
 \end{align}
-
-
-
 ** Incertidumbre en predicciones (clasificación)
-Para el modelo logístico lo que tenemos es
+Para el modelo logístico ([[fig:wage-preds]]) lo que tenemos es
 \begin{align}
 \mathbb{P}(\mathsf{Ingreso} > 250 | x_i) = \frac{\exp(\beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \cdots + \beta_d x_i^d)}{1 + \exp( \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \cdots + \beta_d x_i^d)}\,.
 \end{align}
 
-Los intervalos de confianza se calculan: 1) calculando las cotas en ~escala logit~ y 2) convertir las cotas en ~escala probabilística~. 
+Los intervalos de confianza se calculan en dos pasos: 1) calculando las cotas en
+~escala logit~ y 2) convirtiendo las cotas en ~escala probabilística~.
 
 ** Observaciones
 
 - Regresión polinomial requiere una elección para $d$, la cual se puede establecer por medio de validación cruzada.
-- Los polinomios aunque son mas flexibles y ajustan relaciones no lineales son muy malos para extrapolar.
+- Los polinomios, aunque son mas flexibles y ajustan relaciones no lineales, son muy malos para extrapolar.
 - Los modelos se ajustan con expresiones en el componente de ~fórmula~ 
 
   #+begin_src R :exports code :results org :eval never
@@ -253,6 +257,7 @@ f(x) = \beta_0 + \beta_1 C_1(x) + \cdots + \beta_4 C_4(x)\,.
 #+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-local-regression.jpeg :exports results :results output graphics file
+  ## Regesion constante por regiones ----------------------------
   g.reg <- data |>
     mutate(age.group = cut(age, breaks = c(-Inf, 35, 50, 65, Inf), right = FALSE)) |>
     ggplot(aes(age, wage, group = age.group)) +
@@ -287,15 +292,16 @@ f(x) = \beta_0 + \beta_1 C_1(x) + \cdots + \beta_4 C_4(x)\,.
 - Los parámetros se ajustan de manera /local/. Contrario con los polinomios que ajustan parámetros para todo el rango de los datos. 
 - Los modelos se ajustan en cada grupo de edad, donde ~age.group~ es una variable categórica que tiene las indicadoras de los grupos. 
 
-#+begin_src R :exports code :results none :eval never
+#+begin_src R :exports code :results none :eval never :tangle no
   y ~ age.group
 #+end_src
 
-*Nota*: hay que  tener cuidado, pues en automático se crea un grupo ~base~ pues no queremos tener problemas de multicolinealidad.
+*Nota*: hay que  tener cuidado al querer interpretar, pues en automático se crea un grupo ~base~ pues no queremos tener problemas de multicolinealidad.
 
+#+REVEAL: split
 Para graficar (~ggplot2~) basta con pedir la predicción constante con los gráficos agrupados por grupo de edad. Esto se logra con
 
-#+begin_src R :exports code :results none :eval never 
+#+begin_src R :exports code :results none :eval never :tangle no
   ggplot(data, aes(age, wage, group = age.group)) +
   geom_sooth(formula = y ~ 1)
 #+end_src
@@ -340,17 +346,18 @@ Una noción natural de incrementar la complejidad del modelo y al mismo tiempo m
 
 
 
-
 * Modelos por segmentos
 
 Uno de los problemas del modelo anterior es que definimos la regresión con
-modelos discontinuos. Podemos ajustar un modelo donde las regiones utilicen
-distintos polinomios. Sólo que si lo hacemos sin cuidado entonces tendremos
-modelos volátiles en las cotas de las regiones de ajuste, ver [[fig:piece-cubic]].
+~modelos discontinuos~. Por ejemplo, si ajustamos un modelo donde las regiones
+utilicen distintos polinomios. No tendremos garantía de que el modelo completo
+se vea conectado. Además, si lo hacemos sin cuidado entonces tendremos modelos
+volátiles en las cotas de las regiones de ajuste, ver [[fig:piece-cubic]].
 
 #+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-local-poly-regression.jpeg :exports results :results output graphics file
+  ## Modelos por segmentos -----------------------------
   library(splines)
   g.reg <- data |>
     mutate(age.group = cut(age, breaks = c(-Inf, 50, Inf), right = FALSE)) |>
@@ -386,12 +393,14 @@ modelos volátiles en las cotas de las regiones de ajuste, ver [[fig:piece-cubic
 
 ** /Splines/
 
-Un modelo basado en /splines/ es un modelo basado en polinomios donde se les añade la restricción de continuidad (en las primeras dos derivadas), ver [[fig:splines-wage]].
+Un modelo basado en /splines/ es un modelo basado en polinomios donde se les añade
+la propiedad de ~continuidad~ (en las primeras dos derivadas), ver
+[[fig:splines-wage]].
 
 #+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-linear-spline-regression.jpeg :exports results :results output graphics file
-  library(splines)
+  ### Splines ------------------------------------
   g.reg <- data |>
     mutate(age.group = cut(age, breaks = c(-Inf, 50, Inf), right = FALSE)) |>
     ggplot(aes(age, wage)) +
@@ -455,6 +464,7 @@ y una colección de ~nodos~ $\xi_k$, donde $(\cdot)_+^3$ denota la ~parte positi
 
 *Nota* que en cada nodo la función construida tiene a lo más 2 derivadas continuas. 
 
+#+REVEAL: split
 De tal manera que el modelo predictivo queda en términos de
 \begin{align}
 y_i = \beta_0 + \beta_1 b_1(x_i) + \cdots + \beta_{K+3} b_{K+3}(x_i) + \epsilon_i\,.
@@ -463,12 +473,12 @@ y_i = \beta_0 + \beta_1 b_1(x_i) + \cdots + \beta_{K+3} b_{K+3}(x_i) + \epsilon_
 ** /Splines/ naturales
 
 Un /spline/ ~natural~ es un /spline/ con la restricción adicional de considerar una
-extrapolación lineal fuera de los ~nodos frontera~. Ver [[fig:nsplines-wage]]. 
+~extrapolación lineal~ fuera de los ~nodos frontera~. Ver [[fig:nsplines-wage]].
 
 #+REVEAL: split
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-natural-spline-regression.jpeg :exports results :results output graphics file
-  library(splines)
+  ### Splines naturales --------------------------
   set.seed(108727)
   g.cubic <- data |>
     sample_frac(.05) |>
@@ -501,10 +511,14 @@ extrapolación lineal fuera de los ~nodos frontera~. Ver [[fig:nsplines-wage]].
 Para el caso de regresión $f: \mathbb{R} \rightarrow \mathbb{R}$, incorporar un /spline/ natural agrega $4 = 2\times 2$ restricciones adicionales, ¿por qué?
 
 ** Selección de nodos
-- Una estrategia es elegir el número de nodos $K$ y después utilizar los cuantiles de $X$.
-- Un /spline/ cúbico con $K$ nodos tiene $K+4$ parámetros.
-- Un /spline/ natural con $K$ nodos tiene $K$ parámetros.
+- Una estrategia es elegir el número de nodos $K$ y después utilizar los percentiles correspondientes de $X$.
+- Un /spline/ cúbico con $K$ nodos tiene $K+4$ parámetros (o grados de libertad).
+- Un /spline/ natural con $K$ nodos tiene $K$ parámetros (o grados de libertad).
 
+
+#+REVEAL: split
+Utilizando la noción de grados de libertad podemos comparar un polinomio con un
+grado predeterminado y un spline natural con un número de nodos fijo.
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wages-splines-polinomio.jpeg :exports results :results output graphics file
     g.polsplines <- data |>
@@ -534,7 +548,7 @@ Para el caso de regresión $f: \mathbb{R} \rightarrow \mathbb{R}$, incorporar un
 
 * Suavizamiento por /splines/
 
-Consideremos el problema de ajustar un función continua y diferenciable $g(\cdot)$ a un conjunto de datos. Lo cual logramos por medio de
+Consideremos el problema de ~ajustar un función continua y diferenciable~ $g(\cdot)$ a un ~conjunto de datos~. Lo cual logramos por medio de
 \begin{align}
 \min_{g \in \mathcal{S}} \sum_{i = 1}^{n} (y_i - g(x_i))^2 + \lambda \int g''(t)^2 dt\,.
 \end{align}
@@ -545,35 +559,33 @@ Consideremos el problema de ajustar un función continua y diferenciable $g(\cdo
 
 - La ~solución~ es un /spline/ natural con polinomios cúbicos. Los nodos se localizan en cada uno de los datos de entrenamiento $x_i$. La suavidad del estimador es controlada por medio de $\lambda$.
 
-  #+BEGIN_NOTES
-    El término de regularización afecta directamente en los coeficientes. Logrando así, eliminar la aparente complejidad de considerar tantos nodos como observaciones tengamos. 
-  #+END_NOTES
+ #+BEGIN_NOTES
+   El término de regularización afecta directamente en los coeficientes. Logrando así, eliminar la aparente complejidad de considerar tantos nodos como observaciones tengamos. 
+ #+END_NOTES
 
-  
 - El vector de $n$ predicciones se puede escribir como
   \begin{align}
   \hat g_\lambda = S_\lambda y\,.
   \end{align}
 
-  #+BEGIN_NOTES
-    La solución al problema de optimización se logra por medio de $f(x) = \sum_{j = 1}^{N} \beta_j \, N_j(x)$ donde $N_j$ denota la base de funciones para el espacio de /splines/ naturales. De esta manera la función objetivo se puede reescribir como
+ #+BEGIN_NOTES
+   La solución al problema de optimización se logra por medio de $f(x) = \sum_{j = 1}^{N} \beta_j \, N_j(x)$ donde $N_j(\cdot)$ denota la base de funciones para el espacio de /splines/ naturales. De esta manera la función objetivo se puede reescribir como
     \begin{align}
     \mathcal{J}(\beta) = (y - N\beta)^\top (y - N\beta) + \lambda \beta^\top \Omega_N \beta\,,
    \end{align}
   donde $\{\Omega_N\}_{jk} = \int N''_j(t) N''_k(t) \text{d}t$, cuya solución se puede escribir de manera analítica.  
-  #+END_NOTES
+ #+END_NOTES
 
   
 - El ~número efectivo de grados de libertad~  se puede calcular a través de
   \begin{align}
    \mathsf{df}_\lambda = \sum_{i = 1}^{n} \{S_\lambda\}_{ii}\,.
   \end{align}
-  #+BEGIN_NOTES
+ #+BEGIN_NOTES
   Los grados de libertad efectivos en el contexto de /splines/  fueron definidos (citep:Hastie2009c) en analogía con que $M = \text{tr}(H) = \text{tr}(X(X^\top X)^{-1} X^\top)$ nos da la dimensión del espacio en donde se proyectan las predicciones de mínimos cuadrados para el modelo lineal. 
-  #+END_NOTES
+ #+END_NOTES
 
-
-*** Bonus:
+*** /Bonus/:
 :PROPERTIES:
 :reveal_background: #00468b
 :END:
@@ -589,9 +601,24 @@ Para ajustar el suavizador podemos ~controlar por los grados de libertad~
 ($\mathsf{df}_\lambda$) en lugar de utilizar el coeficiente de penalización de
 curvatura. Esto es por que existe una ~relación inversa~ entre $\lambda$ y $\mathsf{df}_\lambda$ . 
 
+#+BEGIN_NOTES
+Establecer la relación entre los grados de libertad y el coeficiente de
+penalización escapa los intereses del curso. Se puede encontrar en el Capitulo 5
+de citep:Hastie2009c. La idea general la esbozamos a continuación. Utilizamos
+$\mathsf{df}_\lambda = \mathsf{tr}(S_\lambda)$ donde además sabemos que la traza
+de una matriz es la suma de sus eigenvalores. Utilizaremos analogía con
+regresión y regularización $L_2$. La solución de mínimos cuadrados bajo
+regresión Ridge es $\hat \beta = (X^\top X + \lambda I)^{-1}X^\top y$. Las
+predicciones las realizamos por medio de $X\hat \beta$, de donde podemos
+escribir el vector de predicciones $\tilde y = H_\lambda y$. Utilizando la
+descomposición espectral de $X \in \mathbb{R}^{n\times p}$ podemos encontrar los eigenvalores de $H_\lambda$ y en consecuencia veremos una relación 
+entre los grados de libertad ($\mathsf{df}_\lambda$) y el coeficiente de penalización ($\lambda$). 
+#+END_NOTES
+
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wages-smoothing-splines.jpeg :exports results :results output graphics file
+  ## Suavizamiento (splines) --------------------
   library(ggformula)
   set.seed(108727)
   g1.ssplines <- data |>
@@ -646,13 +673,13 @@ curvatura. Esto es por que existe una ~relación inversa~ entre $\lambda$ y $\ma
 
 * Regresión local
 
-Ajustar un modelo por regiones donde tengamos una función de peso que sólo considere una vecindad. El ajuste se realiza por medio de mínimos cuadrados ~ponderados~. Los pesos alrededor de un punto base  $x_0$ usualmente están definidos por funciones /kernel/ $K_\lambda(x, x_0)$
+El objetivo es: ajustar un ~modelo por regiones~ donde tengamos una función de peso que sólo considere una vecindad. El ajuste se realiza por medio de mínimos cuadrados ~ponderados~. Los pesos alrededor de un punto base  $x_0$ usualmente están definidos por *funciones /kernel/* $K_\lambda(x, x_0)$
 donde $\lambda$ determina el tamaño de la vecindad.
 
 #+REVEAL: split
 El problema de regresión que se resuelve es un problema puntual en cada $x_0$ que queramos evaluar
 \begin{align}
- \min_{{\color{orange}  \alpha(x_0), \beta(x_0)}} \sum_{i = 1}^{N} K_\lambda(x_0, x_i) [y_i - {\color{orange} \alpha (x_0)} - {\color{orange} \beta(x_0)} x_i]^2\,.
+ \min_{{\color{orange} \alpha}(x_0), {\color{orange} \beta} (x_0)} \sum_{i = 1}^{N} K_\lambda(x_0, x_i) [y_i - {\color{orange} \alpha} (x_0) - {\color{orange} \beta} (x_0) x_i]^2\,.
 \end{align}
 
 #+REVEAL: split
@@ -668,16 +695,17 @@ La solución a este problema está dada por mínimos cuadrados ~ponderados~ dond
 El planteamiento y la solución de este problema de regresión se conoce como el suavizador de Watson-Nadaraya suavizado citep:Hastie2009c. Aunque parezca un problema con una vasta historia aún sigue siendo motivo de estudio. De hecho su aplicación se encuentra en el centro de los modelos del estado del arte en Procesamiento de Lenguaje Natural (NLP, por sus siglas en inglés) como BERT, GPT-3, etc. citep:Zhang2021c.
 #+END_NOTES
 
+#+REVEAL: split
+De modo que se ajusta un modelo lineal de manera local ([[fig:loess-local]]). La vecindad está controlada por un parámetro ~span~ que dicta el porcentaje de puntos de entrenamiento alrededor de donde queremos hacer predicciones.
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-regresion-loess.jpeg :exports results :results output graphics file
-    ## Regresión local ----------------------------------
-
-    set.seed(108727)
-    data.plt <- data |>
-      sample_frac(.1) |>
-      mutate(region = ifelse((20 <= age & age <= 30),
-                             TRUE, FALSE))
+  ## Suavizamiento (regresion local) ----------------------------------
+  set.seed(108727)
+  data.plt <- data |>
+    sample_frac(.1) |>
+    mutate(region = ifelse((20 <= age & age <= 30),
+                           TRUE, FALSE))
     g1 <- data.plt |>
       ggplot(aes(age, wage)) +
       geom_smooth(method = "loess",
@@ -703,42 +731,45 @@ El planteamiento y la solución de este problema de regresión se conoce como el
       coord_cartesian(ylim = c(0, 300)) +
       ggtitle("Centro en x = 25")
 
-    set.seed(108727)
-    data.plt <- data |>
-      sample_frac(.1) |>
-      mutate(region = ifelse((35 <= age & age <= 45),
+  set.seed(108727)
+  data.plt <- data |>
+    sample_frac(.1) |>
+    mutate(region = ifelse((35 <= age & age <= 45),
                              TRUE, FALSE))
-    g2 <- data.plt |>
-      ggplot(aes(age, wage)) +
-      geom_smooth(method = "loess",
-                  span = .35,
-                  method.args = list(degree = 1),
+  g2 <- data.plt |>
+    ggplot(aes(age, wage)) +
+    geom_smooth(method = "loess",
+                span = .35,
+                method.args = list(degree = 1),
                   color = 'blue', 
-                  se = TRUE, lty = 1,
-                  alpha = .2, fullrange = TRUE) +
-      geom_smooth(data = filter(data.plt, region),
-                  aes(age, wage),
-                  method = "loess",
+                se = TRUE, lty = 1,
+                alpha = .2, fullrange = TRUE) +
+    geom_smooth(data = filter(data.plt, region),
+                aes(age, wage),
+                method = "loess",
                   span = 10,
-                  method.args = list(degree = 1),
-                  color = 'red', fill = 'red',
-                  se = TRUE, lty = 1,
-                  alpha = .2, fullrange = TRUE) +
-      geom_point(color = "gray", shape = 4) +
-      geom_point(data = filter(data.plt, region),
-                  aes(age, wage),
-                 color = "salmon") + 
-      sin_lineas +
-      xlab("Edad") + ylab("Ingreso") +
-      coord_cartesian(ylim = c(0, 300)) +
+                method.args = list(degree = 1),
+                color = 'red', fill = 'red',
+                se = TRUE, lty = 1,
+                alpha = .2, fullrange = TRUE) +
+    geom_point(color = "gray", shape = 4) +
+    geom_point(data = filter(data.plt, region),
+               aes(age, wage),
+               color = "salmon") + 
+    sin_lineas +
+    xlab("Edad") + ylab("Ingreso") +
+    coord_cartesian(ylim = c(0, 300)) +
       ggtitle("Centro en x = 40")
 
   g1 + g2
 #+end_src
+#+name: fig:loess-local
 #+caption: Regresión local con ventana móvil.
 #+RESULTS:
 [[file:../images/wage-regresion-loess.jpeg]]
 
+#+REVEAL: split
+Cambiar el radio de las vecindades afecta la complejidad del modelo que usaremos para predecir ([[fig:loess-span]]). 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-regresion-loess-span.jpeg :exports results :results output graphics file
     set.seed(108727)
@@ -790,6 +821,7 @@ El planteamiento y la solución de este problema de regresión se conoce como el
 
   g1 + g2 + g3
 #+end_src
+#+name: fig:loess-span
 #+caption: Regresión local con amplitud variable.
 #+RESULTS:
 [[file:../images/wage-regresion-loess-span.jpeg]]
@@ -807,6 +839,7 @@ La estructura aditiva se mantiene y nos permite incorporar una estructura predic
 y_i = \beta_0 + \beta_1 f_{1}(x_{i1}) + \cdots + \beta_p f_{p}(x_{ip}) + \epsilon_{i} \,.
 \end{align}
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 600 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-regresion-gam.jpeg :exports results :results output graphics file
   library(mgcv)
@@ -836,7 +869,6 @@ y_i = \beta_0 + \beta_1 f_{1}(x_{i1}) + \cdots + \beta_p f_{p}(x_{ip}) + \epsilo
 #+RESULTS:
 [[file:../images/wage-regresion-gam.jpeg]]
 
-
 ** Clasificación
 
 La linealidad se mantiene y se pueden explorar las contribuciones de cada término en escala ~logit~: 
@@ -845,6 +877,14 @@ La linealidad se mantiene y se pueden explorar las contribuciones de cada térmi
 \log \left( \frac{p_i}{1 - p_i} \right) = \beta_0 + \beta_1 f_{1}(x_{i1}) + \cdots + \beta_p f_{p}(x_{ip}) \,.
 \end{align}
 
+* Conclusiones
+
+Los modelos estudiados en esta sección son modelos que pertenecen a la ~familia
+de modelos aditivos~. Son relativamente sencillos de explorar y criticar (al
+visualizar o estudiar cada uno de los términos). La sección siguiente del curso estudiaremos modelos
+que utilizan una estructura muy particular para los términos $f_i(x)$. 
+
+# * Referencias                                                         :latex:
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
