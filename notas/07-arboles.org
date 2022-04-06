@@ -42,7 +42,7 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Arboles de decisión.\\
-*Objetivo*: Que veremos.\\
+*Objetivo*: Después de haber estudiado los modelos basados en /splines/ es natural considerar modelos que puedan lidiar con varios atributos y que también ajusten modelos por regiones. En esta sección estudiaremos árboles de decisión como un modelo que logra ambos objetivos. \\
 *Lectura recomendada*: Capítulo 8 de citep:James2021. 
 #+END_NOTES
 
@@ -82,6 +82,21 @@
 :CONTENTS:
 - [[#introducción][Introducción]]
   - [[#ejemplo-baseball][Ejemplo: Baseball]]
+  - [[#terminología][Terminología]]
+  - [[#interpretación-del-árbol][Interpretación del árbol]]
+- [[#construcción-de-un-árbol-de-decisión][Construcción de un árbol de decisión]]
+  - [[#mas-detalles][Mas detalles]]
+  - [[#predicciones][Predicciones]]
+    - [[#para-pensar][Para pensar:]]
+  - [[#error-de-generalización][Error de generalización]]
+  - [[#proceso-de-poda][Proceso de poda]]
+  - [[#selección-del-mejor-sub-árbol][Selección del mejor sub-árbol]]
+  - [[#resumen][Resumen]]
+  - [[#ejemplo][Ejemplo:]]
+- [[#árboles-de-clasificación][Árboles de clasificación]]
+  - [[#métricas-de-ajuste-el-índice-de-gini-y-devianza][Métricas de ajuste: el índice de Gini y devianza]]
+  - [[#ejemplo-scooby-doo][Ejemplo: Scooby-Doo]]
+- [[#conclusiones][Conclusiones]]
 :END:
 
 * Introducción
@@ -91,6 +106,12 @@ estratifican el espacio de los atributos en regiones sencillas para efectuar
 predicciones. Reciben su nombre pues la segmentación que se utiliza para
 realizar predicciones es una secuencia de ~decisiones binarias~.
 
+
+#+REVEAL: split
+Los árboles de decisión se utilizan para tareas de ~regresión~ y ~clasificación~.
+Son modelos sencillos que pueden interpretarse fácilmente, aunque pueden tener
+una capacidad predictiva limitada. Después de esta sección estudiaremos cómo se
+pueden utilizar como base para modelos mas complejos. 
 
 ** Ejemplo: /Baseball/
 
@@ -163,6 +184,553 @@ carrera de cada jugador.
 #+RESULTS:
 [[file:../images/baseball-arbol.jpeg]]
 
+#+REVEAL: split
+La representación gráfica del árbol anterior tiene dos ~nodos internos~ (dónde se
+toman las decisiones binarias) y tres ~nodos terminales~. El número en cada nodo
+representa la respuesta y el porcentaje es el número de observaciones del
+conjunto de entrenamiento que se han decantado en cada nodo.
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-tree-dispersion.jpeg :exports results :results output graphics file
+  hitters |>
+    ggplot(aes(Years, Hits)) +
+    geom_point(aes(color = Salary)) +
+    scale_color_viridis_c(option = "plasma") +
+    annotate("rect",
+             xmin = -Inf, xmax = 4.5, ymin = -Inf, ymax = Inf,
+             alpha = 0, color = "darkred", lty = 2) +
+    annotate("rect",
+             xmin = 4.5, xmax = Inf, ymin = 118, ymax = Inf,
+             alpha = 0, color = "darkred", lty = 2) + 
+    sin_leyenda + sin_lineas
+#+end_src
+#+caption: Salario codificado por color: salarios bajos (azul, morado) y salarios altos (naranja, amarillo). Las líneas punteadas representan las decisiones sobre los atributos.  
+#+RESULTS:
+[[file:../images/baseball-tree-dispersion.jpeg]]
+
+** Terminología
+
+- Las regiones las denotamos por $R_i$, y son conocidas como los ~nodos terminales~. 
+- La representación gráfica usualmente está al revés. Las ~hojas~ están en el fondo del gráfico.
+- Las decisiones donde se cortan las regiones se denominan ~nodos internos~.
+- Representación alterna: ~years~ $< 4.5$ o ~hits~ $<118$.
+
+** Interpretación del árbol
+
+- La variable ~years~ es el factor mas importante en determinar la respuesta del modelo para ~salary~.
+- Si nos fijamos en los jugadores con poco experiencia el número de ~hits~ no influye en la determinación de ~salary~.
+- Para jugadores con mas de $5$ años de experiencia, el número de ~hits~
+  realizados el año anterior determina el nivel del salario. Para aquellos con
+  mas de 5 años jugando, a mayor número de ~hits~ se les asocia mayor ~salary~.
+
+* Construcción de un árbol de decisión
+
+1. Dividimos el espacio de predictores en $J$ regiones mutuamente excluyentes
+   $R_i$ con $i = 1, \ldots, J$ donde $R_i \cap R_j = \emptyset$ para toda pareja
+   $i,j$.
+2. Cada observación se asigna una región $R_j$ donde hacemos la misma
+   predicción para todas las observaciones en dicha región. Esto lo hacemos con
+   promediando la variable respuesta.
+
+** Mas detalles
+
+- En principio las regiones las podemos construir de cualquier manera. Por
+  simplicidad utilizamos regiones rectangulares con cortes perpendiculares a los
+  ejes.
+- El ~objetivo~ es encontrar las regiones $R_1, \ldots, R_J$ que minimizan el error cuadrático
+  \begin{align}
+  \sum_{j = 1}^{J} \sum_{i \in R_j}^{} ( y_i - \hat y_{R_j})^2\,,
+  \end{align}
+  donde $\hat y_{R_j}$ es la respuesta en la $j$ ésima región. 
+
+
+#+REVEAL: split
+- Por supuesto, el problema de considerar todas las posibles particiones en $J$ cajas es un ~problema
+  combinatorio~.
+- Por lo tanto, tomamos una estrategia ~voraz~ (miope, /greedy/) ~secuencial~ (creciente, /top-down/).
+- Es /secuencial/ (creciente) pues construye el árbol tomando las decisiones mas
+  amplias. Es decir, cortando en las regiones mas grandes para después
+  refinarlas.
+- Es /miope/ (voraz) pues cada decisión de corte se toma en cada uno de los pasos
+  sin considerar los subsecuentes.
+
+#+REVEAL: split
+- Consideramos utilizar el predictor $X_j$ y utilizar el punto de corte $s$ de tal manera que resulten las regiones
+  \begin{align}
+  R_1(j,s) = \{X| X_j < s\}\,, \qquad   R_2(j,s) = \{X| X_j \geq s\}\,,
+  \end{align}
+  que tengan la máxima reducción de ~RSS~.
+- Consideramos dentro de cada región otra decisión de selección de variable y
+  decisión de corte para refinar el espacio de los atributos. 
+- El procedimiento continua hasta que se satisface un criterio de
+  terminación. Por ejemplo, que todas las regiones tengan a lo más 5
+  observaciones o se alcance una profundidad máxima del árbol. 
+
+** Predicciones
+
+Las predicciones se realizan tomando el promedio de las respuestas en cada una
+de las regiones.  Por lo tanto, para predecir la respuesta en un punto tenemos
+que evaluar en dónde se encuentra dicho punto y luego tomar el promedio de los
+datos de entrenamiento en dicha región.
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+En la [[fig:partition]] ¿qué partición del espacio resulta de un árbol de decisión?
+
+#+DOWNLOADED: screenshot @ 2022-04-04 17:45:20
+#+name: fig:partition
+#+caption: Dos particiones del espacio de atributos. Imagen tomada de citep:James2021. 
+#+attr_html: :width 700 :align center
+[[file:images/20220404-174520_screenshot.png]]
+
+
+#+REVEAL: split
+En la [[fig:partition-02]], dos representaciones gráficas del mismo árbol de decisión.
+
+#+DOWNLOADED: screenshot @ 2022-04-04 17:48:11
+#+name: fig:partition-02
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 700 :align center
+[[file:images/20220404-174811_screenshot.png]]
+
+** Error de generalización
+
+- Si ajustamos un árbol de decisión (/descrito anteriormente/) podemos sobre-ajustar fácilmente los datos de entrenamiento (¿por qué?).
+- Un árbol mas pequeño puede tener ~menor varianza~ al costo de tener ~mas sesgo~.
+- Podríamos considerar cortes que sólo tengan una mejora de $x\%$ puntos en el ~RSS~.
+- Pero nos podríamos quedar cortos, un mal corte inmediato podría ayudar a refinar el árbol en el largo plazo.
+
+** Proceso de poda
+
+- Podemos construir un árbol muy grande $T_0$, y ~podarlo~ para encontrar un ~sub-árbol~ con buenas capacidades predictivas.
+- El método de poda que se utiliza es por medio de una ~medida de complejidad~ (/cost complexity pruning/, /weakest link pruning/).
+- Consideramos una secuencia de árboles$^*$ indexados por un parámetro $\alpha>0$. Para cada valor de $\alpha$ tenemos un sub-árbol $T \subset T_0$ tal que
+  \begin{align}
+  \sum_{m = 1}^{|T|} \sum_{i: x_i \in R_m}^{} (y_i - \hat y_{R_m})^2 + \alpha |T|\,,
+  \end{align}
+  es lo mas pequeño posible.
+- En esta notación $|T|$ denota el número de nodos terminales (regiones) del árbol. 
+
+#+BEGIN_NOTES
+Utilizar un validación cruzada implicaría evaluar la capacidad predictiva de
+cada sub-árbol posible. Lo cual se traduce en un costo computacional alto. 
+#+END_NOTES
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-arbol-alpha-00.jpeg :exports results :results output graphics file
+  tree_spec <- decision_tree(cost_complexity = 1e-6) |>
+    set_engine("rpart")
+
+  reg_tree_spec <- tree_spec |>
+    set_mode("regression")
+
+  reg_tree_fit <- reg_tree_spec |>
+    fit(Salary ~ ., data = hitters)
+
+  reg_tree_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 1.2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación grafica de un árbol de decisión. Penalización $\alpha = 10^{-6}$. 
+#+RESULTS:
+[[file:../images/baseball-arbol-alpha.jpeg]]
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-arbol-alpha-01.jpeg :exports results :results output graphics file
+  tree_spec <- decision_tree(cost_complexity = 1e-3) |>
+    set_engine("rpart")
+
+  reg_tree_spec <- tree_spec |>
+    set_mode("regression")
+
+  reg_tree_fit <- reg_tree_spec |>
+    fit(Salary ~ ., data = hitters)
+
+  reg_tree_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 1.2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación grafica de un árbol de decisión. Penalización $\alpha = 10^{-3}$. 
+#+RESULTS:
+[[file:../images/baseball-arbol-alpha.jpeg]]
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-arbol-alpha-02.jpeg :exports results :results output graphics file
+  tree_spec <- decision_tree(cost_complexity = 1e-2) |>
+    set_engine("rpart")
+
+  reg_tree_spec <- tree_spec |>
+    set_mode("regression")
+
+  reg_tree_fit <- reg_tree_spec |>
+    fit(Salary ~ ., data = hitters)
+
+  reg_tree_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 1.2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación grafica de un árbol de decisión. Penalización $\alpha = 10^{-2}$. 
+#+RESULTS:
+[[file:../images/baseball-arbol-alpha.jpeg]]
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/baseball-arbol-alpha-03.jpeg :exports results :results output graphics file
+  tree_spec <- decision_tree(cost_complexity = 1.5e-2) |>
+    set_engine("rpart")
+
+  reg_tree_spec <- tree_spec |>
+    set_mode("regression")
+
+  reg_tree_fit <- reg_tree_spec |>
+    fit(Salary ~ ., data = hitters)
+
+  reg_tree_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 1.2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación grafica de un árbol de decisión. Penalización $\alpha = 10^{-1}$. 
+#+RESULTS:
+[[file:../images/baseball-arbol-alpha.jpeg]]
+
+
+** Selección del mejor sub-árbol
+
+- El parámetro $\alpha$ controla el compromiso entre complejidad y ajuste al conjunto de entrenamiento.
+- Para cada valor de $\alpha$ existe un árbol asociado $T_\alpha$. Bajo de una secuencia $\alpha_1 < \alpha_2 < \ldots$ tenemos una sucesión de árboles en donde cada árbol es óptimo. La prueba la encuentran en (citep:Breiman2017,Ripley1996). 
+- Usamos un valor ~óptimo~ de $\hat \alpha$ por medio de $\ldots$
+- Después, ajustamos el árbol utilizando $\hat \alpha$ y el conjunto de datos completo. 
+
+** Resumen
+
+- Usamos el conjunto de entrenamiento para ajustar un árbol de decisión. Utilizamos un criterio de paro de acuerdo al número de observaciones en los nodos terminales.
+- Usamos poda de árboles considerando una penalización por complejidad y obtenemos una secuencia de árboles indexados por $\alpha$. 
+- Usamos validación cruzada con $K$ bloques para escoger $\alpha$.
+- Reajustamos utilizando todo el conjunto de datos utilizando la $\hat \alpha$ que encontramos en el procedimiento de validación.
+
+** Ejemplo:
+
+Consideremos los datos descritos en este [[https://juliasilge.com/blog/wind-turbine/][caso de estudio]] por Julia Silge (autora del libro tidymodels). El objetivo es poder predecir la capacidad de las turbinas de viento en Canada por medio de cierta colección de descriptores. Puedes seguir [[https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-10-27/readme.md][la liga]] para una descripción mas detallada de los datos. 
+
+#+DOWNLOADED: screenshot @ 2022-04-04 18:44:03
+#+caption: Imagen tomada de la documentación de los datos [[https://juliasilge.com/blog/wind-turbine/][caso de estudio]]. 
+#+attr_html: :width 700 :align center
+[[file:images/20220404-184403_screenshot.png]]
+
+
+
+#+begin_src R :exports none :results none
+   ## Turbinas de viento ------------------------------------
+   turbines <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-10-27/wind-turbine.csv")
+
+  turbines_df <- turbines %>%
+   transmute(
+     turbine_capacity = turbine_rated_capacity_k_w,
+     rotor_diameter_m,
+     hub_height_m,
+     commissioning_date = parse_number(commissioning_date),
+     province_territory = fct_lump_n(province_territory, 10),
+     model = fct_lump_n(model, 10)
+   ) %>%
+   filter(!is.na(turbine_capacity)) %>%
+   mutate_if(is.character, factor)
+#+end_src
+
+#+REVEAL: split
+¿Cómo se relacionan las características como año de producción o tamaño de la turbina con su capacidad energética?
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/arboles-turbinas-exploratorio.jpeg :exports results :results output graphics file
+  turbines_df %>%
+    select(turbine_capacity:commissioning_date) %>%
+    pivot_longer(rotor_diameter_m:commissioning_date) %>%
+    ggplot(aes(turbine_capacity, value)) +
+    geom_hex(bins = 15, alpha = 0.8) +
+    geom_smooth(method = "lm") +
+    facet_wrap(~name, scales = "free_y") +
+    labs(y = NULL) +
+    scale_fill_gradient(high = "cyan3") + sin_lineas
+#+end_src
+#+caption: Gráficos de densidad entre la variable objetivo (eje horizontal) y atributo marcado en el panel. 
+#+RESULTS:
+[[file:../images/arboles-turbinas-exploratorio.jpeg]]
+
+
+#+REVEAL: split
+Dividimos el conjunto de datos en $50\%$ entrenamiento y $50\%$ prueba.
+#+begin_src R :exports none :results none
+  set.seed(123)
+  wind_split <- initial_split(turbines_df, strata = turbine_capacity, prop = .5)
+  wind_train <- training(wind_split)
+  wind_test <- testing(wind_split)
+
+  wind_folds <- vfold_cv(wind_train, strata = turbine_capacity)
+#+end_src
+
+#+REVEAL: split
+Creamos la especificación del modelo, considerando que tenemos el parámetro $\alpha$ como un parámetro especificado por el usuario.
+
+#+begin_src R :exports code :results none
+  tree_spec <- decision_tree(
+    cost_complexity = tune(),
+  ) %>%
+    set_engine("rpart") %>%
+    set_mode("regression")
+
+  tree_spec
+#+end_src
+
+#+REVEAL: split
+Definimos la rejilla donde queremos explorar $\alpha$:
+#+begin_src R :exports code :results none 
+  tree_grid <- grid_regular(cost_complexity(), levels = 10)
+  tree_grid
+#+end_src
+
+
+#+REVEAL: split
+Ajustamos el modelo utilizando validación cruzada y la rejilla
+#+begin_src R :exports code :results none 
+  doParallel::registerDoParallel()
+
+  set.seed(345)
+  tree_rs <- tune_grid(
+    tree_spec,
+    turbine_capacity ~ .,
+    resamples = wind_folds,
+    grid = tree_grid,
+    metrics = metric_set(rmse)
+  )
+
+  tree_rs
+#+end_src
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/turbinas-arboles-validacion-cruzada.jpeg :exports results :results output graphics file
+  autoplot(tree_rs) + sin_lineas
+#+end_src
+#+caption: Error de validación evaluado por validación cruzada para distintos valores de $\alpha$. 
+#+RESULTS:
+[[file:../images/turbinas-arboles-validacion-cruzada.jpeg]]
+
+#+REVEAL: split
+Podemos escoger el mejor modelo de acuerdo a la métrica que definamos:
+#+begin_src R :exports code :results none 
+  final_tree <- finalize_model(tree_spec, select_best(tree_rs, "rmse"))
+  final_tree
+#+end_src
+
+#+REVEAL: split
+Podemos ajustar el mejor modelo a los datos de entrenamiento o pedirle que ajuste con la separación inicial.
+#+begin_src R :exports code :results none 
+  final_fit <- fit(final_tree, turbine_capacity ~ ., wind_train)
+  final_rs <- last_fit(final_tree, turbine_capacity ~ ., wind_split)
+#+end_src
+
+#+REVEAL: split
+Por supuesto, no podemos visualizar la respuesta como un modelo de $\mathbb{R}^p \mapsto \mathbb{R}$. Pero podemos escoger las variables mas informativas para la predicción (mas adelante discutimos esto):
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/turbinas-arbol-prediccion.jpeg :exports results :results output graphics file
+  library(parttree)
+
+  ex_fit <- fit(
+    final_tree,
+    turbine_capacity ~ rotor_diameter_m + commissioning_date,
+    wind_train
+  )
+
+  wind_train %>%
+    ggplot(aes(rotor_diameter_m, commissioning_date)) +
+    geom_parttree(data = ex_fit, aes(fill = turbine_capacity), alpha = 0.3) +
+    geom_jitter(alpha = 0.7, width = 1, height = 0.5, aes(color = turbine_capacity)) +
+    scale_colour_viridis_c(aesthetics = c("color", "fill")) + sin_lineas
+#+end_src
+#+caption: Superficie de respuesta para un modelo simplificado con la configuración encontrada por validación cruzada. 
+#+RESULTS:
+[[file:../images/turbinas-arbol-prediccion.jpeg]]
+
+#+REVEAL: split
+El modelo ajustado es bastante complejo. Por ejemplo, podemos visualizar el árbol y las decisiones:
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/turbinas-arboles-grafico.jpeg  :exports results :results output graphics file :eval never
+  final_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación gráfica del árbol de decisión. 
+#+RESULTS:
+[[file:../images/turbinas-arboles-grafico.jpeg]]
+
+
+* Árboles de clasificación
+
+- La construcción es muy similar a la construcción en el ámbito de regresión.
+- Por supuesto, no podemos utilizar el ~RSS~ como métrica de ajuste.
+- Podríamos utilizar el ~error de clasificación~ para generar el árbol.
+- Pero, el error de clasificación *no* es lo suficientemente sensible para ajustar un árbol.
+
+
+** Métricas de ajuste: el índice de Gini y devianza
+
+- El ~índice de Gini~ está definido por
+  \begin{align}
+  G(m) = \sum_{k = 1}^{K} \hat p_{mk} (1 - \hat p_{mk})\,,
+  \end{align}
+  donde la suma es a través de todas las clases y $\hat p_{mk}$  es la probabilidad de la $k$ ésima clase en la región $m$.
+- Toma valores pequeños si todas las $\hat p_{mk}$ son pequeñas o cercanas a 1.
+- Por esta, razón, el indice de Gini también se denomina un ~índice de pureza~. Pues nos indica si en un nodo, tenemos una clase *predominante*.
+
+
+#+REVEAL: split
+- Una métrica alternativa es la  ~entropía cruzada~ o devianza
+  \begin{align}
+  D(m) = - \sum_{k = 1}^{K} \hat p_{mk} \log \hat p_{mk}\,.
+  \end{align}
+- La cual tienen valores similares en la práctica. 
+
+** Ejemplo: /Scooby-Doo/
+
+#+begin_src R :exports results :results org 
+  ## Clasificacion: Scooby doo -------------------------
+  scooby_raw <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-13/scoobydoo.csv", progress = FALSE, show_col_types = FALSE)
+
+  scooby_raw %>%
+    filter(monster_amount > 0) %>%
+    count(monster_real) |>
+    as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  monster_real   n
+1        FALSE 404
+2         TRUE 112
+#+end_src
+
+#+REVEAL: split
+Utilizaremos el año en que salió el episodio y el /rating/ que tuvo ese episodio para predecir si el monstruo era real al final del episodio o no.
+#+begin_src R :exports none :results none 
+  set.seed(123)
+  scooby_split <- scooby_raw %>%
+    mutate(
+      imdb = parse_number(imdb),
+      year_aired = lubridate::year(date_aired)
+    ) %>%
+    filter(monster_amount > 0, !is.na(imdb)) %>%
+    mutate(
+      monster_real = case_when(
+        monster_real == "FALSE" ~ "fake",
+        TRUE ~ "real"
+      ),
+      monster_real = factor(monster_real)
+    ) %>%
+    select(year_aired, imdb, monster_real, title) %>%
+    initial_split(strata = monster_real)
+  scooby_train <- training(scooby_split)
+  scooby_test <- testing(scooby_split)
+
+  set.seed(234)
+  scooby_folds <- vfold_cv(scooby_train, strata = monster_real)
+  scooby_folds
+#+end_src
+
+#+REVEAL: split
+Especificamos el modelo
+#+begin_src R :exports code :results none 
+  tree_spec <-
+    decision_tree(
+      cost_complexity = tune(),
+      tree_depth = tune(),
+      min_n = tune()
+    ) %>%
+    set_mode("classification") %>%
+    set_engine("rpart")
+#+end_src
+
+#+REVEAL: split
+Especificamos la rejilla de búsqueda
+#+begin_src R :exports both :results org
+  tree_grid <- grid_regular(cost_complexity(), tree_depth(), min_n(), levels = 4)
+  tree_grid |> head() |> as.data.frame()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  cost_complexity tree_depth min_n
+1           1e-10          1     2
+2           1e-07          1     2
+3           1e-04          1     2
+4           1e-01          1     2
+5           1e-10          5     2
+6           1e-07          5     2
+#+end_src
+
+#+REVEAL: split
+Realizamos el ajuste en cada bloque con cada especificación del modelo.
+#+begin_src R :exports code :results none :eval never
+  set.seed(345)
+  tree_rs <-
+    tune_grid(
+      tree_spec,
+      monster_real ~ year_aired + imdb,
+      resamples = scooby_folds,
+      grid = tree_grid,
+      metrics = metric_set(accuracy, roc_auc, sensitivity, specificity)
+    )
+#+end_src
+
+#+HEADER: :width 1200 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/scooby-clasificacion-metrics.jpeg :exports results :results output graphics file :eval never
+  autoplot(tree_rs) + sin_lineas
+#+end_src
+#+caption: Resultados de validación cruzada para la configuración de tres parámetros en el modelo de árbol: profundidad, mínimo de observaciones en nodos y penalización por complejidad. 
+#+RESULTS:
+[[file:../images/scooby-clasificacion-metrics.jpeg]]
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/scooby-clasificacion-respuesta.jpeg :exports results :results output graphics file :eval never
+  simpler_tree <- select_by_one_std_err(tree_rs,
+                                        -cost_complexity,
+                                        metric = "roc_auc"
+                                        )
+  final_tree <- finalize_model(tree_spec, simpler_tree)
+  final_fit <- fit(final_tree, monster_real ~ year_aired + imdb, scooby_train)
+
+  scooby_train %>%
+    ggplot(aes(imdb, year_aired)) +
+    geom_parttree(data = final_fit, aes(fill = monster_real), alpha = 0.2) +
+    geom_jitter(alpha = 0.7, width = 0.05, height = 0.2, aes(color = monster_real))  + sin_lineas
+#+end_src
+#+caption: Superficie de respuesta por el árbol de decisión. 
+#+RESULTS:
+[[file:../images/scooby-clasificacion-respuesta.jpeg]]
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/scooby-clasificacion-arbol.jpeg :exports results :results output graphics file :eval never
+  final_fit |>
+    extract_fit_engine() |>
+    rpart.plot(tweak = 1.5, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+#+caption: Representación gráfica del árbol de decisión. 
+#+RESULTS:
+[[file:../images/scooby-clasificacion-arbol.jpeg]]
+
+
+* Conclusiones
+
+- Los árboles  de decisión son fáciles de interpretar y explicar.
+- Algunos piensan que los árboles de decisión refleja el patrón de toma de decisiones de las personas.
+- Son fáciles de visualizar, incluso si hay muchos predictores.
+- Son difíciles de ajustar cuando las relaciones son lineales.
+- Las predicciones numéricas pueden ser poco precisas.
+- Son sensibles al conjunto de datos. 
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
+ 
