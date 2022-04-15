@@ -37,13 +37,13 @@
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
 #+EXPORT_FILE_NAME: ../docs/08-ensamble.pdf
 :END:
-#+PROPERTY: header-args:R :session ensamble :exports both :results output org :tangle rscripts/08-ensamble.R :mkdirp yes :dir ../
+#+PROPERTY: header-args:R :session ensamble :exports both :results output org :tangle ../rscripts/08-ensamble.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Modelos por ensamble.\\
 *Objetivo*: Que veremos.\\
-*Lectura recomendada*: Sección 8.2 de citep:James2021. 
+*Lectura recomendada*: Sección 8.2 de citep:James2021. Capítulo 15 de citep:Hastie2009c. 
 #+END_NOTES
 
 
@@ -76,6 +76,20 @@
 - [[#introducción][Introducción]]
 - [[#remuestreo-o-bootstrap][Remuestreo o bootstrap]]
   - [[#para-pensar][Para pensar:]]
+- [[#bootstrapped-aggregation-bagging][Bootstrapped aggregation: Bagging]]
+  - [[#en-problemas-de-clasificación][En problemas de clasificación]]
+  - [[#error-de-generalización][Error de generalización]]
+  - [[#observaciones][Observaciones]]
+  - [[#bagging-regresión-y-mse][Bagging, regresión y MSE]]
+  - [[#bagging-y-clasificación][Bagging y clasificación]]
+    - [[#bagging-y-clasificadores][Bagging y clasificadores:]]
+    - [[#bagging-y-la-sabiduría-de-las-masas][Bagging y la sabiduría de las masas:]]
+  - [[#conclusiones][Conclusiones]]
+- [[#bosques-aleatorios][Bosques aleatorios]]
+  - [[#motivación][Motivación]]
+  - [[#sobre-ajuste][Sobre-ajuste]]
+  - [[#análisis-de-ajuste][Análisis de ajuste]]
+  - [[#conclusiones][Conclusiones]]
 :END:
 
 * Introducción 
@@ -170,7 +184,7 @@ con 15 grados de libertad, ver [[fig:splines-smooth]].
 [[file:../images/splines-bootstrap.jpeg]]
 
 #+REVEAL: split
-A través de remuestreo podemos cuantificar la estabilidad de dicha estimación.
+A través de remuestreo podemos cuantificar la estabilidad de dicha estimación, ver [[fig:splines-boot]].
 
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-splines-bootstrap.jpeg :exports results :results output graphics file
@@ -204,9 +218,183 @@ A través de remuestreo podemos cuantificar la estabilidad de dicha estimación.
 #+RESULTS:
 [[file:../images/wage-splines-bootstrap.jpeg]]
 
-** En contexto
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/wage-splines-bootstrap-intervals.jpeg :exports results :results output graphics file
+  boot.fit <- tibble(id = 1:100) |>
+    mutate(resultados = map(id, ajusta_boot))
+
+  boot.fit |>
+    unnest(resultados) |>
+    group_by(x) |>
+    summarise(pred.lo = quantile(y, prob = .025),
+              pred    = mean(y),
+              pred.hi = quantile(y, prob = .975)) |>
+    ggplot(aes(x, pred)) +
+    geom_ribbon(aes(ymin = pred.lo,
+                    ymax = pred.hi),
+                fill = "lightblue", alpha = .5) +
+    geom_line(color = 'red') +
+    geom_point(data = data, aes(age, wage), color = "gray") +
+    sin_lineas +
+    xlab("Edad") + ylab("Ingreso") + ggtitle("df = 15")
+#+end_src
+#+name: fig:splines-boot
+#+caption: Suavizador por /splines/ con 15 grados de libertad, réplicas con remuestreo. 
+#+RESULTS:
+[[file:../images/wage-splines-bootstrap-intervals.jpeg]]
 
 
+* /Bootstrapped aggregation: Bagging/
+
+En el contexto de modelado predictivo nos interesa estimar la relación que existe entre atributos $x$ y la respuesta de interés $y$ por medio de una $f: \mathcal{X} \mapsto \mathcal{Y}$. Dicho estimador, lo denotamos por $\hat f_n$ haciendo énfasis en que ha sido construido con una muestra de tamaño $n$ al minimizar una función de pérdida adecuada.
+
+#+REVEAL: split
+Para cada uno de los $B$ conjuntos de entrenamiento estimamos $\hat f_n^{(b)}$ para poder hacer predicciones por medio de
+\begin{align}
+\hat f^{(\mathsf{bag})}_{B,n} (x) = \frac1B \sum_{b = 1}^{B} \hat f_n^{(b)} (x) \,,
+\end{align}
+esto lo llamamos ~bootstrap aggregation~ o ~bagging~. 
+
+** En problemas de clasificación
+
+Para problemas de clasificación podemos considerar las predicciones de cada uno
+de los modelos $\hat f_n^{(b)}$ y tomar la clase con mas votos dentro del conjunto de
+$B$ predictores.
+
+** Error de generalización
+
+- Usando /bagging/ entrenamos con cada uno de los conjuntos de datos remuestreados.
+- Cada conjunto remuestreado utiliza, en promedio, $2/3$ de los datos originales.
+- El conjunto no utilizado lo llamamos ~conjunto fuera de bolsa~ (/out-of-bag/, ~OOB~).
+- Podemos obtener predicciones para cada observación $i = 1, \ldots, n$
+  cuando se encuentra en algún conjunto ~OOB~. En promedio, tenemos $B/3$ predicciones
+  para cada $i$, las cuales podemos promediar para obtener la predicción en cada $i$.
+- Esto es un estimador de ~LOO-CV~ utilizando ~bagging~.
+
+** Observaciones
+
+- El estimador $\hat f^{(\mathsf{bag})}_{B,n}$ es un estimador Monte Carlo. ¿De qué?
+- El estimador $\hat f^{(\mathsf{bag})}_{B,n} \rightarrow \hat f_n$ con $B\rightarrow \infty$ en cada uno de los puntos a evaluar $x$.
+- Cuando los atributos están altamente correlacionados los árboles de decisión
+  pueden presentar varianza alta.  En esta situación ~bagging~ puede suavizar la
+  varianza y reducir el error de generalización.
+
+** /Bagging/, regresión y ~MSE~
+
+- Si estamos en tareas de regresión y medimos el error de generalización por
+  medio de pérdida cuadrática obtenemos lo siguiente
+  \begin{align}
+  \mathbb{E}\left( y - \hat f^*(x) \right)^2 \geq \mathbb{E} \left( y - \mathbb{E} \hat f^*(x) \right)^2\,,
+  \end{align}
+  donde $\hat f^*$ es una estimación por medio de una remuestra y $\mathbb{E}\hat f^*$ es el valor esperado de las estimaciones de $f$ utilizando remuestras.
+- Por lo tanto, /bagging/ podrá disminuir el ~MSE~.
+
+** /Bagging/ y clasificación
+
+- En problemas de clasificación, no tenemos descomposición aditiva de sesgo y varianza.
+- El uso de ~bagging~ puede hacer de un mal clasificador, algo todavía peor. Consideremos el
+  caso siguiente.
+
+*** /Bagging/ y clasificadores:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Supongamos que tenemos un clasificador binario que asigna $Y = 1$ para todo $x$ con probabilidad $0.4$. ¿Cuál es el la tasa de error de clasificación de este modelo? ¿Cuál sería la tasa de error de clasificación de un consenso con este modelo?
+
+*** /Bagging/ y la sabiduría de las masas:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Supongamos que tenemos una colección de clasificadores independientes donde cada
+uno tiene una tasa de error de $\varepsilon < 0.5$, y sea
+\begin{align}
+S_1(x) = \sum_{b = 1}^{B} I[G^{(b)}(x) = 1]\,,
+\end{align}
+el voto por consenso de que la instancia $x$ pertenezca a la clase 1. Dado que los clasificadores
+son independientes entonces
+\begin{align}
+S_1(x) \sim \mathsf{Binomial}(B, 1- \varepsilon)\,,
+\end{align}
+donde
+\begin{align}
+\mathbb{P}(\text{ clasificación correcta }) = \mathbb{P}(S_1 > B/2) \approx 1\,,
+\end{align}
+con $B$ suficientemente grande.
+
+
+#+BEGIN_NOTES
+El resultado anterior se conoce como ~Sabiduría de las masas~ en donde se asume que cada clasificador es un clasificador ~débil~. Con tasa de error ligeramente menor al azar. Para que el consenso de dichos clasificadores tenga buenos resultados se necesita, además, que los clasificadores sean ~independientes~. 
+#+END_NOTES
+
+** Conclusiones
+
+- Utilizar ~bagging~ en un problema de clasificación con árboles. No es un
+  procedimiento que utilice árboles independientes. Por lo tanto no hay garantía
+  de que el consenso mejore el error de clasificación.
+
+* Bosques aleatorios
+
+El modelo propuesto de Bosques aleatorios (~RF~ por sus siglas en inglés) ayuda a de-correlacionar un conjunto de árboles.
+Para lograr esto seguimos utilizando remuestreo para seleccionar conjuntos de datos de entrenamiento. Al mismo tiempo, con cada conjunto de remuestras, utilizamos un conjunto de $m$ predictores al azar para entrenar. Esto es, utilizamos para cada remuestra, un subconjunto distinto de predictores para entrenar un árbol. 
+
+#+REVEAL: split
+Usualmente consideramos $m\approx \sqrt{p}$. Esto permite restringir el espacio de búsqueda y dejar de utilizar consistentemente los mismos predictores en cada remuestra.
+
+** Motivación
+
+Si consideramos la situación donde tenemos $B$ variables $\mathsf{iid}$ cada una con varianza $\sigma^2$  entonces el promedio tendrá varianza igual $\sigma^2/B$. Si las variables son sólo $\mathsf{id}$ con correlación positiva $\rho$ , entonces el promedio tendrá varianza igual a
+\begin{align}
+\rho \sigma^2  + \frac{1 - \rho}{B} \sigma^2\,.
+\end{align}
+
+#+BEGIN_NOTES
+Incluso aunque tomemos un número suficiente de árboles para controlar el segundo término, el primer término no desvanece con $B \rightarrow \infty$. Es por esto que bosques aleatorios busca reducir la correlación entre árboles al permitir que se ajusten a conjuntos aleatorios (en observaciones y predictores) por medio de remuestreo.
+#+END_NOTES
+
+
+** Sobre-ajuste
+
+- El consenso de votos tiende a ser robusto contra sobre-ajustar y si utilizamos una $B$  (el número de árboles) suficientemente grande estabilizamos la variabilidad del error de generalización. 
+- Usualmente tenemos problemas de sobre-ajuste cuando el número de predictores es alto y el número de predictores relevantes para la predicción es pequeño.
+
+** Análisis de ajuste
+
+La predicción de un bosque aleatorio se realiza por medio de
+\begin{align}
+\hat f_{\mathsf{RF}}(x) = \frac1B \sum_{b=1}^{B} T\left(x; \Theta(\mathcal{D}_n^{(b)})\right)\,,
+\end{align}
+donde $T(x; \Theta)$ denota la predicción de un árbol utilizando los parámetros (variables de selección, puntos de corte) $\Theta$. La notación $\Theta(\mathcal{D}_n)$ hace énfasis en que los parámetros que gobiernan el árbol fueron escogidos utilizando el conjunto de datos $\mathcal{D}_n$. El término $\mathcal{D}_n^{(b)}$ hace énfasis en que el conjunto de entrenamiento es una remuestra del conjunto original.
+
+#+REVEAL: split
+El predictor tiende a satisfacer la siguiente igualdad (ley de los grandes números, $B \rightarrow \infty$)
+\begin{align}
+\hat f_{\mathsf{RF}}(x) = \mathbb{E}_{\Theta | \mathcal{D}_n} T\left(x; \Theta(\mathcal{D}_n)\right)\,, 
+\end{align}
+donde hacemos énfasis en que es un valor esperado condicional en los datos de entrenamiento.
+
+#+REVEAL: split
+Nos interesa evaluar el ~error estándar~ de dicho estimador. Lo cual escribimos como 
+\begin{align}
+\mathbb{V}\left(\hat f_{\mathsf{RF}}(x) \right) = \rho(x) \cdot \sigma^2(x)\,, 
+\end{align}
+donde:
+- $\rho(x)$ es la correlación entre dos árboles
+  \begin{align}
+  \rho(x) = \mathsf{Corr}\left[ T\left(x; \Theta_i(\mathcal{D}_n)\right), T\left(x; \Theta_j(\mathcal{D}_n)\right)\right]\,.
+  \end{align}
+- $\sigma^2(x)$ es la varianza de cualquier árbol
+  \begin{align}
+  \sigma^2(x) = \mathbb{V}\left(T\left(x; \Theta(\mathcal{D}_n)\right)\right)\,.
+  \end{align}
+
+  
+** Conclusiones
+
+- Los bosques aleatorios son uno de los métodos mas generales de predicción.
+- Son fáciles de entrenar, usualmente ajustando dos parámetros por validación cruzada.
+- Heredan ventajas de los árboles. Por ejemplo, las predicciones siempre se encuentran en el rango de las observaciones.
+- Pueden ser lentos en predicción.
+- Tienen capacidad de extrapolación limitada. 
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
