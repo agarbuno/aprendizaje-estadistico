@@ -42,7 +42,7 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Modelos por ensamble.\\
-*Objetivo*: Que veremos.\\
+*Objetivo*:  En esta sección estudiaremos una forma de incorporar varios modelos para crear un modelo predictivo mas fuerte que un modelo individual. La estrategia está basada en una técnica de remuestreo que ya hemos estudiado previamente.\\
 *Lectura recomendada*: Sección 8.2 de citep:James2021. Capítulo 15 de citep:Hastie2009c. 
 #+END_NOTES
 
@@ -354,7 +354,7 @@ Incluso aunque tomemos un número suficiente de árboles para controlar el segun
 
 ** Sobre-ajuste
 
-- El consenso de votos tiende a ser robusto contra sobre-ajustar y si utilizamos una $B$  (el número de árboles) suficientemente grande estabilizamos la variabilidad del error de generalización. 
+- El consenso de votos tiende a ser robusto contra sobre-ajustar y si utilizamos una $B$  (el número de árboles) ta seuficientemente grande estabilizamos la variabilidad del error de generalización. 
 - Usualmente tenemos problemas de sobre-ajuste cuando el número de predictores es alto y el número de predictores relevantes para la predicción es pequeño.
 
 ** Análisis de ajuste
