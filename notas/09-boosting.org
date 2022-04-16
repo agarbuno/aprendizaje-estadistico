@@ -1,0 +1,271 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Boosting~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/09-boosting.pdf
+:END:
+#+PROPERTY: header-args:R :session boosting :exports both :results output org :tangle ../rscripts/09-boosting.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | /Boosting/.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Capítulo 10 citep:Hastie2009c. 
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 2)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#modelos-aditivos-secuenciales][Modelos aditivos secuenciales]]
+  - [[#clasificación-binaria][Clasificación binaria]]
+- [[#gradient-boosting][Gradient boosting]]
+  - [[#pseudo-código-árboles-de-regresión][Pseudo-código (árboles de regresión)]]
+  - [[#funciones-de-pérdida][Funciones de pérdida]]
+  - [[#parámetros-a-optimizar][Parámetros a optimizar]]
+:END:
+
+* Introducción
+
+/Boosting/ es otra estrategia de agregación de modelos. Es una herramienta
+bastante general que puede ser utilizada para problemas de regresión o
+clasificación citep:Schapire2001. La estrategia de ~boosting~ es una ~estrategia
+secuencial~ que busca mejorar la capacidad predictiva lograda anteriormente.
+
+#+REVEAL: split
+Usualmentera /boosting/ utilizamos árboles pequeños (sesgo alto), al contrario de bosques
+aleatorios donde se prefieren árboles profundos (sesgo bajo).
+
+#+REVEAL: split
+En /boosting/ el sesgo se disminuye con modelos predictivos que se encargan de
+distintos grupos en el conjunto de entrenamiento. La varianza se puede controlar
+con el parámetro de tasa de aprendizaje.
+
+* Modelos aditivos secuenciales
+
+El marco de modelos aditivos secuenciales nos permite entender el contexto de modelado por etapas.
+En este marco, consideremos un predictor de la forma
+\begin{align}
+f(x) = \sum_{k = 1}^{M} \beta_k \, b_k(x) = \sum_{k=1}^{M} T_k(x)\,,
+\end{align}
+donde cada término es el resultado de ajustar un árbol de regresión.
+
+#+REVEAL: split
+Resolver este problema es dificil pues se tienen que ajustar los coeficientes y
+los árboles al mismo tiempo. Asi que lo resolveremos de manera secuencial. Es decir,
+consideremos que tenemos 
+\begin{align}
+f_{m-1}(x) = \sum_{k = 1}^{m-1} T_k(x)\,,
+\end{align}
+donde $T_k$ son árboles previamente ajustados.
+
+#+REVEAL: split
+Para la iteración actual, ajustaremos un modelo adicional al resolver
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} \mathcal{L}\left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
+\end{align}
+donde $\mathcal{L}$ es una función de pérdida.
+
+#+REVEAL: split
+Si utilizamos pérdida cuadrática podemos reescribir
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} \left( r_i^{(m)} - T(x_i) \right)^2\,,
+\end{align}
+donde $r_i^{(m)}$ es el residual que resta bajo el modelo $m-1$.
+
+\newpage
+
+** Clasificación binaria
+
+Para problemas de clasificación necesitamos resolver en escala logarítmica para después transformar a probabilidades por medio de
+\begin{align}
+\mathbb{P}(Y = 1| x) = p(x) = h(f(x))\,,
+\end{align}
+donde $h$ es la función logística.
+
+En este caso resolvemos el problema de optimización
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} \mathcal{L}\left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
+\end{align}
+donde $\mathcal{L}$ es la ~devianza~ ( - 2 $\times$  log-verosimilitud). En este caso, usaremos la siguiente codificación de las clases $y \in \{-1, 1\}$. Por lo que la devianza la podemos escribir como
+\begin{align}
+\mathcal{L}(y, \hat z) = - \left[  ( y + 1) \log h(\hat z) - (y - 1) \log (1 - h(\hat z) )\right] \,,
+\end{align}
+la cual se puede escribir como
+\begin{align}
+\mathcal{L}(y, \hat z)  = 2 \log \left( 1 + e^{-y \hat z} \right)\,. 
+\end{align}
+
+Esto nos permite formular el problema de optimización como 
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} 2 \log \left( 1 + e^{-y_i \cdot \left(f_{m-1}(x_i) + T(x_i)\right)} \right)\,,
+\end{align}
+el cual puede ser formulado como 
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} 2 \log \left( 1 + d_{i}^{(m)} e^{-y_i T(x_i)} \right)\,.
+\end{align}
+
+
+#+BEGIN_NOTES
+En este caso (clasificación binaria) vemos que la formulación no es tan fácil
+que con pérdida cuadrática en el contexto de regresión. Sin embargo, parece ser
+que los datos reciben una ponderación $d_i^{(m)}$.
+#+END_NOTES
+
+* /Gradient boosting/
+
+Utilizaremos /gradient boosting/ para resolver la formulación anterior. Esta técnica se puede aplicar de manera general para cualquier función de pérdida. La formulación es resolver
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} \mathcal{L}\left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
+\end{align}
+donde podemos interpretar como /qué tanto tenemos que movernos a partir de $f_{m-1}$ para disminuir la función de pérdida/.
+
+#+REVEAL: split
+Si nos fijamos en uno de los términos y escribimos
+\begin{align}
+\mathcal{L}(y_i, f_{m-1}(x_i) + z_i)\,,
+\end{align}
+entonces sabemos que tenemos que modificar de acuerdo a
+\begin{align}
+z_i = - \lambda \cdot \frac{\partial \mathcal{L}}{\partial z_i} \left(  y_i, f_{m-1}(x_i) \right)\,,
+\end{align}
+donde tomamos una longitud de paso ($\lambda$) para estabilizar el proceso de optimización.
+
+#+REVEAL: split
+La restricción que tenemos es que $z_i = T(x_i)$ para toda observación. De hecho, lo mejor que podríamos tener es que
+\begin{align}
+T(x_i) \approx - \lambda \cdot \frac{\partial \mathcal{L}}{\partial z_i} \left(  y_i, f_{m-1}(x_i) \right) = -\lambda \cdot g_{i,m}\,.
+\end{align}
+
+#+REVEAL: split
+Así que formulamos un nuevo problema de optimización como 
+\begin{align}
+\min_{T} \sum_{i = 1}^{n} \left( g_{i,m} - T(x_i) \right)^2\,,
+\end{align}
+donde $g_{i,m}$ es el gradiente de la función objetivo en la iteración $m$ evaluando en la observación $i$. Por lo que la actualización sería de la forma
+\begin{align}
+f_m(x) = f_{m-1}(x) + \lambda T(x)\,.
+\end{align}
+
+** Pseudo-código (árboles de regresión)
+
+#+BEGIN_NOTES
+El caso de regresión con pérdida cuadrática se presenta a continuación como un ejemplo. Nota que en esta formulación el problema de optimización en términos del gradiente de la función de pérdida es equivalente a ajustar los residuales. Esto nos ayuda a conectar la formulación con resolver un problema predictivo. La tasa de aprendizaje en este caso, previene el sobreajuste pues ayuda a reducir la importancia de la solución a los residuales. 
+#+END_NOTES
+
+
+1. Definimos $\hat f(x) = 0$ , y $r_i = y_i$ para toda observación en el conjunto de entrenamiento.
+2. Para cada $m = 1, 2, \ldots, M$ :
+   1. Ajustamos un árbol $\hat f_{m}$ con $d+1$ nodos terminales para el conjunto $(X, r)$.
+   2. Actualizamos el predictor $\hat f$ al incluir una versión escalada del nuevo árbol
+      \begin{align}
+      \hat f (x) \leftarrow \hat f(x) + \lambda \hat f_{m}(x) \,.
+      \end{align}
+   3. Actualizamos los residuales 
+      \begin{align}
+      r_i \leftarrow r_i - \lambda \hat f_{m}(x) \,.
+      \end{align}
+3. Regresamos el modelo
+   \begin{align}
+   \hat f(x) = \lambda \sum_{m = 1}^{M} \hat f_{m}(x) \,.
+   \end{align}
+
+** Funciones de pérdida
+
+La selección de función de pérdida parte crucial del algoritmo y se escoge de acuerdo al problema y al objetivo que se quiera resolver. Por ejemplo, en regresión tenemos (por nombrar un par):
+1. *Pérdida cuadrática*:
+   \begin{align}
+   \mathcal{L}(y, z) = \frac12 (y - z)^2, \qquad \frac{\partial \mathcal{L}}{\partial z} = - (y - z)\,.
+   \end{align}
+2. *Pérdida absoluta*: 
+   \begin{align}
+   \mathcal{L}(y, z) = |y - z|, \qquad \frac{\partial \mathcal{L}}{\partial z} = \frac{|y -z|}{y -z}\,.
+   \end{align}
+
+#+REVEAL: split
+En el contexto de clasificación podemos utilizar:
+1. *Devianza binomial*:
+   \begin{align}
+   \mathcal{L}(y, z) = -\log(1 + e^{-yz}), \qquad \frac{\partial \mathcal{L}}{\partial z} = I(y = 1) - h(z)\,.
+   \end{align}
+2. *Pérdida exponencial*:
+   \begin{align}
+   \mathcal{L}(y, z) = e^{-yz}, \qquad \frac{\partial \mathcal{L}}{\partial z} = - y e^{-yz}\,.
+   \end{align}
+
+
+** Parámetros a optimizar
+
+Los parámetros que usualmente se ajustan con validación cruzada son:
+- La tasa de aprendizaje o tamaño de paso $\lambda$.
+- El número de términos del modelo $M$.
+Más los adicionales de la familia de árboles:
+- Profundidad del árbol.
+- Número de observaciones en los nodos terminales.
+Se pueden incorporar adicionales:
+- El número de predictores a utilizar (como en ~RF~).
+- Alguna cota de reducción de función objetivo para profundizar el árbol.
+- Tamaño de submuestreo. 
+  
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
+

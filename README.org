@@ -213,7 +213,7 @@ hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
-* COMMENT Plan de trabajo [7/16][43%]                              :noexport:
+* COMMENT Plan de trabajo [9/16][56%]                              :noexport:
 :PROPERTIES:
 :UNNUMBERED: notoc
 :END:
@@ -231,9 +231,11 @@ CLOSED: [2022-03-04 Fri 19:53]
 CLOSED: [2022-03-07 Mon 14:47]
 ** DONE Bootstrap
 CLOSED: [2022-03-15 Tue 20:20]
-** TODO Regularizacion
-** TODO Modelos  no lineales (intro)
-** TODO Arboles de decisión
+** DONE Regularizacion
+CLOSED: [2022-04-14 Thu 19:57]
+** DONE Modelos  no lineales (intro)
+CLOSED: [2022-04-14 Thu 19:57]
+** NEXT Arboles de decisión
 ** TODO Modelos de Ensamble
 ** TODO Máquinas de Soporte Vectorial
 ** TODO Modelos de supervivencia
