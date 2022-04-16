@@ -42,7 +42,7 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | /Boosting/.\\
-*Objetivo*: Que veremos.\\
+*Objetivo*: En esta sección estudiaremos otra estrategia para combinar modelos en uno sólo. La estrategia que estudiaremos en esta sección es un mecanismo altamente flexible para regresión y clasificación y actualmente representa el estado del arte para resolver problemas de predicción con datos tabulares.\\
 *Lectura recomendada*: Capítulo 10 citep:Hastie2009c. 
 #+END_NOTES
 
