@@ -14,31 +14,8 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/08-ensamble.pdf
-:END:
 #+PROPERTY: header-args:R :session ensamble :exports both :results output org :tangle ../rscripts/08-ensamble.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Modelos por ensamble.\\
@@ -84,12 +61,13 @@
   - [[#bagging-y-clasificación][Bagging y clasificación]]
     - [[#bagging-y-clasificadores][Bagging y clasificadores:]]
     - [[#bagging-y-la-sabiduría-de-las-masas][Bagging y la sabiduría de las masas:]]
-  - [[#conclusiones][Conclusiones]]
+  - [[#observaciones][Observaciones]]
 - [[#bosques-aleatorios][Bosques aleatorios]]
   - [[#motivación][Motivación]]
   - [[#sobre-ajuste][Sobre-ajuste]]
   - [[#análisis-de-ajuste][Análisis de ajuste]]
-  - [[#conclusiones][Conclusiones]]
+- [[#conclusiones][Conclusiones]]
+- [[#referencias][Referencias]]
 :END:
 
 * Introducción 
@@ -218,6 +196,10 @@ A través de remuestreo podemos cuantificar la estabilidad de dicha estimación,
 #+RESULTS:
 [[file:../images/wage-splines-bootstrap.jpeg]]
 
+#+REVEAL: split
+
+La estabilidad también la podemos graficar por medio de intervalos de confianza. Ver [[fig:splines-boot-int]].
+
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-splines-bootstrap-intervals.jpeg :exports results :results output graphics file
   boot.fit <- tibble(id = 1:100) |>
@@ -238,7 +220,7 @@ A través de remuestreo podemos cuantificar la estabilidad de dicha estimación,
     sin_lineas +
     xlab("Edad") + ylab("Ingreso") + ggtitle("df = 15")
 #+end_src
-#+name: fig:splines-boot
+#+name: fig:splines-boot-int
 #+caption: Suavizador por /splines/ con 15 grados de libertad, réplicas con remuestreo. 
 #+RESULTS:
 [[file:../images/wage-splines-bootstrap-intervals.jpeg]]
@@ -246,10 +228,10 @@ A través de remuestreo podemos cuantificar la estabilidad de dicha estimación,
 
 * /Bootstrapped aggregation: Bagging/
 
-En el contexto de modelado predictivo nos interesa estimar la relación que existe entre atributos $x$ y la respuesta de interés $y$ por medio de una $f: \mathcal{X} \mapsto \mathcal{Y}$. Dicho estimador, lo denotamos por $\hat f_n$ haciendo énfasis en que ha sido construido con una muestra de tamaño $n$ al minimizar una función de pérdida adecuada.
+En el contexto de modelado predictivo nos interesa ~estimar la relación~ que existe entre atributos $x$ y la respuesta  $y$ por medio de una $f: \mathcal{X} \mapsto \mathcal{Y}$. Dicho estimador, lo denotamos por $\hat f_n$ haciendo énfasis en que ha sido construido con una muestra de tamaño $n$ al minimizar una función de pérdida adecuada.
 
 #+REVEAL: split
-Para cada uno de los $B$ conjuntos de entrenamiento estimamos $\hat f_n^{(b)}$ para poder hacer predicciones por medio de
+Si utilizamos /bootstrap/, para cada uno de los $B$ conjuntos de entrenamiento estimamos $\hat f_n^{(b)}$ para poder hacer predicciones por medio de
 \begin{align}
 \hat f^{(\mathsf{bag})}_{B,n} (x) = \frac1B \sum_{b = 1}^{B} \hat f_n^{(b)} (x) \,,
 \end{align}
@@ -258,12 +240,12 @@ esto lo llamamos ~bootstrap aggregation~ o ~bagging~.
 ** En problemas de clasificación
 
 Para problemas de clasificación podemos considerar las predicciones de cada uno
-de los modelos $\hat f_n^{(b)}$ y tomar la clase con mas votos dentro del conjunto de
+de los modelos $\hat f_n^{(b)}$ y tomar la clase con ~más votos~ dentro del conjunto de
 $B$ predictores.
 
 ** Error de generalización
 
-- Usando /bagging/ entrenamos con cada uno de los conjuntos de datos remuestreados.
+- Usando /bootstrap/ entrenamos con cada uno de los conjuntos de datos remuestreados.
 - Cada conjunto remuestreado utiliza, en promedio, $2/3$ de los datos originales.
 - El conjunto no utilizado lo llamamos ~conjunto fuera de bolsa~ (/out-of-bag/, ~OOB~).
 - Podemos obtener predicciones para cada observación $i = 1, \ldots, n$
@@ -326,9 +308,9 @@ con $B$ suficientemente grande.
 El resultado anterior se conoce como ~Sabiduría de las masas~ en donde se asume que cada clasificador es un clasificador ~débil~. Con tasa de error ligeramente menor al azar. Para que el consenso de dichos clasificadores tenga buenos resultados se necesita, además, que los clasificadores sean ~independientes~. 
 #+END_NOTES
 
-** Conclusiones
+** Observaciones
 
-- Utilizar ~bagging~ en un problema de clasificación con árboles. No es un
+- Utilizar ~bagging~ en un problema de clasificación con árboles no es un 
   procedimiento que utilice árboles independientes. Por lo tanto no hay garantía
   de que el consenso mejore el error de clasificación.
 
@@ -354,7 +336,7 @@ Incluso aunque tomemos un número suficiente de árboles para controlar el segun
 
 ** Sobre-ajuste
 
-- El consenso de votos tiende a ser robusto contra sobre-ajustar y si utilizamos una $B$  (el número de árboles) ta seuficientemente grande estabilizamos la variabilidad del error de generalización. 
+- El consenso de votos tiende a ser robusto contra sobre-ajustar y si utilizamos una $B$  (el número de árboles) suficientemente grande estabilizamos la variabilidad del error de generalización. 
 - Usualmente tenemos problemas de sobre-ajuste cuando el número de predictores es alto y el número de predictores relevantes para la predicción es pequeño.
 
 ** Análisis de ajuste
@@ -388,13 +370,17 @@ donde:
   \end{align}
 
   
-** Conclusiones
+* Conclusiones
 
-- Los bosques aleatorios son uno de los métodos mas generales de predicción.
+- Los bosques aleatorios son uno de los métodos más generales de predicción.
 - Son fáciles de entrenar, usualmente ajustando dos parámetros por validación cruzada.
 - Heredan ventajas de los árboles. Por ejemplo, las predicciones siempre se encuentran en el rango de las observaciones.
 - Pueden ser lentos en predicción.
 - Tienen capacidad de extrapolación limitada. 
+
+
+* Referencias                                                         :latex:
+
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
