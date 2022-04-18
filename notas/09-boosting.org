@@ -1,7 +1,7 @@
 #+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
-#+DATE: ~Boosting~
+#+DATE: ~Ensambles: Boosting~
 #+STARTUP: showall
 :REVEAL_PROPERTIES:
 #+LANGUAGE: es
@@ -14,31 +14,8 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/09-boosting.pdf
-:END:
 #+PROPERTY: header-args:R :session boosting :exports both :results output org :tangle ../rscripts/09-boosting.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | /Boosting/.\\
@@ -79,6 +56,7 @@
   - [[#pseudo-código-árboles-de-regresión][Pseudo-código (árboles de regresión)]]
   - [[#funciones-de-pérdida][Funciones de pérdida]]
   - [[#parámetros-a-optimizar][Parámetros a optimizar]]
+- [[#referencias][Referencias]]
 :END:
 
 * Introducción
@@ -89,7 +67,7 @@ clasificación citep:Schapire2001. La estrategia de ~boosting~ es una ~estrategi
 secuencial~ que busca mejorar la capacidad predictiva lograda anteriormente.
 
 #+REVEAL: split
-Usualmentera /boosting/ utilizamos árboles pequeños (sesgo alto), al contrario de bosques
+Usualmente con /boosting/ utilizamos árboles pequeños (sesgo alto), al contrario de bosques
 aleatorios donde se prefieren árboles profundos (sesgo bajo).
 
 #+REVEAL: split
@@ -99,7 +77,7 @@ con el parámetro de tasa de aprendizaje.
 
 * Modelos aditivos secuenciales
 
-El marco de modelos aditivos secuenciales nos permite entender el contexto de modelado por etapas.
+El marco de ~modelos aditivos secuenciales~ nos permite entender el contexto de modelado por etapas.
 En este marco, consideremos un predictor de la forma
 \begin{align}
 f(x) = \sum_{k = 1}^{M} \beta_k \, b_k(x) = \sum_{k=1}^{M} T_k(x)\,,
@@ -129,8 +107,6 @@ Si utilizamos pérdida cuadrática podemos reescribir
 \end{align}
 donde $r_i^{(m)}$ es el residual que resta bajo el modelo $m-1$.
 
-\newpage
-
 ** Clasificación binaria
 
 Para problemas de clasificación necesitamos resolver en escala logarítmica para después transformar a probabilidades por medio de
@@ -139,11 +115,12 @@ Para problemas de clasificación necesitamos resolver en escala logarítmica par
 \end{align}
 donde $h$ es la función logística.
 
+#+REVEAL: split
 En este caso resolvemos el problema de optimización
 \begin{align}
 \min_{T} \sum_{i = 1}^{n} \mathcal{L}\left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
 \end{align}
-donde $\mathcal{L}$ es la ~devianza~ ( - 2 $\times$  log-verosimilitud). En este caso, usaremos la siguiente codificación de las clases $y \in \{-1, 1\}$. Por lo que la devianza la podemos escribir como
+donde $\mathcal{L}$ es la ~devianza~ ( - 2 $\times$  log-verosimilitud). Además, usaremos la siguiente codificación de las clases $y \in \{-1, 1\}$. Por lo que la devianza la podemos escribir como
 \begin{align}
 \mathcal{L}(y, \hat z) = - \left[  ( y + 1) \log h(\hat z) - (y - 1) \log (1 - h(\hat z) )\right] \,,
 \end{align}
@@ -152,11 +129,12 @@ la cual se puede escribir como
 \mathcal{L}(y, \hat z)  = 2 \log \left( 1 + e^{-y \hat z} \right)\,. 
 \end{align}
 
+#+REVEAL: split
 Esto nos permite formular el problema de optimización como 
 \begin{align}
 \min_{T} \sum_{i = 1}^{n} 2 \log \left( 1 + e^{-y_i \cdot \left(f_{m-1}(x_i) + T(x_i)\right)} \right)\,,
 \end{align}
-el cual puede ser formulado como 
+el cual puede ser re-escrito como 
 \begin{align}
 \min_{T} \sum_{i = 1}^{n} 2 \log \left( 1 + d_{i}^{(m)} e^{-y_i T(x_i)} \right)\,.
 \end{align}
@@ -255,15 +233,18 @@ En el contexto de clasificación podemos utilizar:
 Los parámetros que usualmente se ajustan con validación cruzada son:
 - La tasa de aprendizaje o tamaño de paso $\lambda$.
 - El número de términos del modelo $M$.
+#+REVEAL: split
 Más los adicionales de la familia de árboles:
 - Profundidad del árbol.
 - Número de observaciones en los nodos terminales.
+#+REVEAL: split
 Se pueden incorporar adicionales:
 - El número de predictores a utilizar (como en ~RF~).
 - Alguna cota de reducción de función objetivo para profundizar el árbol.
 - Tamaño de submuestreo. 
   
 
+* Referencias                                                         :latex:
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
