@@ -56,6 +56,7 @@
   - [[#pseudo-código-árboles-de-regresión][Pseudo-código (árboles de regresión)]]
   - [[#funciones-de-pérdida][Funciones de pérdida]]
   - [[#parámetros-a-optimizar][Parámetros a optimizar]]
+- [[#importancia-de-variables][Importancia de variables]]
 - [[#referencias][Referencias]]
 :END:
 
@@ -242,7 +243,39 @@ Se pueden incorporar adicionales:
 - El número de predictores a utilizar (como en ~RF~).
 - Alguna cota de reducción de función objetivo para profundizar el árbol.
 - Tamaño de submuestreo. 
-  
+
+
+* Importancia de variables
+
+Tanto para bosques aleatorios como modelos de /boosting/ basados en árboles se puede
+estimar cuáles fueron las variables (atributos) que mas contribuyeron en la
+construcción del modelo.
+
+#+REVEAL: split
+En cada /nodo interno/ de los árboles construidos sabemos que la variable y el punto de corte se
+escogieron de acuerdo a que maximizaban la ~mejora~ en dicha región. 
+
+#+REVEAL: split
+Para calcular la importancia de la variable $j$ en el  árbol $T$ se suman las
+contribuciones cada vez que esta variable fue utilizada para generar cortes
+\begin{align}
+\mathcal{I}^2_j(T) = \sum_{t = 1}^{J-1}\hat \, \iota^2_t I(v(t) = j)\,,
+\end{align}
+donde $\hat  \iota^2_t$ es  el registro  de la  mejora en  ~RSS~, ~Gini~  o ~entropía
+cruzada~ por el  nodo $t$ cuando este  nodo toma el corte  utilizando la variable
+$v(t)$.
+
+#+REVEAL: split
+La métrica de importancia en un ensamble de modelos considera promediar la mejora en todo el ensamble
+\begin{align}
+\mathcal{I}_j^2 = \frac{1}{M} \sum_{m=1}^{M} \mathcal{I}^2_j(T_m)\,.
+\end{align}
+
+#+REVEAL: split
+Se acostumbra registrar importancias relativas de manera que la variable con
+mayor importancia se le asigna un /score/ de 100 puntos y las demás se calculan de
+manera proporcional.
+
 
 * Referencias                                                         :latex:
 
