@@ -63,8 +63,9 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Máquinas de soporte vectorial.\\
-*Objetivo*: Que veremos.\\
-*Lectura recomendada*: Referencia.
+*Objetivo*: Estudiaremos una de las técnicas clásicas de modelado predictivo por medio de máquinas de soporte vectorial (~SVM~). Estos modelos encuentran relaciones no lineales y, además, hacen enfásis en el diseño de características (atributos) para tareas de modelado. En particular, son una alternativa viable para datos pequeños donde se tiene mucho conocimiento de dominio para el diseño de mecanismos de ajuste.
+/Disclaimer/: Todas las figuras en esta sección fueron tomadas de citep:James2021. \\
+*Lectura recomendada*: Capítulo 9 de citep:James2021, Capítulo 4 y 12 de citep:Hastie2009c. 
 #+END_NOTES
 
 
@@ -85,6 +86,7 @@
   - [[#ingeniería-de-características][Ingeniería de características]]
   - [[#solución-con-polinomios-cúbicos][Solución con polinomios cúbicos]]
 - [[#separaciones-no-lineales-y-kernels][Separaciones no lineales y kernels]]
+  - [[#formulación-alterna][Formulación alterna]]
   - [[#productos-interiores-y-vectores-de-soporte][Productos interiores y vectores de soporte]]
   - [[#kernels-y-máquinas-de-soporte-vectorial][Kernels y máquinas de soporte vectorial]]
     - [[#kernel-radial][Kernel radial:]]
@@ -108,10 +110,8 @@ La forma en que operan las ~SVM~ es a través de buscar clasificar por un
 #+REVEAL: split
 Si los datos no nos permiten realizar dicha separación entonces nos volcamos a
 relajar los supuestos del modelo:
-1. el concepto de ~separación~.
-2. el espacio de atributos.
-
-
+1. El concepto de ~separación~;
+2. El espacio de atributos.
 
 * Separación con un hiperplano
 
@@ -158,15 +158,12 @@ Esto lo escribimos como la solución al problema de optimización con restriccio
 y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq M\,, \quad \forall i\,.
 \end{gather*}
 
-
 #+BEGIN_NOTES
 El problema de optimización descrito se denomina ~formulación primal~ y se puede
 rescribir en términos de un problema de optimización cuadrático por medio de la
 ~formulación dual~. Esto permite la resolución del problema de optimización por
 medio de herramientas de optimización convexa para problemas cuadráticos.
 #+END_NOTES
-
-
 
 ** Datos no separables
 
@@ -207,7 +204,8 @@ y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq M (1- \epsilon_i)
 \end{gather*}
 
 #+REVEAL: split
-El término $C$ es dicta cuántos datos mal clasificados estamos dispuestos a cometer.
+El término $C$ dicta cuántos datos mal clasificados estamos dispuestos a
+cometer. Las variables $\epsilon_i$ reciben el nombre de variables de ~holgura~.
 
 #+DOWNLOADED: screenshot @ 2022-04-27 17:15:18
 #+attr_html: :width 700 :align center
@@ -256,23 +254,65 @@ En algunas situaciones la separación lineal no será suficiente.
 
 - Especialmente útil en problemas donde podamos usar ~productos interiores~.
 
+** Formulación alterna
+
+Vamos a reformular el problema de optimización (sin holguras)
+\begin{gather*}
+\max_{\beta_0, \beta_1, \ldots, \beta_p} M \\
+\text{sujeto a: } \sum_{j= 1}^{p} \beta_j^2 = 1\,,\\
+y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq M\,, \quad \forall i\,.
+\end{gather*}
+
+#+REVEAL: split
+Si consideramos que podemos eliminar la restricción para $\|\beta\| = 1$ por medio de
+\begin{align}
+y_i (\beta_0 + x_i^\top \beta) \geq M \cdot \|\beta\|\,,
+\end{align}
+y  $\|\beta\| = 1/M$, entonces el problema de optimización lo podemos escribir como 
+\begin{gather*}
+\min_{\beta_0, \beta_1, \ldots, \beta_p} \frac12 \|\beta\|^2\\
+\text{sujeto a: } y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq 1\,, \quad \forall i\,.
+\end{gather*}
+
+#+REVEAL: split
+Este un problema de optimización cuadrático con restricciones lineales. Lo cual
+se puede resolver de manera eficiente.
+
+#+REVEAL: split
+Para el problema con variables de holgura
+\begin{gather*}
+\max_{\beta_0, \beta_1, \ldots, \beta_p} M \\
+\text{sujeto a: } \sum_{j= 1}^{p} \beta_j^2 = 1\,,\\
+y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq M (1- \epsilon_i) \,, \quad \forall i\,, \\
+\epsilon_i \geq 0 \,, \qquad \sum_{i= 1}^{n} \epsilon_i \leq C_{\mathsf{rest}}\,.
+\end{gather*}
+
+#+REVEAL: split
+Se puede reformular por medio de
+\begin{gather*}
+\min_{\beta_0, \beta_1, \ldots, \beta_p} \frac12 \|\beta\|^2 + C_{\mathsf{reg}} \sum_{i = 1}^{n} \epsilon_i\\
+\text{sujeto a: } \\
+y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq 1- \epsilon_i \,, \quad \forall i\,, \\
+\epsilon_i \geq 0 \,.
+\end{gather*}
+
 ** Productos interiores y vectores de soporte
 
 - Recordemos que
    \begin{align}
-   \langle x_i, x_{i'} \rangle = \sum_{j = 1}^{p} x_{ij} x_{i'j}\,.
+   \langle x_i, x_{i'} \rangle = x_i^\top x_{i'}= \sum_{j = 1}^{p} x_{ij} x_{i'j}\,.
    \end{align}
 
 - El clasificador se puede expresar como
   \begin{align}
-  f(x) = \beta_0 + \sum_{i = 1}^{n} \alpha_i \langle x, x_i \rangle
+  f(x) = \beta_0 + \sum_{i = 1}^{n} y_i \, \alpha_i \, \langle x, x_i \rangle
   \end{align}
       
 - Necesitamos los $n \choose 2$ productos interiores para poder estimar los parámetros.
 
 - Pero, la mayoría de las $\alpha_i$ son cero,
   \begin{align}
-  f(x) = \beta_0 + \sum_{i  \in \mathcal{S}} \alpha_i \langle x, x_i \rangle\,.
+  f(x) = \beta_0 + \sum_{i  \in \mathcal{S}} y_i \, \alpha_i \, \langle x, x_i \rangle\,.
   \end{align}
 
 ** /Kernels/ y máquinas de soporte vectorial
@@ -287,7 +327,7 @@ En algunas situaciones la separación lineal no será suficiente.
 
 - La solución del problema, entonces, tiene la forma
   \begin{align}
-  f(x) = \beta_0 + \sum_{i  \in \mathcal{S}} \alpha_i K( x, x_i )\,.
+  f(x) = \beta_0 + \sum_{i  \in \mathcal{S}} y_i \, \alpha_i \, K( x, x_i )\,.
   \end{align}
 
 *** /Kernel/ radial:
@@ -321,6 +361,14 @@ El problema de optimización se puede rescribir como
 La función de pérdida se conoce como la función ~hinge~. Es muy similar a la
 pérdida por entropía cruzada (regresión logística).
 
+#+BEGIN_NOTES
+La formulación anterior no es muy común pero ha empezado a tener importancia
+pues permite formular de manera alternativa el problema de hiperplanos
+separadores de márgen máximo para poder resolverlo con métodos de descenso con
+gradiente estocástico citep:Abeykoon2022.
+#+END_NOTES
+
+
 ** Regresión logística ó SVM
 
 - Cuando las clases son casi separables, preferimos ~SVM~.
@@ -333,8 +381,9 @@ pérdida por entropía cruzada (regresión logística).
 * Conclusiones
 
 - Las ~SVM~ son modelos que pueden acomodar no linealidades para hacer modelos predictivos.
-- En la práctica aún siguen siendo utilizadas pues es de las pocas alternativas para ajustar no linealidades.
-- Siguen siendo muy útiles en aplicaciones donde se tienen identificadas las características mas importantes para una tarea predictiva. 
+- En la práctica aún siguen siendo utilizadas pues es de las pocas alternativas para tratar relaciones no lineales entre predictores.
+- Siguen siendo muy útiles en aplicaciones donde se tienen identificadas las características mas importantes para una tarea predictiva.
+- Los ~SVM~ han permitido el desarrollo de teoría para ciertas condiciones de aprendizaje y métricas de complejidad citep:Shalev-Shwartz2014. 
   
 # * Referencias                                                         :latex: 
 
