@@ -213,7 +213,7 @@ hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
-* COMMENT Plan de trabajo [9/16][56%]                              :noexport:
+* COMMENT Plan de trabajo [11/16][68%]                             :noexport:
 :PROPERTIES:
 :UNNUMBERED: notoc
 :END:
@@ -235,10 +235,12 @@ CLOSED: [2022-03-15 Tue 20:20]
 CLOSED: [2022-04-14 Thu 19:57]
 ** DONE Modelos  no lineales (intro)
 CLOSED: [2022-04-14 Thu 19:57]
-** NEXT Arboles de decisión
-** TODO Modelos de Ensamble
+** DONE Arboles de decisión
+CLOSED: [2022-04-27 Wed 14:58]
+** DONE Modelos de Ensamble (RF y Boosting)
+CLOSED: [2022-04-27 Wed 14:58]
 ** TODO Máquinas de Soporte Vectorial
-** TODO Modelos de supervivencia
 ** TODO Aprendizaje no supervisado
-** TODO Pruebas múltiples 
 ** TODO Modelos hiper-parametrizados
+** TODO Modelos de supervivencia
+** TODO Pruebas múltiples 

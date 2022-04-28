@@ -1,0 +1,342 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Máquinas de soporte vectorial~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/10-maquinas-soporte.pdf
+:END:
+#+PROPERTY: header-args:R :session soporte-vectorial :exports both :results output org :tangle ../rscripts/10-maquinas-soporte.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 2)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Máquinas de soporte vectorial.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Referencia.
+#+END_NOTES
+
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#separación-con-un-hiperplano][Separación con un hiperplano]]
+  - [[#para-problemas-de-clasificación][Para problemas de clasificación]]
+  - [[#máxima-separación][Máxima separación]]
+  - [[#datos-no-separables][Datos no separables]]
+  - [[#ruido-en-las-mediciones][Ruido en las mediciones]]
+- [[#clasificador-basado-en-vectores-de-soporte][Clasificador basado en vectores de soporte]]
+  - [[#formulación][Formulación]]
+- [[#separación-lineal][Separación lineal]]
+  - [[#ingeniería-de-características][Ingeniería de características]]
+  - [[#solución-con-polinomios-cúbicos][Solución con polinomios cúbicos]]
+- [[#separaciones-no-lineales-y-kernels][Separaciones no lineales y kernels]]
+  - [[#productos-interiores-y-vectores-de-soporte][Productos interiores y vectores de soporte]]
+  - [[#kernels-y-máquinas-de-soporte-vectorial][Kernels y máquinas de soporte vectorial]]
+    - [[#kernel-radial][Kernel radial:]]
+- [[#clasificación-multiclase][Clasificación multiclase]]
+- [[#comparación-con-otros-modelos][Comparación con otros modelos]]
+  - [[#regresión-logística-ó-svm][Regresión logística ó SVM]]
+- [[#conclusiones][Conclusiones]]
+:END:
+
+
+* Introducción 
+
+Las máquinas de soporte vectorial (~SVM~) son modelos no lineales que buscan
+resolver problemas predictivos. Por simplicidad, estudiaremos ~SVM~ en el contexto
+de clasificación.
+
+#+REVEAL: split
+La forma en que operan las ~SVM~ es a través de buscar clasificar por un
+~separación con un hiperplano~ en el espacio de atributos.
+
+#+REVEAL: split
+Si los datos no nos permiten realizar dicha separación entonces nos volcamos a
+relajar los supuestos del modelo:
+1. el concepto de ~separación~.
+2. el espacio de atributos.
+
+
+
+* Separación con un hiperplano
+
+- Un hiperplano de dimensión  $p$ es un subespacio de dimensiones $p-1$.
+- La ecuación que define a un hiperplano tiene la forma
+  \begin{align}
+  0 = \beta_0 + \beta_1 x_{1} + \cdots + \beta_p x_p
+  \end{align}
+- En dos dimensiones es una línea.
+- Si $\beta_0 = 0$  entonces el hiperplano atraviesa el origen.
+- El vector de coeficientes $(\beta_1, \ldots, \beta_p)$ se llama el vector ~normal~ del hiperplano.
+
+** Para problemas de clasificación
+
+- Nota que si definimos $f(X) = \beta_0 + \beta_1 X_{1} + \cdots + \beta_p X_p$, entonces $f(X) > 0$ para $X$ de un lado del hiperplano. Si $f(X) < 0$ entonces $X$ se encuentra del otro lado.
+- Para los datos en [[fig:hl-sep]], si los puntos azules son aquellos donde $Y_i = 1$ y los morados son aquellos que tienen $Y_i = -1$, entonces
+  \begin{align}
+  Y_i \cdot f(X_i) > 0\,, \qquad \forall i\,.
+  \end{align}
+- El caso $f(X) = 0$ define al ~hiperplano separador~. 
+
+#+DOWNLOADED: screenshot @ 2022-04-27 12:22:28
+#+name: fig:hl-sep
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 700 :align center
+[[file:images/20220427-122228_screenshot.png]]
+
+** Máxima separación
+
+En [[fig:hl-sep]] vemos que existe una infinidad de planos que pueden separar
+nuestro conjunto de datos. Nuestra noción del ~mejor~ separador es aquel que
+~maximice el margen~ de separación.
+
+#+DOWNLOADED: screenshot @ 2022-04-27 12:31:15
+#+attr_html: :width 400 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220427-123115_screenshot.png]]
+
+#+REVEAL: split
+Esto lo escribimos como la solución al problema de optimización con restricciones
+\begin{gather*}
+\max_{\beta_0, \beta_1, \ldots, \beta_p} M \\
+\text{sujeto a } \sum_{j= 1}^{p} \beta_j^2 = 1\,,\\
+y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq M\,, \quad \forall i\,.
+\end{gather*}
+
+
+#+BEGIN_NOTES
+El problema de optimización descrito se denomina ~formulación primal~ y se puede
+rescribir en términos de un problema de optimización cuadrático por medio de la
+~formulación dual~. Esto permite la resolución del problema de optimización por
+medio de herramientas de optimización convexa para problemas cuadráticos.
+#+END_NOTES
+
+
+
+** Datos no separables
+
+- Usualmente sucede esto en la práctica (a menos que $n < p$). 
+
+#+DOWNLOADED: screenshot @ 2022-04-27 17:06:49
+#+attr_html: :width 400 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220427-170649_screenshot.png]]
+
+
+** Ruido en las mediciones
+
+Los datos a veces son separables, pero el ruido en las observaciones puede hacer
+que un clasificador por margen máximo tenga generalización deficiente. 
+
+#+downloaded: screenshot @ 2022-04-27 17:08:58
+#+attr_html: :width 700 :align center
+[[file:images/20220427-170858_screenshot.png]]
+
+
+* Clasificador basado en vectores de soporte
+
+Se pueden relajar las restricciones del clasificador para incorporar un ~margen suave~.
+
+#+DOWNLOADED: screenshot @ 2022-04-27 17:11:25
+#+attr_html: :width 700 :align center
+[[file:images/20220427-171125_screenshot.png]]
+
+
+** Formulación
+
+\begin{gather*}
+\max_{\beta_0, \beta_1, \ldots, \beta_p} M \\
+\text{sujeto a } \sum_{j= 1}^{p} \beta_j^2 = 1\,,\\
+y_i (\beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} ) \geq M (1- \epsilon_i) \,, \quad \forall i\,, \\
+\epsilon_i \geq 0 \,, \qquad \sum_{i= 1}^{n} \epsilon_i \leq C\,.
+\end{gather*}
+
+#+REVEAL: split
+El término $C$ es dicta cuántos datos mal clasificados estamos dispuestos a cometer.
+
+#+DOWNLOADED: screenshot @ 2022-04-27 17:15:18
+#+attr_html: :width 700 :align center
+[[file:images/20220427-171518_screenshot.png]]
+
+
+* Separación lineal
+
+En algunas situaciones la separación lineal no será suficiente.
+
+#+DOWNLOADED: screenshot @ 2022-04-27 17:16:51
+#+attr_html: :width 400 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220427-171651_screenshot.png]]
+
+
+** Ingeniería de características
+
+- Buscamos una expansión de los atributos por medio de transformaciones
+  \begin{align}
+  X_1^2, X_2^2, X_1 X_2, \ldots
+  \end{align}
+   lo cual permite expandir el espacio $\mathbb{R}^p \rightarrow \mathbb{R}^M$ con $M > p$.
+
+- Ajustamos un clasificador por vectores de soporte en el espacio expandido.
+
+- Esto nos ayuda a incorporar decisión de separación no lineales en el espacio original de atributos.
+
+
+** Solución con polinomios cúbicos
+
+- Si utilizamos una expansión con polinomios cúbicos, pasamos de 2 dimensiones a 9.
+- La separación lineal la logramos en este nuevo espacio.
+
+#+DOWNLOADED: screenshot @ 2022-04-27 17:24:12
+#+attr_html: :width 400 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+  [[file:images/20220427-172412_screenshot.png]]
+
+* Separaciones no lineales y /kernels/
+
+- Los polinomios (especialmente en varias dimensiones) pueden tener un
+  comportamiento oscilatorio muy fuerte y sobre-ajustar sin cuidado.
+
+- Hay un mecanismo matemáticamente mas elegante para introducir no-linealidades.
+
+- Especialmente útil en problemas donde podamos usar ~productos interiores~.
+
+** Productos interiores y vectores de soporte
+
+- Recordemos que
+   \begin{align}
+   \langle x_i, x_{i'} \rangle = \sum_{j = 1}^{p} x_{ij} x_{i'j}\,.
+   \end{align}
+
+- El clasificador se puede expresar como
+  \begin{align}
+  f(x) = \beta_0 + \sum_{i = 1}^{n} \alpha_i \langle x, x_i \rangle
+  \end{align}
+      
+- Necesitamos los $n \choose 2$ productos interiores para poder estimar los parámetros.
+
+- Pero, la mayoría de las $\alpha_i$ son cero,
+  \begin{align}
+  f(x) = \beta_0 + \sum_{i  \in \mathcal{S}} \alpha_i \langle x, x_i \rangle\,.
+  \end{align}
+
+** /Kernels/ y máquinas de soporte vectorial
+
+- Podríamos calcular productos interiores y construir un clasificador por medio de vectores de soporte.
+
+- Hay algunos /kernels/ que calculan lo que necesitamos. Por ejemplo,
+  \begin{align}
+ K(x_i, x_{i'}) = \left( 1 + \sum_{j=1}^{p} x_{ij} x_{i'j} \right)^d\,,
+  \end{align}
+  calcula los productos internos de la expansión en polinomios.
+
+- La solución del problema, entonces, tiene la forma
+  \begin{align}
+  f(x) = \beta_0 + \sum_{i  \in \mathcal{S}} \alpha_i K( x, x_i )\,.
+  \end{align}
+
+*** /Kernel/ radial:
+Consideremos el /kernel/
+\begin{align}
+ K(x_i, x_{i'})  = \exp \left( -\gamma \sum_{j = 1}^{p} (x_i - x_{i'})^2 \right)\,,
+\end{align}
+lo cual nos permite ajustar superficies de decisión como la que muestra 
+
+#+attr_html: :width 400 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220427-193937_screenshot.png]]
+
+
+* Clasificación multiclase
+
+Una pregunta natural es cómo extender la formulación de una ~SVM~ para el problema de clasificación multiclase.
+
+#+REVEAL: split
+Tenemos dos estrategias: 
+1. ~Una clase contra todas las anteriores~. Clasifica la clase con mayor $\hat f_k(x)$. 
+2. ~Todas las posibles tareas de dos clases~.  Clasifica la clase que gana la mayor de las veces.
+
+* Comparación con otros modelos
+
+El problema de optimización se puede rescribir como
+\begin{align}
+\min_{\beta_0, \beta_1, \ldots, \beta_p} \left\lbrace \sum_{i= 1}^{n} \max[0, 1 - y_i f(x_i)]  + \lambda \sum_{j = 1}^{p}\beta_j^2\right\rbrace\,.
+\end{align}
+
+La función de pérdida se conoce como la función ~hinge~. Es muy similar a la
+pérdida por entropía cruzada (regresión logística).
+
+** Regresión logística ó SVM
+
+- Cuando las clases son casi separables, preferimos ~SVM~.
+- Cuando no, regresión logística + Ridge es muy parecido a ~SVM~.
+- Si nos interesa calcular probabilidades, usamos regresión logística.
+- Se pueden utilizar /kernels/ con otros modelos (regresión logística o LDA) pero
+  es mas costoso.
+  
+
+* Conclusiones
+
+- Las ~SVM~ son modelos que pueden acomodar no linealidades para hacer modelos predictivos.
+- En la práctica aún siguen siendo utilizadas pues es de las pocas alternativas para ajustar no linealidades.
+- Siguen siendo muy útiles en aplicaciones donde se tienen identificadas las características mas importantes para una tarea predictiva. 
+  
+# * Referencias                                                         :latex: 
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
