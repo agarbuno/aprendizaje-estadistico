@@ -14,31 +14,8 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/10-maquinas-soporte.pdf
-:END:
 #+PROPERTY: header-args:R :session soporte-vectorial :exports both :results output org :tangle ../rscripts/10-maquinas-soporte.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+begin_src R :exports none :results none
   ## Setup --------------------------------------------
@@ -94,6 +71,7 @@
 - [[#comparación-con-otros-modelos][Comparación con otros modelos]]
   - [[#regresión-logística-ó-svm][Regresión logística ó SVM]]
 - [[#conclusiones][Conclusiones]]
+- [[#referencias][Referencias]]
 :END:
 
 
@@ -385,7 +363,7 @@ gradiente estocástico citep:Abeykoon2022.
 - Siguen siendo muy útiles en aplicaciones donde se tienen identificadas las características mas importantes para una tarea predictiva.
 - Los ~SVM~ han permitido el desarrollo de teoría para ciertas condiciones de aprendizaje y métricas de complejidad citep:Shalev-Shwartz2014. 
   
-# * Referencias                                                         :latex: 
+* Referencias                                                         :latex: 
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
