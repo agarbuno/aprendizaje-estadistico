@@ -93,6 +93,13 @@
   - [[#aplicación-de-cnn][Aplicación de CNN]]
   - [[#comentarios][Comentarios]]
 - [[#modelos-recurrentes][Modelos recurrentes]]
+  - [[#motivación][Motivación]]
+  - [[#vectorización-de-texto][Vectorización de texto]]
+  - [[#redes-neuronal-recurrentes-rnn][Redes neuronal recurrentes (RNN)]]
+  - [[#arquitectura][Arquitectura]]
+  - [[#detalles-de-rnn][Detalles de RNN]]
+  - [[#regresando-a-las-reseñas][Regresando a las reseñas]]
+  - [[#conclusiones][Conclusiones]]
 - [[#casos-de-uso][Casos de uso]]
 - [[#ajuste-y-regularización][Ajuste y regularización]]
 - [[#software][Software]]
@@ -309,9 +316,9 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 - Cada imagen la podemos pensar como una matriz con tres canales de color $\mathsf{RBG}$.
 - Por lo tanto una imagen es un arreglo tridimensional de $256 \times 256 \times 3$ de números de 8 bits.
 
-  #+DOWNLOADED: screenshot @ 2022-05-03 09:31:58
-  #+attr_html: :width 700 :align center
-  #+ATTR_LATEX: :width 0.45\textwidth
+#+DOWNLOADED: screenshot @ 2022-05-03 09:31:58
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
   [[file:images/20220503-093158_screenshot.png]]
 
 ** Ideas generales
@@ -346,10 +353,11 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 #+ATTR_LATEX: :width 0.45\textwidth
 [[file:images/20220503-094314_screenshot.png]]
 
+
+#+REVEAL: split
 - Los filtros resaltan características particulares de la imagen.
 - Con los resultados de los filtros se crean /nuevas/ características en capas intermedias.
 
-#+REVEAL: split
 
 #+DOWNLOADED: screenshot @ 2022-05-03 09:47:12
 #+attr_html: :width 700 :align center
@@ -380,7 +388,7 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 ** Arquitectura de una CNN
 
 #+DOWNLOADED: screenshot @ 2022-05-03 09:56:01
-#+attr_html: :width 700 :align center
+#+attr_html: :width 1200 :align center
 [[file:images/20220503-095601_screenshot.png]]
 
 - El enfoque es sobre los bloques: capas de convolución o resúmenes.
@@ -391,7 +399,7 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 ** Aplicación de CNN
 
 - El procedimiento de entrenamiento es computacionalmente caro.
-- En la práctica, no se tienen los recursos para poder entrenarlos.
+- En la práctica no se tienen los recursos para poder entrenarlos (~FANG~ si).
 - Se ha volcado a una estrategia de compartir los pesos de los modelos entrenados.
 - Amazon y otros proveedores están capitalizando en estas ideas (~Amazon Rekognition~). 
 
@@ -408,15 +416,15 @@ Nos permite clasificar imágenes propias en estos modelos.
 #+DOWNLOADED: screenshot @ 2022-05-03 10:06:01
 #+attr_html: :width 700 :align center
 #+ATTR_LATEX: :width 0.70\textwidth
-[[file:images/20220503-100601_screenshot.png]]
+[[file:images/20220503-103451_screenshot.png]]
 
 ** Comentarios
 
 - Los filtros que se aprenden de manera automática corresponden con filtros que los expertos en visión por computadora han utilizado.
 - No hay garantía de un aprendizaje en sentido generalizable (inteligencia artificial).
 
-  #+DOWNLOADED: screenshot @ 2022-05-03 10:08:35
-  #+attr_html: :width 700 :align center
+#+DOWNLOADED: screenshot @ 2022-05-03 10:08:35
+#+attr_html: :width 700 :align center
   [[file:images/20220503-100835_screenshot.png]]
 
 #+REVEAL: split
@@ -428,14 +436,121 @@ Nos permite clasificar imágenes propias en estos modelos.
 
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2022-05-03 10:10:17
-#+attr_html: :width 700 :align center
+#+attr_html: :width 1200 :align center
   [[file:images/20220503-101017_screenshot.png]]
 
 
 * Modelos recurrentes
 
+- Otro caso de éxito de las redes neuronales.
+- Aplicación en finanzas y análisis de texto.
+
+
+** Motivación
+
+- Supongamos que tenemos las reseñas de algún producto.
+- Por ejemplo, la base de ~IMBD~ que tiene los /ratings/ de películas.
+- El objetivo es poder identificar el sentimiento de la reseña: ~positiva~ o ~negativa~.
+- Esto es un problema de ~clasificación binaria~.
+
+#+DOWNLOADED: screenshot @ 2022-05-03 10:33:08
+#+attr_html: :width 700 :align center
+  [[file:images/20220503-103308_screenshot.png]]
+
+
+** Vectorización de texto 
+
+- Pregunta clave: ¿cómo representamos los textos en vectores de atributos?
+- Se escoge un diccionario de palabras, por ejemplos las $10K$ más frecuentes.
+- Cada reseña se representa con un vector de longitud $10K$ donde tiene un 1 en
+  las posiciones de las palabras que ocurren.
+- Tenemos una matriz de diseño de tamaño $n \times 10K$.
+- citet:James2021 comparan una regresión logística (con regularización) y una
+  red neuronal con dos capas.
+- Pudimos haber escogido /vectorizar/ identificando los pares de palabras mas
+  frecuentes (~bigramas~).
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-03 10:29:46
+#+caption: Resultado del experimento. 
+#+attr_html: :width 700 :align center
+  [[file:images/20220503-102946_screenshot.png]]
+
+** Redes neuronal recurrentes (~RNN~)
+
+- A veces tenemos datos que vienen en secuencias.
+- La arquitectura de las RNN toman en cuenta la naturaleza secuencial de los datos.
+- Los atributos de /una observación/ es una ~secuencia~ de vectores:
+  \begin{align}
+  X = \{ X_1, X_2, \ldots, X_L\}\,.
+  \end{align}
+- Las respuestas /pueden/ ser las usuales en problemas de clasificación.
+
+
+** Arquitectura
+
+#+DOWNLOADED: screenshot @ 2022-05-03 15:40:44
+#+attr_html: :width 1200 :align center
+#+ATTR_LATEX: :width 0.65\textwidth
+[[file:images/20220503-154043_screenshot.png]]
+
+
+- Una capa intermedia tiene una sequencia de vectores $A_\ell$, los cuales reciben como entradas los atributos en dicho paso $X_\ell$ y el estado latente de $A_{\ell -1}$ . Cada paso produce resultados intermedios $O_\ell$.
+- Se utilizan los mismos pesos $W$, $U$ y $B$ en cada paso de la secuencia (recurrente).
+- Pensemos en $A_\ell$ como una secuencia de un modelo que cambia su respuesta después de actualizar con cada elemento $X_\ell$.
+
+
+** Detalles de ~RNN~
+
+El cálculo de cada unidad en las capas intermedias $A_\ell$ se puede escribir como sigue. Supongamos que $X_\ell \in \mathbb{R}^p$ y que $A_\ell \in \mathbb{R}^K$. Entonces con las matrices de pesos $W \in \mathbb{R}^{p \times K}$, $U \in \mathbb{R}^{K \times K}$ y los coeficientes $\beta_0 \in \mathbb{R}$ y $\omega_0, \beta \in \mathbb{R}^{K}$ con $\ell = 1, \ldots, L$ las pasos intermedios y las salidas se calcular por medio de
+\begin{gather}
+A_{\ell} = g \left( W^\top x_\ell  + U^\top A_{\ell -1} + \omega_0 \right)\,,\\
+O_\ell = \beta_0 + \beta^\top A_\ell\,.
+\end{gather}
+
+#+REVEAL: split
+Usualmente nos interesa media la salida en la última capa para contrastarla con la predicción
+\begin{align}
+\sum_{i = 1}^{n}(y_i - O_{iL})^2\,.
+\end{align}
+
+** Regresando a las reseñas
+
+- Los documentos son nuestras observaciones como secuencias de palabras $\{\mathcal{W}_\ell\}_{\ell = 1}^L$.
+- Cada palabra $\mathcal{W}_\ell$ esta representada como un vector de binarios $X_\ell$ de longitud $10K$.
+- Se pueden usar /word embeddings/ (representaciones vectoriales de palabras) utilizando una matriz $E\in \mathbb{R}^{m \times 10K}$.
+- Usualmente, $m \ll 10K$.
+
+#+REVEAL: split
+
+#+DOWNLOADED: screenshot @ 2022-05-03 18:36:31
+#+attr_html: :width 1200 :align center
+#+ATTR_LATEX: :width 0.65\textwidth
+[[file:images/20220503-183631_screenshot.png]]
+
+Los /embeddings/ se pueden aprender con algún procedimiento de pre-entrenamiento. Los mas comunes son ~word2vec~ o ~GloVe~ (puedes consultar citep:Zhang2021c para mas detalles). 
+
+** Conclusiones 
+
+- Sólo tocamos el modelo mas sencillo de ~RNN~ hay mas variaciones con arquitecturas mas complejas (~LSTM~ o ~GRU~).
+- Se pueden combinar con ~CNN~ para el ajuste. Aplicando filtros a lo largo de la secuencia.
+- La construcción de modelos mas complejos utilizan la noción de bloques: un bloque de convolución, un bloque de secuencias recurrentes, etc.
+- Se puede extender a secuencias. Los modelos ~seq2seq~ donde se aprenden secuencias como salidas (traducción de textos).
+
 * Casos de uso
 
+- ~CNN~ para visión por computadora.
+- ~RNN~ para modelos de lenguaje o predicciones secuenciales (series de tiempo).
+- ¿Siempre son las mejores soluciones?
+
+  #+BEGIN_NOTES
+    Cuanto tienes un martillo en la mano, a todo le ves cara de clavo.
+    ---Dicho popular. 
+  #+END_NOTES
+
+- Son usualmente exitosas cuando la razón señal - ruido es baja.
+- Para aplicaciones donde debemos de modelar el componente aleatorio, modelos mas sencillos son preferibles. 
+  
 * Ajuste y regularización
 
 * /Software/
