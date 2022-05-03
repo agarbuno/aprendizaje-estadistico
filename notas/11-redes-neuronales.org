@@ -1,0 +1,229 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Redes neuronales~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/11-redes-neuronales.pdf
+:END:
+#+PROPERTY: header-args:R :session redes-neuronales :exports both :results output org :tangle ../rscripts/11-redes-neuronales.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Redes Neuronales.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Referencia. /Disclaimer/: Todas las figuras han sido tomadas de citep:James2021. 
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 2)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#red-neuronal-de-una-capa][Red neuronal de una capa]]
+  - [[#detalles][Detalles]]
+  - [[#ejemplo-clasificación-multi-clase][Ejemplo: clasificación multi-clase]]
+  - [[#el-modelo][El modelo]]
+    - [[#cuántos-parámetros-tiene-este-modelo][¿Cuántos parámetros tiene este modelo?]]
+  - [[#la-capa-de-salida][La capa de salida]]
+  - [[#regularización][Regularización]]
+- [[#modelos-convolucionales][Modelos convolucionales]]
+- [[#modelos-recurrentes][Modelos recurrentes]]
+- [[#casos-de-uso][Casos de uso]]
+- [[#ajuste-y-regularización][Ajuste y regularización]]
+- [[#software][Software]]
+:END:
+
+* Introducción 
+
+- La primera publicación relacionada es la de citep:Rosenblatt1958. 
+- Las redes neuronales se volvieron populares en los 80s (con impacto limitado). 
+- A partir de ahí, se vio un auge en otros modelos predictivos.
+- A partir de 2010, surge /Deep Learning/ con resultados impresionantes.
+- Mejora en poder de cómputo, /software/  y datos.
+
+  #+DOWNLOADED: screenshot @ 2022-05-02 21:06:56
+  #+caption: Imagen tomada de citep:Zhang2021c. 
+  #+attr_html: :width 700 :align center
+  [[file:images/20220502-210656_screenshot.png]]
+
+
+#+REVEAL: split
+- El avance y adopción se debe a diversos investigadores en varios ámbitos de lo que rodea /Deep Learning/.
+- Por ejemplo:
+  - citep:Rumelhart1986: Redescubren la regla de la cadena (~backpropagation~). 
+  - Yann LeCun, *Corinna Cortes* y Christopher Burges hacen pública la base de datos de [[http://yann.lecun.com/exdb/mnist/][~MNIST~]] (1998).
+  - Un equipo de investigadores liderado por Fei-Fei Li publica la base de [[https://www.image-net.org/index.php][~imageNet~]] para concurso (2009).
+  - Un equipo de investigadores en [[https://www.deepmind.com/publications/mastering-the-game-of-go-with-deep-neural-networks-tree-search][Google Deepmind]] logra vencer a jugadores profesionales en Go (2016).
+- Otros perfiles de gente impresionante haciendo investigación en el área se puede encontrar [[https://learn.g2.com/trends/women-in-ai][aquí]]. 
+
+
+* Red neuronal de una capa
+
+Consideramos el modelo predictivo de la forma
+\begin{align}
+f(X) = \beta_0 + \sum_{k = 1}^{K} \beta_k h_k(X)\,,
+\end{align}
+donde los términos $h_k$ son transformaciones no-lineales de combinaciones lineales de los atributos. Es decir,
+\begin{align}
+h_k(X) = g\left(\omega_0 + \sum_{j = 1}^{p} \omega_{kj} X_j\right)\,,
+\end{align}
+donde $g(\cdot)$ es una tranformación no-lineal de $\mathbb{R}$ a $\mathbb{R}$.
+
+#+DOWNLOADED: screenshot @ 2022-05-02 20:29:08
+#+attr_html: :width 400 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220502-203004_screenshot.png]]
+
+
+** Detalles
+
+- En la figura anterior tenemos que $A_k = h_k(X) = g\left(\omega_0 + \sum_{j = 1}^{p} \omega_{kj} X_j\right)$.
+- La función $g(\cdot)$ se denomina ~función de activación~.
+- Las opciones mas populares son: ~ReLU~ o ~sigmoide~.
+- Si no utilizamos funciones de activación no lineales, entonces el modelo seguiría siendo lineal.
+- La salida de las funciones de activación son interpretadas como atributos 
+- El modelo se entrena (en regresión) minimizando
+  \begin{align}
+  \sum_{i = 1}^{n} (y_i - f(x_i))^2\,.
+  \end{align}
+- La solución aprende representaciones de los atributos que pueden servir para predecir. 
+
+** Ejemplo: clasificación multi-clase
+
+Tenemos imágenes de $28 \times 28$ pixeles en escala de grises. Tenemos $60K$
+datos de entrenamiento y $10K$ datos de validación. Podemos pensar que cada
+imagen es un vector de 784 dimensiones. Las etiquetas son los digitos del 0 al 9. 
+
+*Objetivo*: Predecir la clase de la imagen basada en los valores de los pixeles. 
+#+attr_html: :width 400 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+ 
+
+  
+** El modelo
+
+Se utiliza una red neuronal de dos capa con 256 unidades en la primera capa, 128 unidades en la capa intermedia y 10 unidades de  salida.
+
+*** ¿Cuántos parámetros tiene este modelo?
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+#+attr_html: :width 400 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220502-204955_screenshot.png]]
+
+
+** La capa de salida
+
+- Denotemos por
+  \begin{align}
+  Z_m = \beta_{m0} + \sum_{\ell = 1}^{K_2} \beta_{m\ell} A_{\ell}^{(2)}\,,  
+  \end{align}
+  las $m$ combinaciones lineales de las unidades que salen de la segunda capa.
+- Denotamos por $m$ es el número de unidades en la capa de salida.
+- Para obtener /probabilidades/ usamos la función ~softmax~ como función de activación en la última capa
+  \begin{align}
+  f_m(X) = \mathbb{P}(Y = m | X) = \frac{\exp(Z_m)}{\sum_{\ell = 0}^{9} \exp(Z_\ell)}\,,
+  \end{align}
+  donde entrenamos el modelo minimizando
+  \begin{align}
+  -\sum_{i = 1}^{n} \sum_{m = 0}^9 y_{im} \log(f_m(x_i))\,,
+  \end{align}
+la cual llamamos ~entropía cruzada~.
+- $y_{im}$ tomará el valor de 1 en la clase que a la que pertenezca la observación $i$ ésima. Todos los demás valores son 0 (~one-hot encoding~).
+
+** Regularización
+
+- Con tantos parámetros en los modelos resulta indispensable /regularizar/ nuestro problema de entrenamiento.
+- Consideremos el problema de clasificar imágenes de perros y gatos.
+- Las imágenes son tomadas con nuestras cámaras (12Mp) lo cual se traduce en $12 \times 10^6$ píxeles.
+- Un modelo de una capa con mil unidades tiene entonces (apróx.) $36 \times 10^9$ parámetros.
+- Según una búsqueda en Google, tenemos una población de 471M perros y 373M gatos.
+  - Esto es (apróx) $0.844 \times 10^9$ imágenes.
+- Necesitaríamos  $36/.844 \approx 42.65$ más datos para tener una relación 1 a 1 de parámetros con datos. 
+  
+#+REVEAL: split
+Los métodos usuales de regularización son (mas adelante veremos detalles de esto):
+1. Regularización en coeficientes matrices $W_k$.
+2. Regularización /dropout/.
+
+#+REVEAL: split
+- Resultados en MNIST son:
+  #+DOWNLOADED: screenshot @ 2022-05-02 21:31:45
+  #+caption: Resultados de generalización obtenidos por distintos modelos en el conjunto de datos de ~MNIST~, fuente: citep:James2021.
+  #+attr_html: :width 700 :align center
+     [[file:images/20220502-213145_screenshot.png]]
+
+- A la fecha, los mejores resultados reportan un error de generalización de menos del $0.5\%$
+- El error de personas en este conjunto de datos es de $0.2\%$, 
+
+* Modelos convolucionales
+
+- Historia de éxito para problemas de visión por computadora.
+
+* Modelos recurrentes
+
+* Casos de uso
+
+* Ajuste y regularización
+
+* /Software/
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
