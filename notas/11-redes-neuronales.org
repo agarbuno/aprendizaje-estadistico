@@ -73,12 +73,16 @@
 :END:
 :CONTENTS:
 - [[#introducción][Introducción]]
+- [[#precursor-perceptrón][Precursor: perceptrón]]
+  - [[#algoritmo][Algoritmo:]]
+  - [[#observaciones][Observaciones]]
 - [[#red-neuronal-de-una-capa][Red neuronal de una capa]]
   - [[#detalles][Detalles]]
   - [[#ejemplo-clasificación-multi-clase][Ejemplo: clasificación multi-clase]]
   - [[#el-modelo][El modelo]]
     - [[#cuántos-parámetros-tiene-este-modelo][¿Cuántos parámetros tiene este modelo?]]
   - [[#la-capa-de-salida][La capa de salida]]
+  - [[#detalles][Detalles]]
   - [[#regularización][Regularización]]
 - [[#modelos-convolucionales][Modelos convolucionales]]
 - [[#modelos-recurrentes][Modelos recurrentes]]
@@ -89,7 +93,7 @@
 
 * Introducción 
 
-- La primera publicación relacionada es la de citep:Rosenblatt1958. 
+- La primera publicación relacionada es la de citet:Rosenblatt1958. 
 - Las redes neuronales se volvieron populares en los 80s (con impacto limitado). 
 - A partir de ahí, se vio un auge en otros modelos predictivos.
 - A partir de 2010, surge /Deep Learning/ con resultados impresionantes.
@@ -103,13 +107,51 @@
 
 #+REVEAL: split
 - El avance y adopción se debe a diversos investigadores en varios ámbitos de lo que rodea /Deep Learning/.
-- Por ejemplo:
+- Por ejemplo ([[https://en.wikipedia.org/wiki/Timeline_of_machine_learning][time-line de eventos importantes]]):
   - citep:Rumelhart1986: Redescubren la regla de la cadena (~backpropagation~). 
   - Yann LeCun, *Corinna Cortes* y Christopher Burges hacen pública la base de datos de [[http://yann.lecun.com/exdb/mnist/][~MNIST~]] (1998).
-  - Un equipo de investigadores liderado por Fei-Fei Li publica la base de [[https://www.image-net.org/index.php][~imageNet~]] para concurso (2009).
+  - Un equipo de investigadores liderado por *Fei-Fei Li* publica la base de [[https://www.image-net.org/index.php][~imageNet~]] para concurso (2009).
   - Un equipo de investigadores en [[https://www.deepmind.com/publications/mastering-the-game-of-go-with-deep-neural-networks-tree-search][Google Deepmind]] logra vencer a jugadores profesionales en Go (2016).
 - Otros perfiles de gente impresionante haciendo investigación en el área se puede encontrar [[https://learn.g2.com/trends/women-in-ai][aquí]]. 
 
+
+* Precursor: perceptrón
+
+- Objetivo: resolver el problema de clasificación binaria por medio de separaciones lineales.
+- Es decir, poder encontrar una $\omega$ tal que
+  \begin{gather}
+  \langle \omega, x \rangle \geq 0, \qquad \text{ si } y = 1\,,\\
+  \langle \omega, x \rangle < 0, \qquad \text{ si } y = -1\,.
+  \end{gather}
+- Por lo tanto, lo que queremos es un predictor de la forma
+  \begin{align}
+  \hat y = \mathsf{signo}(\langle \omega, x \rangle)\,.
+  \end{align}
+
+** Algoritmo: 
+
+- Empezamos con $\omega^{(1)} = 0$.
+- Para cada iteración $t = 2, \ldots, T$:
+  - Buscamos un elemento mal clasificado:
+    \begin{align}
+    y_i \cdot \hat y_{i} < 0\,,
+    \end{align}
+    dentro de observaciones. 
+  - Actualizamos por medio de:
+    \begin{align}
+    \omega^{(t + 1)} = \omega^{(t)} + y_i \cdot x_i\,.
+    \end{align}
+
+- Nos detenemos cuando todas las observaciones están bien clasificadas. 
+
+** Observaciones
+
+- El perceptrón funciona cuando las clases son separables.
+- El perceptrón no convergerá cuando las clases no son separables.
+- La pérdida asociada a este algoritmo considera términos individuales
+  \begin{align}
+  \max[0, - y \langle \omega, x \rangle]\,.
+  \end{align}
 
 * Red neuronal de una capa
 
@@ -117,11 +159,12 @@ Consideramos el modelo predictivo de la forma
 \begin{align}
 f(X) = \beta_0 + \sum_{k = 1}^{K} \beta_k h_k(X)\,,
 \end{align}
-donde los términos $h_k$ son transformaciones no-lineales de combinaciones lineales de los atributos. Es decir,
+donde los términos $h_k$ son ~transformaciones no-lineales~ de ~combinaciones
+lineales de los atributos~. Es decir,
 \begin{align}
 h_k(X) = g\left(\omega_0 + \sum_{j = 1}^{p} \omega_{kj} X_j\right)\,,
 \end{align}
-donde $g(\cdot)$ es una tranformación no-lineal de $\mathbb{R}$ a $\mathbb{R}$.
+donde $g(\cdot)$ es una transformación no-lineal de $\mathbb{R}$ a $\mathbb{R}$.
 
 #+DOWNLOADED: screenshot @ 2022-05-02 20:29:08
 #+attr_html: :width 400 :align center 
@@ -134,7 +177,7 @@ donde $g(\cdot)$ es una tranformación no-lineal de $\mathbb{R}$ a $\mathbb{R}$.
 - En la figura anterior tenemos que $A_k = h_k(X) = g\left(\omega_0 + \sum_{j = 1}^{p} \omega_{kj} X_j\right)$.
 - La función $g(\cdot)$ se denomina ~función de activación~.
 - Las opciones mas populares son: ~ReLU~ o ~sigmoide~.
-- Si no utilizamos funciones de activación no lineales, entonces el modelo seguiría siendo lineal.
+- Si no utilizamos funciones de activación no-lineales, entonces el modelo seguiría siendo lineal.
 - La salida de las funciones de activación son interpretadas como atributos 
 - El modelo se entrena (en regresión) minimizando
   \begin{align}
@@ -146,7 +189,7 @@ donde $g(\cdot)$ es una tranformación no-lineal de $\mathbb{R}$ a $\mathbb{R}$.
 
 Tenemos imágenes de $28 \times 28$ pixeles en escala de grises. Tenemos $60K$
 datos de entrenamiento y $10K$ datos de validación. Podemos pensar que cada
-imagen es un vector de 784 dimensiones. Las etiquetas son los digitos del 0 al 9. 
+imagen es un vector de 784 dimensiones. Las etiquetas son los dígitos del 0 al 9. 
 
 *Objetivo*: Predecir la clase de la imagen basada en los valores de los pixeles. 
 #+attr_html: :width 400 :align center 
@@ -156,7 +199,8 @@ imagen es un vector de 784 dimensiones. Las etiquetas son los digitos del 0 al 9
   
 ** El modelo
 
-Se utiliza una red neuronal de dos capa con 256 unidades en la primera capa, 128 unidades en la capa intermedia y 10 unidades de  salida.
+Se utiliza una red neuronal de dos capas. La estructura (arquitectura) es 256 unidades en la primera capa, 128
+unidades en la capa intermedia y 10 unidades de salida.
 
 *** ¿Cuántos parámetros tiene este modelo?
 :PROPERTIES:
@@ -186,6 +230,9 @@ Se utiliza una red neuronal de dos capa con 256 unidades en la primera capa, 128
   \end{align}
 la cual llamamos ~entropía cruzada~.
 - $y_{im}$ tomará el valor de 1 en la clase que a la que pertenezca la observación $i$ ésima. Todos los demás valores son 0 (~one-hot encoding~).
+  
+** Detalles 
+
 
 ** Regularización
 
