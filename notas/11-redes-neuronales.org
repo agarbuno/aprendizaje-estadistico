@@ -14,29 +14,6 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/11-redes-neuronales.pdf
-:END:
 #+PROPERTY: header-args:R :session redes-neuronales :exports both :results output org :tangle ../rscripts/11-redes-neuronales.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
 
@@ -309,9 +286,9 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 - Cada imagen la podemos pensar como una matriz con tres canales de color $\mathsf{RBG}$.
 - Por lo tanto una imagen es un arreglo tridimensional de $256 \times 256 \times 3$ de números de 8 bits.
 
-  #+DOWNLOADED: screenshot @ 2022-05-03 09:31:58
-  #+attr_html: :width 700 :align center
-  #+ATTR_LATEX: :width 0.45\textwidth
+#+DOWNLOADED: screenshot @ 2022-05-03 09:31:58
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
   [[file:images/20220503-093158_screenshot.png]]
 
 ** Ideas generales
@@ -346,10 +323,11 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 #+ATTR_LATEX: :width 0.45\textwidth
 [[file:images/20220503-094314_screenshot.png]]
 
+
+#+REVEAL: split
 - Los filtros resaltan características particulares de la imagen.
 - Con los resultados de los filtros se crean /nuevas/ características en capas intermedias.
 
-#+REVEAL: split
 
 #+DOWNLOADED: screenshot @ 2022-05-03 09:47:12
 #+attr_html: :width 700 :align center
@@ -380,7 +358,7 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 ** Arquitectura de una CNN
 
 #+DOWNLOADED: screenshot @ 2022-05-03 09:56:01
-#+attr_html: :width 700 :align center
+#+attr_html: :width 1200 :align center
 [[file:images/20220503-095601_screenshot.png]]
 
 - El enfoque es sobre los bloques: capas de convolución o resúmenes.
@@ -391,7 +369,7 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 ** Aplicación de CNN
 
 - El procedimiento de entrenamiento es computacionalmente caro.
-- En la práctica, no se tienen los recursos para poder entrenarlos.
+- En la práctica no se tienen los recursos para poder entrenarlos (~FANG~ si).
 - Se ha volcado a una estrategia de compartir los pesos de los modelos entrenados.
 - Amazon y otros proveedores están capitalizando en estas ideas (~Amazon Rekognition~). 
 
@@ -415,8 +393,8 @@ Nos permite clasificar imágenes propias en estos modelos.
 - Los filtros que se aprenden de manera automática corresponden con filtros que los expertos en visión por computadora han utilizado.
 - No hay garantía de un aprendizaje en sentido generalizable (inteligencia artificial).
 
-  #+DOWNLOADED: screenshot @ 2022-05-03 10:08:35
-  #+attr_html: :width 700 :align center
+#+DOWNLOADED: screenshot @ 2022-05-03 10:08:35
+#+attr_html: :width 700 :align center
   [[file:images/20220503-100835_screenshot.png]]
 
 #+REVEAL: split
@@ -428,7 +406,7 @@ Nos permite clasificar imágenes propias en estos modelos.
 
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2022-05-03 10:10:17
-#+attr_html: :width 700 :align center
+#+attr_html: :width 1200 :align center
   [[file:images/20220503-101017_screenshot.png]]
 
 
