@@ -19,8 +19,8 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Redes Neuronales.\\
-*Objetivo*: Que veremos.\\
-*Lectura recomendada*: Referencia. /Disclaimer/: Todas las figuras han sido tomadas de citep:James2021. 
+*Objetivo*: En esta sección estudiaremos modelos basados en redes neuronales. El campo de /deep learning/ es muy extenso. Asi que esta sección del curso busca dar una versión global del tema y mencionar puntos importantes de dichos temas. Un tratamiento mas extenso se puede encontrar en cursos especializados. Por ejemplo, el curso de Aprendizaje Profundo en el ITAM. \\
+*Lectura recomendada*: Capítulo 10 de citep:James2021 y algunos pasajes de citep:Zhang2021c. /Disclaimer/: Todas las figuras han sido tomadas de citep:James2021. 
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -79,6 +79,11 @@
   - [[#conclusiones][Conclusiones]]
 - [[#casos-de-uso][Casos de uso]]
 - [[#ajuste-y-regularización][Ajuste y regularización]]
+  - [[#descenso-en-gradiente][Descenso en gradiente]]
+  - [[#gradientes-y-backpropagation][Gradientes y backpropagation]]
+  - [[#observaciones][Observaciones]]
+  - [[#regularización-dropout][Regularización: Dropout]]
+  - [[#regularización-aumento-de-datos][Regularización: Aumento de datos]]
 - [[#software][Software]]
 :END:
 
@@ -104,7 +109,6 @@
   - Un equipo de investigadores liderado por *Fei-Fei Li* publica la base de [[https://www.image-net.org/index.php][~imageNet~]] para concurso (2009).
   - Un equipo de investigadores en [[https://www.deepmind.com/publications/mastering-the-game-of-go-with-deep-neural-networks-tree-search][Google Deepmind]] logra vencer a jugadores profesionales en Go (2016).
 - Otros perfiles de gente impresionante haciendo investigación en el área se puede encontrar [[https://learn.g2.com/trends/women-in-ai][aquí]]. 
-
 
 * Precursor: perceptrón
 
@@ -416,7 +420,6 @@ Nos permite clasificar imágenes propias en estos modelos.
 #+attr_html: :width 1200 :align center
   [[file:images/20220503-101017_screenshot.png]]
 
-
 * Modelos recurrentes
 
 - Otro caso de éxito de las redes neuronales.
@@ -525,12 +528,89 @@ Los /embeddings/ se pueden aprender con algún procedimiento de pre-entrenamient
     ---Dicho popular. 
   #+END_NOTES
 
-- Son usualmente exitosas cuando la razón señal - ruido es baja.
+- Son usualmente exitosas cuando la razón señal - ruido es alta.
 - Para aplicaciones donde debemos de modelar el componente aleatorio, modelos mas sencillos son preferibles. 
   
 * Ajuste y regularización
 
+El ajuste de una red neuronal se realiza buscando la configuración del modelo que tenga el menor error posible en el conjunto de entrenamiento. Es decir,
+\begin{align}
+\min_\theta \frac12 \sum_{i = 1}^{n} (y_i -  f_\theta(x_i))^2\,,
+\end{align}
+donde $\theta$ son los parámetros a ajustar. Por ejemplo, para una red con una capa intermedia
+\begin{align}
+f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}\right)\,.
+\end{align}
+
+** Descenso en gradiente
+
+- Denotemos por $R(\theta)$ la función de pérdida para el ajuste de una red neuronal.
+- Descenso en gradiente es un algoritmo iterativo que busca el mínimo de la función $R(\theta)$.
+- El procedimiento opera de tal forma que $R(\theta^{t + 1}) < R(\theta^t )$. Buscando actualizar
+  \begin{align}
+  \theta^{t+1} = \theta^{t} - \rho \nabla R(\theta^t)\,.
+  \end{align}
+- El parámetro, $\rho$ es la ~tasa de aprendizaje~.
+
+
+
+** Gradientes y /backpropagation/
+
+- La función $R(\theta) = \sum_{i = 1}^{n} R_i(\theta)$ es una suma. El gradiente, es una suma.
+- Consideremos
+  \begin{align}
+  f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}\right)\,.
+  \end{align}
+- Denotemos $z_{ik} =  \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}$.
+- Entonces usamos la ~regla de la cadena~
+  \begin{align}
+  \frac{\partial R_i(\theta)}{\partial \beta_k} &= \frac{\partial R_i(\theta)}{\partial f_\theta(x_i)} \cdot \frac{\partial f_\theta(x_i)}{\partial \beta_k} \\
+  &= - (y_i - f_\theta(x_i)) \cdot g(z_{ik})\,,
+  \end{align}
+  y también tendríamos
+  \begin{align}
+  \frac{\partial R_i(\theta)}{\partial \omega_{kj}} &= \frac{\partial R_i(\theta)}{\partial f_\theta(x_i)} \cdot \frac{\partial f_\theta(x_i)}{\partial g(z_{ik})} \cdot \frac{\partial g(z_{ik})}{\partial z_{ik}} \cdot \frac{\partial z_{ik}}{\partial \omega_{kj}}\\
+  &= - (y_i - f_\theta(x_i)) \cdot \beta_k \cdot g'(z_{ik}) \cdot x_{ij}\,,
+  \end{align}
+ 
+** Observaciones
+
+- El procedimiento puede ser ~lento~. Sin embargo, podemos utilizar ~early stopping~ como un mecanismo de regularización.
+- Podemos utilizar ~descenso en gradiente estocástico~ (~SGD~) para acelerar el cómputo y mejorar el avance. Usar /minibatches/ de 128 observaciones.
+- Una época (/epoch/) es el número de iteraciones que se necesitan para usar todos los datos si procesamos los datos en /minibatches/.
+- Podemos usar ~regularización~  en los pesos de la red. Pero también podemos usar ~dropout~ o aumento de datos.
+
+** Regularización: Dropout
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 19:37:54
+#+attr_html: :width 700 :align center
+[[file:images/20220503-193754_screenshot.png]]
+
+- Con regularización con /dropout/ se busca que en cada iteración de descenso en gradiente se desactiven algunas unidades con probabilidad $\phi$.
+- Los pesos de las unidades que quedan se rescalan por $1/(1-\phi)$.
+- En regresión se puede probar que es equivalente a ridge.
+- Los pesos tienden a agruparse.
+- Es equivalente a quitar variables en el curso del entrenamiento (como en bosques aleatorios).
+
+** Regularización: Aumento de datos
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 19:42:39
+#+attr_html: :width 1200 :align center
+#+ATTR_LATEX: :width 0.85\textwidth
+[[file:images/20220503-194239_screenshot.png]]
+
+- Especialmente útil con ~SGD~ en ~CNN~.
+- Se buscan transformaciones naturales del las imágenes.
+- La categoría no cambia.
+- Mejora la capacidad predictiva. 
+  
 * /Software/
+
+- El avance en /software/ ha sido impresionante con ~Tensorflow~ y ~Pytorch~.
+- El paquete de ~keras~ es una colección de métodos que hacen la definición de una red neuronal mas sencilla.
+- El paquete de ~torch~ de ~R~ es un paquete que permite el ajuste de modelos sin usar la interfase a ~python~. 
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
