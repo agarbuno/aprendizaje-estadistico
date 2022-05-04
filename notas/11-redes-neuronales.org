@@ -305,15 +305,16 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 
 ** Ideas generales
 
+- Las CNN construyen una imagen de manera jerárquica.
+- Primero se ~extraen~ características globales (por medio de filtros) y se combinan para crear ~atributos~ específicos de la imagen.
+- La extracción y combinación de atributos se logran con capas de *convolución y /pooling/*, 
+
 
 #+DOWNLOADED: screenshot @ 2022-05-03 09:34:08
 #+attr_html: :width 700 :align center
 #+ATTR_LATEX: :width 0.45\textwidth
 [[file:images/20220503-093408_screenshot.png]]
 
-- Las CNN construyen una imagen de manera jerárquica.
-- Primero se ~extraen~ características globales (por medio de filtros) y se combinan para crear ~atributos~ específicos de la imagen.
-- La extracción y combinación de atributos se logran con capas de *convolución y /pooling/*, 
 
 ** Capas  de convolución
 
@@ -393,7 +394,7 @@ Los métodos usuales de regularización son (mas adelante veremos detalles de es
 
 #+REVEAL: split
 
-Nos permite clasificar imágenes propias en estos modelos. 
+Nos permite clasificar imágenes  en el contexto de datos de estos modelos. 
 
 #+DOWNLOADED: screenshot @ 2022-05-03 10:06:01
 #+attr_html: :width 700 :align center
