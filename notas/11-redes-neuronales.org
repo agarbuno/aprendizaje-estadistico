@@ -15,7 +15,7 @@
 #+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session redes-neuronales :exports both :results output org :tangle ../rscripts/11-redes-neuronales.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc
+#+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Redes Neuronales.\\
@@ -85,6 +85,7 @@
   - [[#regularización-dropout][Regularización: Dropout]]
   - [[#regularización-aumento-de-datos][Regularización: Aumento de datos]]
 - [[#software][Software]]
+- [[#referencias][Referencias]]
 :END:
 
 * Introducción 
@@ -447,7 +448,7 @@ Nos permite clasificar imágenes propias en estos modelos.
 - Tenemos una matriz de diseño de tamaño $n \times 10K$.
 - citet:James2021 comparan una regresión logística (con regularización) y una
   red neuronal con dos capas.
-- Pudimos haber escogido /vectorizar/ identificando los pares de palabras mas
+- Se pudo haber escogido /vectorizar/ identificando los pares de palabras mas
   frecuentes (~bigramas~).
 
 #+REVEAL: split
@@ -562,6 +563,7 @@ f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \su
   f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}\right)\,.
   \end{align}
 - Denotemos $z_{ik} =  \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}$.
+#+REVEAL: split
 - Entonces usamos la ~regla de la cadena~
   \begin{align}
   \frac{\partial R_i(\theta)}{\partial \beta_k} &= \frac{\partial R_i(\theta)}{\partial f_\theta(x_i)} \cdot \frac{\partial f_\theta(x_i)}{\partial \beta_k} \\
@@ -612,6 +614,8 @@ f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \su
 - El paquete de ~keras~ es una colección de métodos que hacen la definición de una red neuronal mas sencilla.
 - El paquete de ~torch~ de ~R~ es un paquete que permite el ajuste de modelos sin usar la interfase a ~python~. 
 
+
+* Referencias                                                         :latex:
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
