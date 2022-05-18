@@ -1,0 +1,319 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Aprendizaje no Supervisado~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadistico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/12-aprendizaje-nosupervisado.pdf
+:END:
+#+EXCLUDE_TAGS: toc latex
+#+PROPERTY: header-args:R :session unsupervised :exports both :results output org :tangle ../rscripts/12-aprendizaje-nosupervisado.R :mkdirp yes :dir ../
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Aprendizaje no supervisado.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Capítulo 10 de citep:James2021. 
+#+END_NOTES
+
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 2)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#objetivos-de-aprendizaje-no-supervisado][Objetivos de aprendizaje no supervisado]]
+  - [[#retos-del-aprendizaje-no-supervisado][Retos del aprendizaje no supervisado]]
+  - [[#ventajas][Ventajas]]
+- [[#métodos-de-reducción-de-dimensiones][Métodos de reducción de dimensiones]]
+  - [[#observaciones][Observaciones]]
+- [[#análisis-de-componentes-principales][Análisis de componentes principales]]
+  - [[#el-modelo][El modelo]]
+  - [[#proceso][Proceso]]
+  - [[#formulación][Formulación]]
+  - [[#geometría][Geometría]]
+  - [[#proceso-más-componentes][Proceso: más componentes]]
+  - [[#solución][Solución]]
+  - [[#ejemplo][Ejemplo:]]
+  - [[#interpretación][Interpretación]]
+  - [[#escala-en-los-atributos][Escala en los atributos]]
+  - [[#proporción-de-varianza-explicada][Proporción de varianza explicada]]
+  - [[#cuántos-componentes-habrá-que-utilizar][¿Cuántos componentes habrá que utilizar?]]
+:END:
+
+
+* Introducción
+
+- Hasta ahora nos hemos concentrado en ~aprendizaje supervisado~.
+- Esto es, consideramos que tenemos una colección observaciones $\{(x_i, y_i)\}_{i = 1}^n$.
+- El objetivo es encontrar
+  \begin{align}
+  y = f(x) + \epsilon\,.
+  \end{align}
+- Ahora, estudiaremos técnicas de ~aprendizaje no supervisado~. Sólo tendremos
+  atributos (características) $x_i \in \mathbb{R}^p$.
+
+
+** Objetivos de aprendizaje no supervisado
+
+- Descubrir cosas interesantes acerca de nuestras observaciones.
+- La discusión se concentrará en:
+  1. Métodos de reducción de dimensiones (visualización, o pre-procesamiento). 
+  2. Métodos de agrupación (visualización o pre-procesamiento).
+
+
+** Retos del aprendizaje no supervisado
+
+- Es un mecanismo mucho mas subjetivo (mayor comunicación con expertos en el área).
+- Identificar patrones cuando no es claro el qué se está buscando.
+
+** Ventajas
+
+- Es mucho mas sencillo obtener ~datos sin etiquetas~ que obtener datos con un objetivo claro.
+- Aplicaciones mucho mas abiertas:
+  - Encontrar grupos de pacientes con alguna característica en común.
+  - Segmentación de clientes de acuerdo a patrones de compra.
+  - Segmentación de creadores de contenido en redes sociales.
+
+
+* Métodos de reducción de dimensiones
+
+- Buscan representaciones de menor dimensionalidad. Usualmente con el objetivo de crear visualizaciones.
+- Encontrar patrones en un espacio de menor dimensión.
+  
+#+DOWNLOADED: screenshot @ 2022-05-18 10:57:06
+#+caption: Los métodos de reducción de dimensiones pueden ser lineales (izquierda) o no-lineales (derecha). 
+#+attr_html: :width 1200 :align center
+  [[file:images/20220518-105706_screenshot.png]]
+
+
+#+REVEAL: split
+- Factorización de matrices: sistemas de recomendación o modelado de tópicos. 
+#+DOWNLOADED: screenshot @ 2022-05-17 19:19:34
+#+caption: Modelo de tópicos sobre documentos en términos de contenido. Imagen tomada del curso de /Probabilistic ML/ de Phillip Hennig.
+#+attr_html: :width 1200 :align center
+[[file:images/20220517-191934_screenshot.png]]
+
+
+#+REVEAL: split
+- Aprendizaje de variedades: los datos pueden tener una estructura de subespacio.
+#+DOWNLOADED: screenshot @ 2022-05-17 19:36:33
+#+caption: Imagen tomada de la escuela de verano en procesos Gaussianos 2014. Universidad de Sheffield. 
+#+attr_latex: :width .65\linewidth
+#+attr_html: :width 1200 :align center
+[[file:images/20220517-193633_screenshot.png]]
+
+  
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-17 19:38:57
+#+caption: Imagen tomada de citep:Priscariu2012. Modelo de seguimiento de poses. 
+#+attr_html: :width 1200 :align center
+[[file:images/20220517-193857_screenshot.png]]
+
+#+REVEAL: split
+- Arquitecturas de auto-codificación: Modelos basados en redes neuronales. 
+
+#+DOWNLOADED: screenshot @ 2022-05-18 11:01:43
+#+caption: Se pueden usar transformaciones no-lineales para encontrar cierta estructura semántica (análisis de documentos). Imagen tomada de citep:Salakhutdinov2009b.
+#+attr_html: :width 1200 :align center
+[[file:images/20220518-110143_screenshot.png]]
+
+- Detección de datos atípicos: Máquinas de soporte vectorial
+
+#+DOWNLOADED: screenshot @ 2022-05-18 11:09:10
+#+caption: Detección de patrones, imagen tomada de los ejemplos de [[https://scikit-learn.org/stable/auto_examples/svm/plot_oneclass.html#sphx-glr-auto-examples-svm-plot-oneclass-py][scikit-learn]]. 
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+  [[file:images/20220518-110910_screenshot.png]]
+
+
+** Observaciones 
+
+Los métodos utilizan distintos supuestos para poder construirse y necesitan validarse en la práctica o hacer un estudio de validación de supuesto.
+
+* Análisis de componentes principales
+
+- PCA es capaz de crear una representación de menor dimensión.
+- Con PCA se puede ~crear un espacio de atributos~ que podría ser utilizados para tareas supervisadas.
+
+** El modelo
+
+- Podemos pensar en PCA como un mecanismo iterativo para crear atributos.
+- El primer atributo que construimos a partir de $X_1, \ldots, X_p$ es buscar
+  \begin{align}
+  Z_1 = \phi_{11} X_{1} + \cdots + \phi_{p1} X_p\,,
+  \end{align}
+  en donde $Z_1$ tiene la mayor varianza posible.
+- Por simplicidad pedimos que $\sum_{j} \phi_{j1}^2 = 1$.
+- En la literatura se llaman a los coeficientes $\phi_{11}, \ldots, \phi_{p1}$ ~cargas~ o /loadings/.
+
+
+** Proceso
+
+- Supongamos que tenemos tenemos un conjunto de datos que podemos organizar en $X \in \mathbb{R}^{n\times p}$.
+- Supondremos que todas las columnas han sido ~centradas~ (es decir, el promedio
+  de cada columna es igual a 0).
+- Buscamos 
+  \begin{align}
+  z_{i1} = \phi_{11} x_{i1} + \cdots + \phi_{p1} x_{ip}\,,
+  \end{align}
+  para cada $i = 1, \ldots, n$.
+- Nota que la ~media~ de las $z_{i1}$ es cero y podemos escribir la ~varianza~ en términos de $\frac1n \sum_{i}^{} z_{i1}^2$.
+
+
+** Formulación
+
+- Buscamos resolver el problema
+  \begin{align}
+  \max_{\phi_1 \in \mathbb{R}^p}\frac1n \sum_{i = 1}^{n} \left( \sum_{j = 1}^{p} \phi_{j1} x_{ij} \right)^2\,, \qquad \text{ sujeto a } \qquad \sum_{j = 1}^{p} \phi_{j1}^2 = 1\,.
+  \end{align}
+- Este problema se puede resolver utilizando la ~descompsición espectral~ de la matriz $X$.
+- Definimos $Z_1$ como el primer ~componente principal~.
+
+
+** Geometría
+
+- El vector de cargas $\phi_1$ define la dirección en el espacio de atributos originales en la que los datos varían más.
+- Si proyectamos en esta dirección, entonces recuperamos los /scores/ $z_{11}, \ldots, z_{n1}$.
+
+
+** Proceso: más componentes
+
+- El segundo componente principal será una combinación lineal de los atributos,
+  tal que tenga ~máxima varianza~ y que sea ortogonal a $Z_1$.
+- Por lo tanto los /scores/ toman la forma
+  \begin{align}
+  z_{i2} = \phi_{12} x_{i1} + \cdots + \phi_{p2} x_{ip}\,,
+  \end{align}
+  donde el vector $\phi_2$ es el vector de cargas del segundo componente principal.
+
+** Solución 
+
+- La restricción de ortogonalidad sobre los componentes nos permite encontrar
+  las direcciones $\phi_1, \phi_2, \ldots$  como los vectores propios por la
+  derecha de $X$.
+- Las varianzas de los componentes están dados por $\frac1n \times \lambda_i^2$
+  donde $\lambda_i$ son los valores propios.
+- A lo más, hay $\min(n-1, p)$ componentes principales.
+
+
+
+** Ejemplo:
+
+- Tenemos datos del número de arrestos por cada 100,000 habitantes por distintos
+  tipos de crímenes: ~Assault~, ~Murder~, and ~Rape~. También tenemos la proporción de
+  población que vive en zonas urbanas, ~UrbanPop~.
+
+- El registro es de 50 ciudades en EUA. Por lo tanto $n = 50$ y $p = 4$.
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-18 12:11:30
+#+caption: Imagen tomada de citep:James2021. Gráfico tipo /biplot/ que muestra los /scores/ (observaciones) y los /loadings/ (atributos).
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+[[file:images/20220518-121130_screenshot.png]]
+
+
+
+** Interpretación
+
+- El primer componente principal define la línea en un espacio de $p$ dimensiones que es la más cercana a nuestras $n$ observaciones (bajo distancia Euclideana).
+- Esta idea se extiende naturalmente a buscar hiper-planos en más dimensiones.
+- Por ejemplo, con los dos componentes recuperamos el plano mas cercano a los datos. 
+
+
+** Escala en los atributos
+
+#+DOWNLOADED: screenshot @ 2022-05-18 12:18:50
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 1200 :align center
+[[file:images/20220518-121850_screenshot.png]]
+
+** Proporción de varianza explicada
+
+- Nos interesa medir la proporción de varianza de cada componente para entender la importancia o la capacidad de resumen de cada componente principal.
+- La ~varianza total~ en el conjunto de datos se define como
+  \begin{align}
+  \sum_{j = 1}^{p} \mathbb{V}(X_j) \approx \sum_{j = 1}^{p} \frac1n \sum_{i= 1 }^{n} x_{ij}^2\,,
+  \end{align}
+  la ~varianza explicada~ por cada componente principal la estimamos
+  \begin{align}
+  \mathbb{V}(Z_m) \approx \frac1n \sum_{i = 1}^{n} z_{im}^2\,.
+  \end{align}
+
+#+REVEAL: split
+- Se puede probar que
+  \begin{align}
+  \sum_{j = 1}^{p}\mathbb{V}(X_j) = \sum_{m = 1}^{M} \mathbb{V}(Z_m)\,,
+  \end{align}
+  con $M = \min(n-1, p)$.
+- Por lo tanto podemos calcular la ~proporción de varianza explicada~ como
+  \begin{align}
+  \frac{\mathbb{V}(Z_m)}{\sum_{j = 1}^{p} \mathbb{V}(X_j)}\,.
+  \end{align} 
+
+
+#+DOWNLOADED: screenshot @ 2022-05-18 12:41:22
+#+caption: Imagen tomada de citep:James2021.
+#+attr_html: :width 700 :align center
+[[file:images/20220518-124122_screenshot.png]]
+
+
+** ¿Cuántos componentes habrá que utilizar?
+
+/Depende/.
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
