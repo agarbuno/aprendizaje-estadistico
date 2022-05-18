@@ -42,8 +42,8 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Aprendizaje no supervisado.\\
-*Objetivo*: Que veremos.\\
-*Lectura recomendada*: Capítulo 10 de citep:James2021. 
+*Objetivo*: En esta última sección del curso cambiaremos el enfoque hacia aprendizaje no supervisado con el objetivo de estudiar las técnicas mas usuales: reducción de dimensiones y agrupación de datos. En particular veremos algunas técnicas que se pueden usar en este contexto.\\
+*Lectura recomendada*: Capítulo 12 de citep:James2021. 
 #+END_NOTES
 
 
@@ -90,6 +90,15 @@
   - [[#escala-en-los-atributos][Escala en los atributos]]
   - [[#proporción-de-varianza-explicada][Proporción de varianza explicada]]
   - [[#cuántos-componentes-habrá-que-utilizar][¿Cuántos componentes habrá que utilizar?]]
+- [[#segmentación][Segmentación]]
+  - [[#conglomerados-para-segmentación-de-mercados][Conglomerados para segmentación de mercados]]
+  - [[#métodos-de-segmentación-ejemplos][Métodos de segmentación (ejemplos)]]
+- [[#k-medias][$K$ medias]]
+  - [[#cómo-funciona][¿Cómo funciona?]]
+  - [[#algoritmo][Algoritmo]]
+  - [[#propiedades-del-algoritmo][Propiedades del algoritmo]]
+- [[#agrupación-jerárquica][Agrupación jerárquica]]
+  - [[#puntos-a-considerar][Puntos a considerar]]
 :END:
 
 
@@ -157,7 +166,7 @@
   
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2022-05-17 19:38:57
-#+caption: Imagen tomada de citep:Priscariu2012. Modelo de seguimiento de poses. 
+#+caption: Imagen tomada de citep:Prisacariu2012. Modelo de seguimiento de poses. 
 #+attr_html: :width 1200 :align center
 [[file:images/20220517-193857_screenshot.png]]
 
@@ -198,7 +207,6 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
 - Por simplicidad pedimos que $\sum_{j} \phi_{j1}^2 = 1$.
 - En la literatura se llaman a los coeficientes $\phi_{11}, \ldots, \phi_{p1}$ ~cargas~ o /loadings/.
 
-
 ** Proceso
 
 - Supongamos que tenemos tenemos un conjunto de datos que podemos organizar en $X \in \mathbb{R}^{n\times p}$.
@@ -211,7 +219,6 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
   para cada $i = 1, \ldots, n$.
 - Nota que la ~media~ de las $z_{i1}$ es cero y podemos escribir la ~varianza~ en términos de $\frac1n \sum_{i}^{} z_{i1}^2$.
 
-
 ** Formulación
 
 - Buscamos resolver el problema
@@ -221,12 +228,10 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
 - Este problema se puede resolver utilizando la ~descompsición espectral~ de la matriz $X$.
 - Definimos $Z_1$ como el primer ~componente principal~.
 
-
 ** Geometría
 
 - El vector de cargas $\phi_1$ define la dirección en el espacio de atributos originales en la que los datos varían más.
 - Si proyectamos en esta dirección, entonces recuperamos los /scores/ $z_{11}, \ldots, z_{n1}$.
-
 
 ** Proceso: más componentes
 
@@ -248,7 +253,6 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
 - A lo más, hay $\min(n-1, p)$ componentes principales.
 
 
-
 ** Ejemplo:
 
 - Tenemos datos del número de arrestos por cada 100,000 habitantes por distintos
@@ -265,13 +269,11 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
 [[file:images/20220518-121130_screenshot.png]]
 
 
-
 ** Interpretación
 
 - El primer componente principal define la línea en un espacio de $p$ dimensiones que es la más cercana a nuestras $n$ observaciones (bajo distancia Euclideana).
 - Esta idea se extiende naturalmente a buscar hiper-planos en más dimensiones.
 - Por ejemplo, con los dos componentes recuperamos el plano mas cercano a los datos. 
-
 
 ** Escala en los atributos
 
@@ -309,10 +311,137 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
 #+attr_html: :width 700 :align center
 [[file:images/20220518-124122_screenshot.png]]
 
-
 ** ¿Cuántos componentes habrá que utilizar?
 
 /Depende/.
+
+
+
+
+* Segmentación
+
+- Análisis de conglomerados, segmentación, agrupación, ó /clustering/ es una técnica que busca encontrar grupos de
+  observaciones. 
+- Las observaciones ~dentro~ de los grupos se deben de parecer lo mas posible.
+- Las observaciones ~entre~ grupos deben de ser lo mas distintas posible.
+- ¿Cómo medimos /similaridad/ o /diferencias/?
+  - Con conocimiento de dominio y específico a la aplicación que estamos tratando.
+
+** Conglomerados para segmentación de mercados
+
+- Identificar grupos de personas que sean mas receptivas a un tipo particular de
+  anuncios o que sean mas propensas a comprar un producto.
+
+
+** Métodos de segmentación (ejemplos)
+
+- $K$ /medias/, busca identificar los grupos. 
+- /Clustering jerárquico/, no sabemos cuántos grupos necesitamos.
+- Modelo de mezclas Gaussianas.
+
+
+
+* $K$ medias
+
+Con un conjunto de datos ficticios de $n = 150$ y $p = 2$, obtenemos los
+siguientes grupos utilizando valores distintos para $K$.
+
+#+DOWNLOADED: screenshot @ 2022-05-18 16:44:42
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+[[file:images/20220518-164442_screenshot.png]]
+
+
+** ¿Cómo funciona?
+
+Sean $C_1, \ldots, C_K$ los conjuntos de índices a los que pertenece cada instancia.
+Estos conjuntos satisfacen:
+1. $C_1 \cup C_2 \cup \cdots \cup C_K = \{1, \ldots, n\}$.
+2. $C_j \cap C_k = \emptyset$ para toda $j \neq k$.
+
+#+REVEAL: split
+- Un buen algoritmo de $K$ medias es aquel que tiene una ~variación dentro de grupos~ pequeña.
+- La métrica $\mathsf{WCV}(C_k)$ representa qué tan diferentes son las observaciones dentro del grupo $k$.
+- Buscamos resolver:
+  \begin{align}
+  \min_{C_1, \ldots, C_K} \sum_{k = 1}^{K} \mathsf{WCV}(C_k)\,.
+  \end{align}
+
+#+REVEAL: split
+- Usualmente usamos distancia Euclideana
+  \begin{align}
+  \mathsf{WCV}(C_k) = \frac{1}{|C_k|} \sum_{i, j \in C_k}^{} \|x_{i}  - x_{j}\|^2\,,
+  \end{align}
+  donde $|C_k|$ denota la cuántas observaciones pertenecen al grupo $k$.
+
+  
+
+** Algoritmo
+
+1. Asignar al azar un grupo a cada observación.
+2. Repetir hasta que las asignaciones no cambien:
+   1. Para cada grupo, encontrar el centro.
+   2. Asignar a cada observación el centro mas cercano.
+   3. Asignar el grupo al que pertenece.
+
+
+** Propiedades del algoritmo
+
+- El algoritmo tiene garantía de disminuir la función objetivo en cada iteración.
+- Nota que
+  \begin{align}
+  \frac{1}{|C_k|} \sum_{i, j \in C_k}^{} \|x_i - x_j \|^2 = 2 \sum_{i \in C_k}^{} \|x_i - \bar x_k\|^2\,,
+  \end{align}
+  donde $\bar x_k$ es el centro del grupo $k$.
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-18 17:01:09
+#+caption: Imagen tomada de citep:James2021.
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+[[file:images/20220518-170109_screenshot.png]]
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-18 17:04:08
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+[[file:images/20220518-170408_screenshot.png]]
+
+
+* Agrupación jerárquica
+
+- No necesitamos determinar el número de grupos que necesitamos.
+- El procedimiento es iterativo en donde los grupos se van juntando poco a poco. 
+
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 1200 :align center
+[[file:images/20220518-171600_screenshot.png]]
+
+#+REVEAL: split
+
+#+DOWNLOADED: screenshot @ 2022-05-18 17:16:58
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+[[file:images/20220518-171658_screenshot.png]]
+
+#+REVEAL: split
+
+#+DOWNLOADED: screenshot @ 2022-05-18 17:18:54
+#+caption: Imagen tomada de citep:James2021. 
+#+attr_html: :width 700 :align center
+[[file:images/20220518-171854_screenshot.png]]
+
+
+** Puntos a considerar
+
+- Escalas en los atributos.
+- Escoger la métrica.
+- Escoger el número de /clusters/.
+- Escoger los atributos que se usarán. 
 
 
 bibliographystyle:abbrvnat
