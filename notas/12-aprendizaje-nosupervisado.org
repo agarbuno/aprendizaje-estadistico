@@ -14,29 +14,6 @@
 #+REVEAL_EXTRA_CSS: ./mods.css
 #+REVEAL_PLUGINS: (notes)
 :END:
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/12-aprendizaje-nosupervisado.pdf
-:END:
 #+EXCLUDE_TAGS: toc latex
 #+PROPERTY: header-args:R :session unsupervised :exports both :results output org :tangle ../rscripts/12-aprendizaje-nosupervisado.R :mkdirp yes :dir ../
 
@@ -99,6 +76,7 @@
   - [[#propiedades-del-algoritmo][Propiedades del algoritmo]]
 - [[#agrupación-jerárquica][Agrupación jerárquica]]
   - [[#puntos-a-considerar][Puntos a considerar]]
+- [[#referencias][Referencias]]
 :END:
 
 
@@ -118,13 +96,13 @@
 
 - Descubrir cosas interesantes acerca de nuestras observaciones.
 - La discusión se concentrará en:
-  1. Métodos de reducción de dimensiones (visualización, o pre-procesamiento). 
-  2. Métodos de agrupación (visualización o pre-procesamiento).
+  1. Métodos de ~reducción de dimensiones~ (visualización, o pre-procesamiento). 
+  2. Métodos de ~agrupación~ (visualización o pre-procesamiento).
 
 
 ** Retos del aprendizaje no supervisado
 
-- Es un mecanismo mucho mas subjetivo (mayor comunicación con expertos en el área).
+- Es un mecanismo mucho mas ~subjetivo~ (mayor comunicación con expertos en el área).
 - Identificar patrones cuando no es claro el qué se está buscando.
 
 ** Ventajas
@@ -139,7 +117,6 @@
 * Métodos de reducción de dimensiones
 
 - Buscan representaciones de menor dimensionalidad. Usualmente con el objetivo de crear visualizaciones.
-- Encontrar patrones en un espacio de menor dimensión.
   
 #+DOWNLOADED: screenshot @ 2022-05-18 10:57:06
 #+caption: Los métodos de reducción de dimensiones pueden ser lineales (izquierda) o no-lineales (derecha). 
@@ -160,7 +137,7 @@
 #+DOWNLOADED: screenshot @ 2022-05-17 19:36:33
 #+caption: Imagen tomada de la escuela de verano en procesos Gaussianos 2014. Universidad de Sheffield. 
 #+attr_latex: :width .65\linewidth
-#+attr_html: :width 1200 :align center
+#+attr_html: :width 900 :align center
 [[file:images/20220517-193633_screenshot.png]]
 
   
@@ -178,6 +155,7 @@
 #+attr_html: :width 1200 :align center
 [[file:images/20220518-110143_screenshot.png]]
 
+#+REVEAL: split
 - Detección de datos atípicos: Máquinas de soporte vectorial
 
 #+DOWNLOADED: screenshot @ 2022-05-18 11:09:10
@@ -189,7 +167,7 @@
 
 ** Observaciones 
 
-Los métodos utilizan distintos supuestos para poder construirse y necesitan validarse en la práctica o hacer un estudio de validación de supuesto.
+Los métodos utilizan distintos ~supuestos~ para poder construirse y necesitan ~validarse~ en la práctica. 
 
 * Análisis de componentes principales
 
@@ -199,7 +177,7 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
 ** El modelo
 
 - Podemos pensar en PCA como un mecanismo iterativo para crear atributos.
-- El primer atributo que construimos a partir de $X_1, \ldots, X_p$ es buscar
+- El primer atributo que construimos a partir de $X_1, \ldots, X_p$ es 
   \begin{align}
   Z_1 = \phi_{11} X_{1} + \cdots + \phi_{p1} X_p\,,
   \end{align}
@@ -225,7 +203,7 @@ Los métodos utilizan distintos supuestos para poder construirse y necesitan val
   \begin{align}
   \max_{\phi_1 \in \mathbb{R}^p}\frac1n \sum_{i = 1}^{n} \left( \sum_{j = 1}^{p} \phi_{j1} x_{ij} \right)^2\,, \qquad \text{ sujeto a } \qquad \sum_{j = 1}^{p} \phi_{j1}^2 = 1\,.
   \end{align}
-- Este problema se puede resolver utilizando la ~descompsición espectral~ de la matriz $X$.
+- Este problema se puede resolver utilizando la ~descomposición espectral~ de la matriz $X$.
 - Definimos $Z_1$ como el primer ~componente principal~.
 
 ** Geometría
@@ -347,7 +325,7 @@ Con un conjunto de datos ficticios de $n = 150$ y $p = 2$, obtenemos los
 siguientes grupos utilizando valores distintos para $K$.
 
 #+DOWNLOADED: screenshot @ 2022-05-18 16:44:42
-#+attr_html: :width 700 :align center
+#+attr_html: :width 1200 :align center
 #+attr_latex: :width .65\linewidth
 [[file:images/20220518-164442_screenshot.png]]
 
@@ -432,7 +410,7 @@ Estos conjuntos satisfacen:
 
 #+DOWNLOADED: screenshot @ 2022-05-18 17:18:54
 #+caption: Imagen tomada de citep:James2021. 
-#+attr_html: :width 700 :align center
+#+attr_html: :width 1200 :align center
 [[file:images/20220518-171854_screenshot.png]]
 
 
@@ -441,8 +419,9 @@ Estos conjuntos satisfacen:
 - Escalas en los atributos.
 - Escoger la métrica.
 - Escoger el número de /clusters/.
-- Escoger los atributos que se usarán. 
+- Escoger los atributos que se usarán.
 
+* Referencias                                                         :latex:
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
