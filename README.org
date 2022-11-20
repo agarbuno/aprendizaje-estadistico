@@ -1,37 +1,247 @@
-* Introducción
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: [Primavera, 2022]
+:REVEAL_PROPERTIES:
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_EXTRA_CSS: ./notas/mods.css
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_PLUGINS: (notes)
+:END:
+#+STARTUP: showall
+#+EXCLUDE_TAGS: toc github latex
+
+
+[[https://github.com/agarbuno/aprendizaje-estadistico/actions/workflows/docker.yml/badge.svg]] [[https://img.shields.io/docker/pulls/agarbuno/aprendizaje.svg?logo=docker]] [[https://img.shields.io/docker/image-size/agarbuno/aprendizaje/notas.svg?logo=docker]] [[https://img.shields.io/github/languages/top/agarbuno/aprendizaje-estadistico.svg?logo=r]] [[https://img.shields.io/github/languages/code-size/agarbuno/aprendizaje-estadistico.svg?logo=r]] 
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#objetivo][Objetivo]]
+- [[#temario][Temario]]
+  - [[#de-qué-se-trata-el-curso][¿De qué se trata el curso?]]
+- [[#recursos][Recursos]]
+- [[#horarios][Horarios]]
+  - [[#formato][Formato]]
+  - [[#canvas][Canvas]]
+  - [[#fechas-importantes][Fechas importantes]]
+  - [[#grabaciones-de-clases][Grabaciones de clases]]
+- [[#evaluación][Evaluación]]
+  - [[#proyecto-final][Proyecto final]]
+- [[#ambiente-de-trabajo][Ambiente de trabajo]]
+  - [[#configuración-r][Configuración R]]
+  - [[#configuración-renv][Configuración renv]]
+  - [[#configuración-de-docker][Configuración de Docker]]
+- [[#tarea][Tarea]]
+- [[#referencias][Referencias]]
+:END:
+    
+* Introducción                                                       :github:
 
 Este es el repositorio con el contenido del curso en *Aprendizaje Estadístico*
-ofrecido a estudiantes de semestres avanzados en las licenciaturas de matemáticas aplicadas,
-ciencia de datos y actuaría.
+ofrecido a estudiantes de semestres avanzados en las licenciaturas de
+matemáticas aplicadas, ciencia de datos, actuaría, economía, etc.
 
 * Objetivo
 
 El Aprendizaje Estadístico trata de cómo establecer reglas de asociación al
 observar un conjunto de datos. En este curso estudiaremos las ideas
 fundamentales detrás de los técnicas de aprendizaje e incorporaremos con
-conceptos familiares de estadística. El libro de texto será [[cite:&James2021]] y
-lo complementaremos con el enfoque de [[cite:&Kuhn2013]]. Se estudiarán, además,
+conceptos familiares de estadística. El libro de texto será [[cite:James2021]] y
+lo complementaremos con el enfoque de [[cite:Kuhn2013]]. Se estudiarán, además,
 técnicas estadísticas modernas aplicadas a modelado predictivo por medio de
 lecturas que acompañaran el curso.
-  
+
+#+REVEAL: split
+
+El libro de texto será:
+#+begin_quote
+- James, G., Witten, D., Hastie, T., & Tibshirani, R. (2021). /An introduction to statistical learning/. Springer, New York, NY. Second Edition.  
+#+end_quote
+
+
+#+REVEAL: split
+Nos apoyaremos de:
+#+begin_quote
+- Kuhn, M., Johnson K. (2013). /Applied predictive modeling/. Springer, New York, NY.
+#+end_quote
 
 * Temario
 
-El temario para el semestre de primavera 2022 se puede encontrar [[https://github.com/agarbuno/aprendizaje-estadistico/blob/spring-2022/docs/temario.pdf][aqui]]. 
+El temario para el semestre de primavera 2022 se puede encontrar [[https://github.com/agarbuno/aprendizaje-estadistico/blob/spring-2022/docs/temario.pdf][aqui]]. Este es
+un plan preliminar que está sujeto al avance del curso a lo largo del semestre.
+
+** ¿De qué se trata el curso?
+
+El material que estudiaremos será sobre modelos predictivos desde el punto de
+vista estadístico. Dicho de otra forma, no será un curso de /Machine Learning/
+*algorítmico*. Nos concentraremos en las conexiones entre modelos predictivos y
+principios estadísticos que le dan sustento.
 
 * Recursos
 
-El contenido actual del curso se encuentra en la rama: [[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]].
+El contenido actual de esta iteración del curso se encuentra en la rama:
+[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]]. La estructura del repositorio se muestra a continuación donde
+tenemos a grandes razgos:
+
+#+begin_src bash :exports results :results org
+
+tree -L 1 -d 
+
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+.
+├── auto
+├── css
+├── docs
+├── images
+├── notas
+├── renv
+└── rscripts
+
+7 directories
+#+end_src
+
+* Horarios
+
+El curso será los días Lunes y Miércoles en un horario de 13:00 a 14:30.
+
+** Formato
+
+El curso será presencial. En las primeras dos semanas de clase se tendrá la
+opción de atender de manera remota en caso de que la situación del estudiante lo
+amerite.  Por otro lado, salvo se indique lo contrario, ~las evaluaciones serán
+presenciales~.
+
+** Canvas
+
+Utilizaremos este LMS para gestionar la comunicación fuera de los horarios de
+clase. Asimismo, ahi tendrán acceso al calendario y las sesiones de zoom que se
+necesiten a lo largo del semestre.
+
+** Fechas importantes
+
+#+ATTR_REVEAL: :frag (appear)
+- La sesión del ~Lunes 7 de Febrero~ será una sesión usual. El miércoles 9 de Febrero *no habrá clase*.
+- La sesión del ~Lunes 21 de Marzo~ hay descanso obligatorio. 
+- Por solidaridad, el ~Miércoles 9 de Marzo~ *no habrá sesión de clase*. Tendremos una sesión de reflexión. 
+
+** Grabaciones de clases
+
+La clase se enriquece exponencialmente si existe una conversación entre los
+asistentes. Por lo tanto, las sesiones no se grabarán (si, incluso si hay un cumpleaños!). 
 
 * Evaluación
 
 La evaluación del curso será por medio de:
-- Participación
-- Tareas
-- Evaluaciones parciales 
-- Proyecto final
+#+ATTR_REVEAL: :frag (appear)
+- Participación y tareas (30%)
+- Evaluaciones parciales (30%)
+- Proyecto final (40%)
 
 La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]]. 
 
+** Proyecto final
+
+Tarea de aprendizaje (supervisado/no supervisado) que deseen. \\
+Opciones: Conjunto de datos ó modelo que no hayamos visto en clase.  \\
+Entregables: Seguimiento (10%), reporte (20%) y presentación (10%). 
+
+
+* Ambiente de trabajo
+
+El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el
+material estará construido a partir de [[https://www.r-project.org/][R]]. En particular utilizaremos [[https://www.tidymodels.org/][tidymodels]]
+como herramienta de programación dentro de ~R~ pues ofrece una ambiente unificado
+de distintas librerías enfocadas en modelos predictivos. Además, es una
+herramienta que representa muy bien la filosofía del curso.
+
+#+REVEAL: split
+
+Se sugiere utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus
+tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través
+de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados en ~Github~.
+
+#+REVEAL: split
+
+*Nota*: Es necesario tener instalada la versión ~4.1.1~ de ~R~ para tener la mejor
+compatibilidad con el código del curso.
+
+** Configuración ~R~
+
+Utilizaremos ~renv~ para mantener actualizada las herramientas de ~R~ junto con el
+contenido del curso. En la carpeta =notas= se encuentran los archivos de
+requerimientos (=renv.lock=) con el que podrán usar los archivos que se vayan
+decantando en la carpeta =rscripts=. Aún asi, la configuración se irá construyendo
+en los ejercicios de tarea que vayamos utilizando en el curso.
+
+** Configuración ~renv~
+
+Se recomienda escribir en el archivo ~~/.Renviron~ la siguiente línea lo cual
+mantendrá el cache de ~renv~ en un lugar centralizado
+
+#+begin_src conf :tangle ~/.Renviron :mkdirp yes
+  RENV_PATHS_ROOT=~/.renv
+#+end_src
+
+** Configuración de ~Docker~
+
+Deseable, y próximo en anunciarse.
+
+* Tarea 
+
+Las primeras tareas del semestre son básicamente configuración y es recomendable
+hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~.
+
+#+REVEAL: split
+#+REVEAL: split
+
+
+
+* Referencias                                                         :latex:
+
+\nocite{*}
+
 bibliographystyle:abbrvnat
-bibliography:./references.bib
+bibliography:references.bib
+
+* COMMENT Plan de trabajo [11/16][68%]                             :noexport:
+:PROPERTIES:
+:UNNUMBERED: notoc
+:END:
+** DONE Motivacion
+CLOSED: [2022-03-04 Fri 19:52]
+** DONE Aprendizaje Estadistico
+CLOSED: [2022-03-04 Fri 19:52]
+** DONE Regresion
+CLOSED: [2022-03-04 Fri 19:51]
+** DONE Clasificacion 
+CLOSED: [2022-03-04 Fri 19:51]
+** DONE Separación de muestras
+CLOSED: [2022-03-04 Fri 19:53]
+** DONE Validación cruzada
+CLOSED: [2022-03-07 Mon 14:47]
+** DONE Bootstrap
+CLOSED: [2022-03-15 Tue 20:20]
+** DONE Regularizacion
+CLOSED: [2022-04-14 Thu 19:57]
+** DONE Modelos  no lineales (intro)
+CLOSED: [2022-04-14 Thu 19:57]
+** DONE Arboles de decisión
+CLOSED: [2022-04-27 Wed 14:58]
+** DONE Modelos de Ensamble (RF y Boosting)
+CLOSED: [2022-04-27 Wed 14:58]
+** TODO Máquinas de Soporte Vectorial
+** TODO Aprendizaje no supervisado
+** TODO Modelos hiper-parametrizados
+** TODO Modelos de supervivencia
+** TODO Pruebas múltiples 
