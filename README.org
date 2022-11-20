@@ -32,7 +32,6 @@
   - [[#formato][Formato]]
   - [[#canvas][Canvas]]
   - [[#fechas-importantes][Fechas importantes]]
-  - [[#grabaciones-de-clases][Grabaciones de clases]]
 - [[#evaluación][Evaluación]]
   - [[#proyecto-final][Proyecto final]]
 - [[#ambiente-de-trabajo][Ambiente de trabajo]]
@@ -53,7 +52,7 @@ matemáticas aplicadas, ciencia de datos, actuaría, economía, etc.
 
 El Aprendizaje Estadístico trata de cómo establecer reglas de asociación al
 observar un conjunto de datos. En este curso estudiaremos las ideas
-fundamentales detrás de los técnicas de aprendizaje e incorporaremos con
+fundamentales detrás de las técnicas de aprendizaje modernas e incorporaremos
 conceptos familiares de estadística. El libro de texto será [[cite:James2021]] y
 lo complementaremos con el enfoque de [[cite:Kuhn2013]]. Se estudiarán, además,
 técnicas estadísticas modernas aplicadas a modelado predictivo por medio de
@@ -65,7 +64,6 @@ El libro de texto será:
 #+begin_quote
 - James, G., Witten, D., Hastie, T., & Tibshirani, R. (2021). /An introduction to statistical learning/. Springer, New York, NY. Second Edition.  
 #+end_quote
-
 
 #+REVEAL: split
 Nos apoyaremos de:
@@ -100,27 +98,23 @@ tree -L 1 -d
 #+RESULTS:
 #+begin_src org
 .
-├── auto
-├── css
-├── docs
-├── images
-├── notas
-├── renv
-└── rscripts
+├── docs       # Handouts con las notas de clase.
+├── images     # Material visual de apoyo.
+├── notas      # Material fuente de las notas (emacs).
+├── renv       # Archivos de estructura de ambiente (R).
+└── rscripts   # Codigo de R para seguir la clase.
 
-7 directories
+5 directories
 #+end_src
 
 * Horarios
 
-El curso será los días Lunes y Miércoles en un horario de 13:00 a 14:30.
+El curso será los días Martes y Jueves
 
 ** Formato
 
-El curso será presencial. En las primeras dos semanas de clase se tendrá la
-opción de atender de manera remota en caso de que la situación del estudiante lo
-amerite.  Por otro lado, salvo se indique lo contrario, ~las evaluaciones serán
-presenciales~.
+El curso será presencial. Por otro lado, salvo se indique lo contrario, ~las
+evaluaciones serán presenciales~.
 
 ** Canvas
 
@@ -131,14 +125,6 @@ necesiten a lo largo del semestre.
 ** Fechas importantes
 
 #+ATTR_REVEAL: :frag (appear)
-- La sesión del ~Lunes 7 de Febrero~ será una sesión usual. El miércoles 9 de Febrero *no habrá clase*.
-- La sesión del ~Lunes 21 de Marzo~ hay descanso obligatorio. 
-- Por solidaridad, el ~Miércoles 9 de Marzo~ *no habrá sesión de clase*. Tendremos una sesión de reflexión. 
-
-** Grabaciones de clases
-
-La clase se enriquece exponencialmente si existe una conversación entre los
-asistentes. Por lo tanto, las sesiones no se grabarán (si, incluso si hay un cumpleaños!). 
 
 * Evaluación
 
@@ -154,7 +140,7 @@ La entrega de los trabajos/tareas se realizará por medio de un [[https://github
 
 Tarea de aprendizaje (supervisado/no supervisado) que deseen. \\
 Opciones: Conjunto de datos ó modelo que no hayamos visto en clase.  \\
-Entregables: Seguimiento (10%), reporte (20%) y presentación (10%). 
+Entregables: Seguimiento (25%), reporte (50%) y presentación (25%). 
 
 
 * Ambiente de trabajo
@@ -167,13 +153,14 @@ herramienta que representa muy bien la filosofía del curso.
 
 #+REVEAL: split
 
-Se sugiere utilizar [[https://www.rstudio.com/products/rstudio/download/][Rstudio]] para poder trabajar en sus proyectos y sus
-tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU Emacs]] a través
-de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser visualizados en ~Github~.
+Se sugiere utilizar +[[https://www.rstudio.com/products/rstudio/download/][Rstudio]]+ =Visual Studio Code= para poder trabajar en sus
+proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU
+Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser
+visualizados en ~Github~.
 
 #+REVEAL: split
 
-*Nota*: Es necesario tener instalada la versión ~4.1.1~ de ~R~ para tener la mejor
+*Nota*: Es necesario tener instalada la versión ~4.2.1~ de ~R~ para tener la mejor
 compatibilidad con el código del curso.
 
 ** Configuración ~R~
