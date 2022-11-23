@@ -149,19 +149,19 @@ El curso es agnóstico al lenguaje de programación. Sin embargo, las notas y el
 material estará construido a partir de [[https://www.r-project.org/][R]]. En particular utilizaremos [[https://www.tidymodels.org/][tidymodels]]
 como herramienta de programación dentro de ~R~ pues ofrece una ambiente unificado
 de distintas librerías enfocadas en modelos predictivos. Además, es una
-herramienta que representa muy bien la filosofía del curso.
+herramienta que representa muy bien la filosofía del curso. 
 
 #+REVEAL: split
+El ambiente de trabajo está configurado para tener un espacio ~reproducible~. Es decir, independiente del 
+sistema operativo unificaremos versiones para poder trabajar. Esto lo logramos con las siguientes herramientas 
+(las menciono pero no espero que tengan familiaridad, a lo largo del curso veremos cómo utilizarlas).
+
+** Ambiente de desarrollo gráfico integrado (IDE)
 
 Se sugiere utilizar +[[https://www.rstudio.com/products/rstudio/download/][Rstudio]]+ =Visual Studio Code= para poder trabajar en sus
 proyectos y sus tareas. En particular, el material de clase será editado en [[https://www.gnu.org/software/emacs/][GNU
 Emacs]] a través de =orgfiles= (archivos con sufijo ~.org~) pero pueden ser
 visualizados en ~Github~.
-
-#+REVEAL: split
-
-*Nota*: Es necesario tener instalada la versión ~4.2.1~ de ~R~ para tener la mejor
-compatibilidad con el código del curso.
 
 ** Configuración ~R~
 
@@ -171,18 +171,36 @@ requerimientos (=renv.lock=) con el que podrán usar los archivos que se vayan
 decantando en la carpeta =rscripts=. Aún asi, la configuración se irá construyendo
 en los ejercicios de tarea que vayamos utilizando en el curso.
 
-** Configuración ~renv~
+#+REVEAL: split
 
-Se recomienda escribir en el archivo ~~/.Renviron~ la siguiente línea lo cual
+*Nota*: Es necesario tener instalada la versión ~4.2.1~ de ~R~ para tener la mejor
+compatibilidad con el código del curso.
+
+** Gestión de librerías de R: ~renv~
+
+Se recomienda escribir en el archivo =~/.Renviron= la siguiente línea lo cual
 mantendrá el cache de ~renv~ en un lugar centralizado
 
 #+begin_src conf :tangle ~/.Renviron :mkdirp yes
   RENV_PATHS_ROOT=~/.renv
 #+end_src
 
-** Configuración de ~Docker~
+** Ambiente /Dockerizado/
 
-Deseable, y próximo en anunciarse.
+Mi idea de ambiente computacional es el que se puede reproducir en cualquier
+sistema operativo. Para esto ~Docker~ es la herramienta ideal y el uso de los
+~Codespaces~ de GitHub ha resultado increíble para una solución dentro de un
+ámbito educativo.
+
+#+REVEAL: split
+Para la imagen ~agarbuno/aprendizaje~ consideren que: 
+1) El /tag/ ~notas~ basado en una distribución linux en una emulación con un
+   procesador ~Intel~, tiene la configuración mínima necesaria para poder
+   reproducir el ambiente de cómputo para poder ejecutar el material del curso
+
+#+REVEAL: split
+Esto no les puede decir mucho, pero básicamente con el combo 
+~Docker~ + ~Visual Code Studio~ = Tod@s tenemos la misma computadora para trabajar 🥲.
 
 * Tarea 
 
@@ -190,8 +208,12 @@ Las primeras tareas del semestre son básicamente configuración y es recomendab
 hacerlas si no cuentan con experiencia en: ~Git~, ~Github~, ~R~ y el ~tidyverse~.
 
 #+REVEAL: split
-#+REVEAL: split
+Las tareas las gestionaremos a través de ~Github Classroom~ lo cual me permite
+administrar sus entregas como proyectos de ~Git~. Además, habrá ejercicios de las
+tareas que tendrán mecanismos de calificación automatizada.
 
+
+* ¿Dudas?
 
 
 * Referencias                                                         :latex:
