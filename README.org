@@ -126,6 +126,21 @@ necesiten a lo largo del semestre.
 
 #+ATTR_REVEAL: :frag (appear)
 
+** Horario de atención de alumnos
+
+El horario de atención a alumnos será Lunes y Miércoles en un horario de 11:00am
+a 1:00pm. Recomiendo utilizar el sitio de [[https://calendly.com/alfredo-garbuno/entrevistas][calendly]]. Por supuesto, si no les
+queda algún horario podemos agendar por ~correo electrónico~.
+
+#+DOWNLOADED: screenshot @ 2022-08-09 10:19:38
+#+attr_html: :width 700 :align center
+[[file:images/20220809-101938_screenshot.png]]
+
+#+REVEAL: split
+~Importante~: les estoy proporcionando la facilidad de agendar con plena libertad las
+sesiones de asesoría. Consideren que al ustedes agendar una reunión están privando ese espacio a 
+alguien mas en mis cursos. Asi que por favor no desperdicien ese espacio. 
+
 * Evaluación
 
 La evaluación del curso será por medio de:
