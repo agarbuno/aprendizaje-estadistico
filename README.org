@@ -234,6 +234,11 @@ Las tareas las gestionaremos a través de ~Github Classroom~ lo cual me permite
 administrar sus entregas como proyectos de ~Git~. Además, habrá ejercicios de las
 tareas que tendrán mecanismos de calificación automatizada.
 
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-06-24 18:23:16
+#+attr_html: :width 400 :align center
+[[file:images/20220624-182316_screenshot.png]]
+
 
 * ¿Dudas?
 
