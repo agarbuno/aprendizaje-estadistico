@@ -200,7 +200,14 @@ Para la imagen ~agarbuno/aprendizaje~ consideren que:
 
 #+REVEAL: split
 Esto no les puede decir mucho, pero básicamente con el combo 
-~Docker~ + ~Visual Code Studio~ = Tod@s tenemos la misma computadora para trabajar 🥲.
+~Docker~ + ~Visual Code Studio~, ¡tod@s tenemos la misma computadora para trabajar! 🥲.  
+Y si lo quieren correr en la nube entonces: ~Docker~ + ~Visual Code Studio~ + ~Github Codespaces~ 🥲 $\times 10^{78}$.
+
+#+REVEAL: split
+~Importante~: No espero que sepan reproducir ustedes la configuración del ambiente de 
+trabajo. Si les interesa podemos organizar una sesión para discutir esto a profundidad.
+Lo importante es que lo sepan utilizar en su computadora o en un explorador de internet.
+Esto es, que pueden utilizarlo para las prácticas del curso. 
 
 * Tarea 
 
