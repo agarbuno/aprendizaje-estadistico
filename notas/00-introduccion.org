@@ -1,0 +1,329 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Introducción~
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/00-introduccion.pdf
+:END:
+#+STARTUP: showall
+#+PROPERTY: header-args:R :session intro-aprendizaje :exports both :results output org :tangle ../rscripts/00-introduccion.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc github
+
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Introducción.\\
+*Objetivo*. Dar un panorame de lo que rige los principios del curso de aprendizaje estadístico y diferenciarlo de otras estrategias de modelado predictivo. Sentar la notación base. 
+#+END_NOTES
+
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 2
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#caracteristicas-del-aprendizaje-estadístico][Caracteristicas del Aprendizaje Estadístico]]
+  - [[#filosofía-del-curso][Filosofía del curso]]
+  - [[#principios][Principios]]
+- [[#distinciones-con-respecto-a-ml][Distinciones con respecto a ML]]
+- [[#métodos][Métodos]]
+  - [[#tareas-de-predicción][Tareas de predicción]]
+- [[#notación][Notación]]
+- [[#ambiente-de-r][Ambiente de R]]
+  - [[#por-qué-utilizamos-tidymodels][¿Por qué utilizamos tidymodels?]]
+- [[#código-de-r][Código de R.]]
+:END:
+
+* Introducción
+
+Herramientas para ~entender reglas de asociación~. Con el objetivo de ~generar
+predicciones acertadas~.  No es ~estadística~. No es ~inferencia causal~.
+
+** Caracteristicas del Aprendizaje Estadístico
+#+ATTR_REVEAL: :frag (appear)
+- Flexibilidad.
+- Procesamiento automático.
+- Complejidad (en datos).
+- Predicción.
+
+#+BEGIN_NOTES
+
+En aprendizaje estadístico usualmente consideramos menos suposiciones de los
+datos en contraste con estadistica; pensamos que el procesamiento es automático;
+que los datos son complejos; y que el interés primordial es la *predicción*.
+
+#+END_NOTES
+
+** Filosofía del curso
+
+Es importante entender los modelos, la intuición y fortalezas y debilidades de
+los métodos que se utilizan en tareas de aprendizaje ~supervisadas~ y ~no
+supervisadas~.
+
+** Principios 
+
+Consideraremos los siguientes, tomados de citep:Kuhn2013.
+
+#+REVEAL: split
+
+-  Muchos métodos de aprendizaje son relevantes para una gran variedad de aplicaciones.
+
+#+BEGIN_NOTES
+
+No encasillar en el ámbito académico o estadístico. Por supuesto hay muchos mas
+modelos de los que veremos pero nos concentramos en los que no son de nicho.
+
+#+END_NOTES
+#+REVEAL: split
+
+- Aprendizaje estadístico *no* es una colección de cajas negras.  
+
+
+#+BEGIN_NOTES
+Lamentablemente no hay un método que sea exitoso para cualquier tipo de
+aplicación. Tenemos que conocer bien nuestras herramientas para saber cuál usar
+en qué situación.
+#+END_NOTES
+#+REVEAL: split
+
+-  Una cosa es entender cómo funciona; otra, implementarlo desde cero.
+
+#+BEGIN_NOTES
+
+No reinventaremos la rueda. El curso nos concentraremos en las ideas, no en la implementación.
+
+#+END_NOTES
+#+REVEAL: split
+
+\newpage
+
+- Conocimiento de dominio. Obtención de información relevante.
+
+#+BEGIN_NOTES
+
+Espero poder transmitir la necesidad de pensar en la aplicación del modelo. Algo
+que no se ve dentro de una formulación matemática. Pero la cual, si no se es
+cuidadoso podría tener en consecuencia una herramienta inservible al
+mediano/largo plazo.
+
+#+END_NOTES
+
+
+* Distinciones con respecto a ML
+
+En aprendizaje estadístico nos interesa comprender el proceso que genera los
+datos y su representatividad estadística.
+
+
+* Métodos
+
+Aprendizaje ~supervisado~ y ~aprendizaje no supervisado~.
+
+** Tareas de predicción
+
+- Clasificación
+- Regresión 
+
+* Notación 
+
+Denotamos por $n$ el ~número de observaciones~; $p$ para el ~número de
+características~ de dichas observaciones.  Así que, $x_{ij}$ con $i = 1, \ldots,
+n$ y $j = 1, \ldots, p$ será un elemento de nuestras observaciones.
+
+#+REVEAL: split
+
+Usualmente tendremos una característica que queremos predecir y la denotamos por $y$ . Consideraremos $y \in \mathbb{R}$ ó $y \in \{0,1\}$  ó $y \in \{1, 2, \ldots, K\}$.
+
+#+REVEAL: split
+
+El conjunto de datos que tenemos ~disponible para entrenar~ modelos lo denotamos por
+\begin{align}
+\mathcal{D}_n = \{ (x_1, y_1), \ldots (x_n, y_n) \}\,.
+\end{align}
+
+#+REVEAL: split
+
+Es ideal considerar que además tenemos datos adicionales para ~hacer pruebas~. A este conjunto lo denotaremos por
+\begin{align}
+\mathcal{T}_m = \{ (x_1, y_1), \ldots (x_m, y_m) \}\,.
+\end{align}
+
+#+REVEAL: split
+Posiblemente necesitemos notación mas especializada para hacer distinciones
+adicionales o el contexto nos ayude a requerir una notación mas laxa. Esto lo
+definiremos sobre la marcha.
+
+* Ambiente de ~R~
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+#+begin_src R :exports code :results org
+  library(tidyverse)   # Herramientas de procesamiento
+  library(tidymodels)  # Herramientas de modelado 
+  library(ISLR)        # Datos del libro de texto
+  library(MASS)        # Datos de Boston
+#+end_src
+
+** ¿Por qué utilizamos ~tidymodels~?
+
+#+begin_quote
+La búsqueda ~CRAN Task View: Machine Learning & Statistical Learning~:
+#+end_quote
+
+abess (core)
+ahaz
+arules
+BART
+bartMachine
+BayesTree
+BDgraph
+biglasso
+bmrm
+Boruta
+bst
+C50
+caret
+CORElearn
+Cubist
+deepnet
+DoubleML
+e1071 (core)
+earth
+effects
+elasticnet
+evclass
+evtree
+frbs
+gamboostLSS
+gbm (core)
+ggRandomForests
+glmnet
+glmpath
+GMMBoost
+gradDescent
+grf
+grplasso
+grpreg
+h2o
+hda
+hdi
+hdm
+ICEbox
+ipred
+islasso
+joinet
+kernlab (core)
+klaR
+lars
+lasso2
+LiblineaR
+maptree
+mboost (core)
+mlpack
+mlr3
+mlr3proba
+mpath
+naivebayes
+ncvreg
+nnet (core)
+OneR
+opusminer
+pamr
+party
+partykit
+pdp
+penalized
+penalizedLDA
+picasso
+plotmo
+quantregForest
+randomForest (core)
+randomForestSRC
+ranger
+rattle
+Rborist
+RcppDL
+rdetools
+relaxo
+rgenoud
+RGF
+RLT
+Rmalschains
+rminer
+ROCR
+RoughSets
+rpart (core)
+RPMM
+RSNNS
+RWeka
+RXshrink
+sda
+SIS
+splitTools
+ssgraph
+stabs
+SuperLearner
+svmpath
+tensorflow
+tgp
+torch
+tree
+trtf
+varSelRF
+wsrf
+xgboost
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
+
+* Código de ~R~.                                                         :github:
+
+[[file:../rscripts/00-introduccion.R][Descarga]] el script de la clase. 
+
+
+
