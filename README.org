@@ -16,7 +16,7 @@
 #+EXCLUDE_TAGS: toc github latex
 
 
-# [[https://github.com/agarbuno/aprendizaje-estadistico/actions/workflows/docker.yml/badge.svg]] [[https://img.shields.io/docker/pulls/agarbuno/aprendizaje.svg?logo=docker]] [[https://img.shields.io/docker/image-size/agarbuno/aprendizaje/notas.svg?logo=docker]] [[https://img.shields.io/github/languages/top/agarbuno/aprendizaje-estadistico.svg?logo=r]] [[https://img.shields.io/github/languages/code-size/agarbuno/aprendizaje-estadistico.svg?logo=r]] 
+[[https://github.com/agarbuno/aprendizaje-estadistico/actions/workflows/docker.yml/badge.svg]] [[https://img.shields.io/docker/pulls/agarbuno/aprendizaje.svg?logo=docker]] [[https://img.shields.io/docker/image-size/agarbuno/aprendizaje/notas.svg?logo=docker]] [[https://img.shields.io/github/languages/top/agarbuno/aprendizaje-estadistico.svg?logo=r]] [[https://img.shields.io/github/languages/code-size/agarbuno/aprendizaje-estadistico.svg?logo=r]] 
 
 * Contenido                                                             :toc:
 :PROPERTIES:
