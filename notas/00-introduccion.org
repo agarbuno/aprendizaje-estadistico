@@ -45,11 +45,23 @@
   - [[#caracteristicas-del-aprendizaje-estadístico][Caracteristicas del Aprendizaje Estadístico]]
   - [[#filosofía-del-curso][Filosofía del curso]]
   - [[#principios][Principios]]
-- [[#distinciones-con-respecto-a-ml][Distinciones con respecto a ML]]
+- [[#distinciones-con-respecto-a-aprendizaje-de-máquina-ml][Distinciones con respecto a aprendizaje de máquina (ML)]]
 - [[#métodos][Métodos]]
   - [[#tareas-de-predicción][Tareas de predicción]]
 - [[#notación][Notación]]
+  - [[#tipos-de-características][Tipos de características]]
+  - [[#notación-objetivos-y-muestras][Notación: objetivos y muestras]]
+- [[#repaso-de-probabilidad][Repaso de probabilidad]]
+  - [[#definición-espacio-de-probabilidad][~Definición~ [Espacio de Probabilidad]:]]
+  - [[#definición-variable-aleatoria][~Definición~ [Variable aleatoria]:]]
+  - [[#definición-función-de-acumulación][~Definición~ [Función de acumulación]:]]
+  - [[#definición-función-de-densidad][~Definición~ [Función de densidad]:]]
+  - [[#teorema-ley-de-los-grandes-números][~Teorema~ [Ley de los Grandes Números]:]]
+  - [[#teorema-límite-central][~Teorema~ [Límite Central]:]]
+- [[#control-de-versiones][Control de versiones]]
+- [[#r-statistical-programming-language][R statistical programming language]]
 - [[#ambiente-de-r][Ambiente de R]]
+  - [[#por-qué-utilizamos-el-tidyverse][¿Por qué utilizamos el tidyverse?]]
   - [[#por-qué-utilizamos-tidymodels][¿Por qué utilizamos tidymodels?]]
 - [[#código-de-r][Código de R.]]
 :END:
@@ -98,7 +110,6 @@ modelos de los que veremos pero nos concentramos en los que no son de nicho.
 
 - Aprendizaje estadístico *no* es una colección de cajas negras.  
 
-
 #+BEGIN_NOTES
 Lamentablemente no hay un método que sea exitoso para cualquier tipo de
 aplicación. Tenemos que conocer bien nuestras herramientas para saber cuál usar
@@ -110,7 +121,8 @@ en qué situación.
 
 #+BEGIN_NOTES
 
-No reinventaremos la rueda. El curso nos concentraremos en las ideas, no en la implementación.
+No reinventaremos la rueda. En el curso nos concentraremos en las ideas, no en
+la implementación.
 
 #+END_NOTES
 #+REVEAL: split
@@ -129,7 +141,7 @@ mediano/largo plazo.
 #+END_NOTES
 
 
-* Distinciones con respecto a ML
+* Distinciones con respecto a aprendizaje de máquina (ML)
 
 En aprendizaje estadístico nos interesa comprender el proceso que genera los
 datos y su representatividad estadística.
@@ -146,11 +158,34 @@ Aprendizaje ~supervisado~ y ~aprendizaje no supervisado~.
 
 * Notación 
 
+Denotamos por $x$ una ~variable aleatoria~ y por $\mathbb{P}(\cdot)$ una ~función
+de distribución~. Escribimos $x \sim \mathbb{P}$ para denotar que la variable
+aleatoria $x$ tiene distribución $\mathbb{P}(\cdot)$. Denotamos por
+$\mathbb{E}[\cdot]$ el ~valor esperado~ del argumento con respecto a la
+distribución que estamos considerando. Durante el curso seremos explícitos en la
+variable aleatoria y usaremos
+\begin{align}
+\mathbb{E}_x[\cdot] = \int_\mathcal{X} \cdot \, \pi(x) \, \text{d}x\,,
+\end{align}
+o bien, haremos énfasis en la distribución por medio de lo siguiente
+\begin{align}
+\mathbb{E}_\pi[\cdot] = \int_\mathcal{X} \cdot \, \pi(x) \, \text{d}x\,,
+\end{align}
+de acuerdo al contexto. 
+
+#+REVEAL: split
 Denotamos por $n$ el ~número de observaciones~; $p$ para el ~número de
 características~ de dichas observaciones.  Así que, $x_{ij}$ con $i = 1, \ldots,
 n$ y $j = 1, \ldots, p$ será un elemento de nuestras observaciones.
 
-#+REVEAL: split
+
+** Tipos de características
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+
+** Notación: objetivos y muestras
 
 Usualmente tendremos una característica que queremos predecir y la denotamos por $y$ . Consideraremos $y \in \mathbb{R}$ ó $y \in \{0,1\}$  ó $y \in \{1, 2, \ldots, K\}$.
 
@@ -172,6 +207,147 @@ Es ideal considerar que además tenemos datos adicionales para ~hacer pruebas~. 
 Posiblemente necesitemos notación mas especializada para hacer distinciones
 adicionales o el contexto nos ayude a requerir una notación mas laxa. Esto lo
 definiremos sobre la marcha.
+
+* Repaso de probabilidad
+
+Consideraremos como requisitos el contenido de ~Cálculo de Probabilidades II~ y
+~Álgebra Lineal~ (o equivalentes). En particular lo que requerimos como base es lo siguiente.
+
+*** *~Definición~ [Espacio de Probabilidad]*:
+Un espacio de probabilidad está definido por la terna $(\Omega, \mathcal{X}, \mathbb{P})$:
+1. El espacio muestral, $\Omega$ (elementos). 
+2. El espacio de eventos medibles, $\mathcal{X}$ (subconjuntos). 
+3. La medida de probabilidad, $\mathbb{P}: \mathcal{X} \rightarrow [0, 1]$. 
+
+*** *~Definición~ [Variable aleatoria]*:
+Una variable aleatoria es una función $X:
+\mathcal{X} \rightarrow \mathbb{R}$ con la propiedad de que las pre-imágenes
+bajo $X$ son eventos medibles. Es decir,
+\begin{align}
+\{w \in \mathcal{X} : X(w) \leq x \} \in \mathcal{X} \qquad \forall x \in \mathbb{R}. 
+\end{align}
+   
+*** *~Definición~ [Función de acumulación]*:
+Para toda variable aleatoria $X$ tenemos una función de acumulación
+$\mathbb{P}_{_X}: \mathbb{R} \rightarrow [0, 1]$ dada por
+\begin{align}
+\mathbb{P}_{_X}(x) = \mathbb{P} \big( \{w \in \mathcal{X} : X(w) \leq x\} \big)\,.
+\end{align}
+Esto usualmente lo escribimos como $\mathbb{P}_{_X}(x) = \mathbb{P}\{X \leq x\}$. 
+
+*** *~Definición~ [Función de densidad]*:
+Una variable aleatoria es continua si su función de acumulación es ~absolutamente
+continua~ y puede ser expresada por medio de
+\begin{align}
+\mathbb{P}_{_X} (x) = \int_{- \infty}^x \pi (s) \, \text{d}s\,, 
+\end{align}
+donde la anti-derivada $\pi:\mathbb{R} \rightarrow [0, \infty)$ se llama la ~función de
+densidad~ de la variable aleatoria $X$. 
+
+#+REVEAL: split
+Las propiedades generales de las distribuciones de probabilidad se pueden
+especificar por medio de su centralidad (localización), su dispersión, su rango
+de valores, su simetría y el comportamiento de valores extremos.
+
+#+REVEAL: split
+En general esto lo podemos extraer de los momentos
+\begin{align}
+\mathbb{E}(X^p) = \int_{\mathbb{R}}^{} x^p \, \pi(x) \, \text{d}x\,,
+\end{align}
+o los momentos centrales. Por ejemplo: media y varianza. 
+
+#+REVEAL: split
+Uno de los resultados que espero recuerden bien de sus cursos anteriores es el
+de la ~Ley de los Grandes Números~. La cual podemos enunciar como:
+
+*** *~Teorema~ [Ley de los Grandes Números]*:
+Sea $X_1, X_2, \ldots$ una colección de variables aleatorias independientes e
+idénticamente distribuidas ($\mathsf{iid}$) y sea $\bar X_n$ el promedio de un
+subconjunto de $n$.  Si denotamos por $\mu$ el valor promedio de $X_i$
+dentro de esa colección, entonces tenemos que
+\begin{align}
+\bar X_n  \rightarrow \mu \quad (\text{casi seguramente})\,.
+\end{align}
+
+*** *~Teorema~ [Límite Central]*:
+Sea $X_1, \ldots, X_n$ una colección de $n$ variables aleatorias $\mathsf{iid}$ con $\mathbb{E}[X_i] = \mu$ y $\mathbb{V}[X_i] = \sigma^2 < \infty$. Entonces
+\begin{align}
+\bar X_n \sim \mathsf{N}\left( \mu, \frac{\sigma^2}{n} \right)\,,
+\end{align}
+para $n$ suficientemente grande. 
+
+
+
+* Control de versiones
+
+Los /softwares/ de ~control de versiones~ nos permiten llevar un registro y
+administración de cambios en archivos. Usualmente para proyectos de
+programación.
+
+#+REVEAL: split
+Ayudan a trabajar colaborativamente en ambientes de equipos de trabajo.
+
+#+REVEAL: split
+Aunque no exploraremos /todo/ lo que se puede hacer con ~Git~ y ~GitHub~ lo usaremos
+para llevar un control del desarrollo y de entrega de tareas. Usaremos los
+principios mas básicos. 
+
+# #+REVEAL: split
+# #+DOWNLOADED: screenshot @ 2022-08-15 19:40:19
+# #+attr_html: :width 700 :align center
+# #+attr_latex: :width .33 \linewidth
+# [[file:images/20220815-194019_screenshot.png]]
+
+# #+REVEAL: split
+# #+DOWNLOADED: screenshot @ 2022-08-15 19:37:37
+# #+attr_html: :width 200 :align center
+# #+attr_latex: :width .33 \linewidth
+# [[file:images/20220815-193737_screenshot.png]]
+
+
+* ~R~ statistical programming language
+
+~R~ es un lenguaje de programación orientado a cómputo estadístico y generación de
+gráficos estadísticos. Está escrito para interactuar por medio de ejecución de
+/scripts/ (archivos de texto con instrucciones) o la consola interactiva. Ver
+[[fig-terminal]].
+
+#+DOWNLOADED: screenshot @ 2022-08-15 19:54:14
+#+attr_html: :width 1200 :align center
+#+name: fig-terminal
+#+caption: Dos ventanas, un editor de texto y una consola de ~R~.
+[[file:images/20220815-195840_screenshot.png]]
+
+#+REVEAL: split
+Es usual utilizar un ambiente de desarrollo para programar e interactuar con el
+lenguaje. Para ~R~ el mas común es ~Rstudio~ el cual tiene además algunas
+extensiones útiles para el desarrollo de análisis estadístico.  Ver [[fig-ide]]. 
+
+#+DOWNLOADED: screenshot @ 2022-08-15 19:56:38
+#+attr_html: :width 1200 :align center
+#+name: fig-ide
+#+caption: Un ambiente de desarrollo, ~Rstudio~. 
+[[file:images/20220815-195638_screenshot.png]]
+
+#+REVEAL: split
+~Visual Studio Code~ es una alternativa multi-lenguaje para desarrollar proyectos
+de análisis estadístico en ~R~. Ver [[fig-browser]]. 
+
+#+DOWNLOADED: screenshot @ 2022-08-15 20:02:39
+#+attr_html: :width 1200 :align center
+#+name: fig-browser
+#+caption: Un ambiente de desarrollo general, ~Visual Code Studio~. En la imagen se muestra una sesión en un explorador de internet. 
+[[file:images/20220815-200239_screenshot.png]]
+
+#+REVEAL: split
+Y habemos los que nos /conformamos/ con un buen editor de texto como ambiente de
+desarrollo. Ver [[fig-emacs]]. 
+
+#+DOWNLOADED: screenshot @ 2022-08-15 20:09:14
+#+attr_html: :width 1200 :align center
+#+name: fig-emacs
+#+caption: Ambiente de desarrollo basado en ~Emacs~. 
+[[file:images/20220815-200914_screenshot.png]]
 
 * Ambiente de ~R~
 
@@ -207,6 +383,19 @@ definiremos sobre la marcha.
   library(ISLR)        # Datos del libro de texto
   library(MASS)        # Datos de Boston
 #+end_src
+
+** ¿Por qué utilizamos el ~tidyverse~?
+
+#+DOWNLOADED: screenshot @ 2023-01-09 19:46:09
+#+attr_html: :width 1200 :align center
+[[file:images/20230109-194609_screenshot.png]]
+
+#+REVEAL: split
+
+#+DOWNLOADED: screenshot @ 2023-01-09 20:08:58
+#+attr_html: :width 1200 :align center
+[[file:images/20230109-200858_screenshot.png]]
+
 
 ** ¿Por qué utilizamos ~tidymodels~?
 

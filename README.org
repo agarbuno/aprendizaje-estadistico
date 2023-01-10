@@ -1,7 +1,7 @@
 #+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
-#+DATE: [Primavera, 2022]
+#+DATE: ~Primavera 2023~
 :REVEAL_PROPERTIES:
 #+LANGUAGE: es
 #+OPTIONS: num:nil toc:nil timestamp:nil
@@ -16,7 +16,7 @@
 #+EXCLUDE_TAGS: toc github latex
 
 
-[[https://github.com/agarbuno/aprendizaje-estadistico/actions/workflows/docker.yml/badge.svg]] [[https://img.shields.io/docker/pulls/agarbuno/aprendizaje.svg?logo=docker]] [[https://img.shields.io/docker/image-size/agarbuno/aprendizaje/notas.svg?logo=docker]] [[https://img.shields.io/github/languages/top/agarbuno/aprendizaje-estadistico.svg?logo=r]] [[https://img.shields.io/github/languages/code-size/agarbuno/aprendizaje-estadistico.svg?logo=r]] 
+# [[https://github.com/agarbuno/aprendizaje-estadistico/actions/workflows/docker.yml/badge.svg]] [[https://img.shields.io/docker/pulls/agarbuno/aprendizaje.svg?logo=docker]] [[https://img.shields.io/docker/image-size/agarbuno/aprendizaje/notas.svg?logo=docker]] [[https://img.shields.io/github/languages/top/agarbuno/aprendizaje-estadistico.svg?logo=r]] [[https://img.shields.io/github/languages/code-size/agarbuno/aprendizaje-estadistico.svg?logo=r]] 
 
 * Contenido                                                             :toc:
 :PROPERTIES:
@@ -32,13 +32,16 @@
   - [[#formato][Formato]]
   - [[#canvas][Canvas]]
   - [[#fechas-importantes][Fechas importantes]]
+  - [[#horario-de-atención-de-alumnos][Horario de atención de alumnos]]
 - [[#evaluación][Evaluación]]
   - [[#proyecto-final][Proyecto final]]
 - [[#ambiente-de-trabajo][Ambiente de trabajo]]
+  - [[#ambiente-de-desarrollo-gráfico-integrado-ide][Ambiente de desarrollo gráfico integrado (IDE)]]
   - [[#configuración-r][Configuración R]]
-  - [[#configuración-renv][Configuración renv]]
-  - [[#configuración-de-docker][Configuración de Docker]]
+  - [[#gestión-de-librerías-de-r-renv][Gestión de librerías de R: renv]]
+  - [[#ambiente-dockerizado][Ambiente Dockerizado]]
 - [[#tarea][Tarea]]
+- [[#dudas][¿Dudas?]]
 - [[#referencias][Referencias]]
 :END:
     
@@ -86,10 +89,10 @@ principios estadísticos que le dan sustento.
 * Recursos
 
 El contenido actual de esta iteración del curso se encuentra en la rama:
-[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2022]]. La estructura del repositorio se muestra a continuación donde
+[[https://github.com/agarbuno/aprendizaje-estadistico/tree/spring-2022][spring-2023]]. La estructura del repositorio se muestra a continuación donde
 tenemos a grandes razgos:
 
-#+begin_src bash :exports results :results org
+#+begin_src bash :exports results :results org :eval never
 
 tree -L 1 -d 
 
@@ -98,9 +101,9 @@ tree -L 1 -d
 #+RESULTS:
 #+begin_src org
 .
-├── docs       # Handouts con las notas de clase.
-├── images     # Material visual de apoyo.
-├── notas      # Material fuente de las notas (emacs).
+├── docs       # Handouts con las notas de clase (pdf).
+├── images     # Material visual de apoyo (png).
+├── notas      # Material fuente de las notas (eMacs).
 ├── renv       # Archivos de estructura de ambiente (R).
 └── rscripts   # Codigo de R para seguir la clase.
 
@@ -109,7 +112,7 @@ tree -L 1 -d
 
 * Horarios
 
-El curso será los días Martes y Jueves
+El curso será los días Martes y Jueves de 10:00am a 11:30am. 
 
 ** Formato
 
@@ -124,12 +127,16 @@ necesiten a lo largo del semestre.
 
 ** Fechas importantes
 
-#+ATTR_REVEAL: :frag (appear)
+- 21 de marzo *no* hay clase.
+- 4 y 6 de abril *no* hay clase.
+- 26 de abril *último* día de bajas.
+- 10 de mayo *último* día de clase.
+
 
 ** Horario de atención de alumnos
 
-El horario de atención a alumnos será Lunes y Miércoles en un horario de 11:00am
-a 1:00pm. Recomiendo utilizar el sitio de [[https://calendly.com/alfredo-garbuno/entrevistas][calendly]]. Por supuesto, si no les
+El horario de atención a alumnos será Lunes y Miércoles en un horario de 12:00pm
+a 2:00pm. Recomiendo utilizar el sitio de [[https://calendly.com/alfredo-garbuno/entrevistas][calendly]]. Por supuesto, si no les
 queda algún horario podemos agendar por ~correo electrónico~.
 
 #+DOWNLOADED: screenshot @ 2022-08-09 10:19:38
@@ -139,15 +146,14 @@ queda algún horario podemos agendar por ~correo electrónico~.
 #+REVEAL: split
 ~Importante~: les estoy proporcionando la facilidad de agendar con plena libertad las
 sesiones de asesoría. Consideren que al ustedes agendar una reunión están privando ese espacio a 
-alguien mas en mis cursos. Asi que por favor no desperdicien ese espacio. 
+alguien más en mis cursos. Asi que por favor no desperdicien ese espacio. 
 
 * Evaluación
 
 La evaluación del curso será por medio de:
-#+ATTR_REVEAL: :frag (appear)
 - Participación y tareas (30%)
-- Evaluaciones parciales (30%)
-- Proyecto final (40%)
+- Evaluacion(es) parcial(es) (30%)
+- Evaluación final (40%)
 
 La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]]. 
 
