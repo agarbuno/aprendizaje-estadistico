@@ -74,6 +74,22 @@ Nos apoyaremos de:
 - Kuhn, M., Johnson K. (2013). /Applied predictive modeling/. Springer, New York, NY.
 #+end_quote
 
+#+REVEAL: split
+El curso, además, utilizará distintas herramientas computacionales para
+brindar al estudiante un marco de trabajo reproducible. Al final del curso, lxs
+estudiantes tendrán las competencias para trabajar en proyectos de código
+abierto en ambientes reproducibles de trabajo. 
+
+#+REVEAL: split
+Esto se logrará en el curso al utilizar herramientas de código abierto:  ~R~ como
+lenguaje de programación y ~GitHub~ como gestor de entrega y avance de tareas y
+trabajos.
+
+#+REVEAL: split
+El curso está pensando para cursarse después de haber acreditado ~Estadística
+Matemática~ (o equivalente). Sin embargo, se aprovechará mejor si se lleva a la
+par junto con ~Estadística Aplicada II~ (o equivalentes).
+
 * Temario
 
 El temario para el semestre de primavera 2022 se puede encontrar [[https://github.com/agarbuno/aprendizaje-estadistico/blob/spring-2022/docs/temario.pdf][aqui]]. Este es
@@ -155,7 +171,7 @@ La evaluación del curso será por medio de:
 - Evaluacion(es) parcial(es) (30%)
 - Evaluación final (40%)
 
-La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]]. 
+La entrega de los trabajos/tareas se realizará por medio de un [[https://github.blog/2021-08-12-teaching-learning-github-classroom-visual-studio-code/][Github Classroom]] (mas adelante lo explicamos). 
 
 ** Proyecto final
 
