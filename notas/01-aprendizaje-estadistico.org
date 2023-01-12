@@ -465,7 +465,9 @@ Prueba de optimalidad. Es el clasificador con menor error en la población. Se p
 
 # * Referencias                                                         :latex:
 
+bibliographystyle:abbrvnat
 bibliography:references.bib
+
 
 
 
