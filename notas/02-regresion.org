@@ -1,0 +1,557 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Regresión lineal~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+#+PROPERTY: header-args:R :session regresion :exports both :results output org :tangle ../rscripts/02-regresion.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc latex
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Regresión lineal.\\
+*Objetivo*. Repasaremos los conceptos de regresión lineal desde un punto de vista de inferencia. Haremos conexiones interesantes con conceptos clave en probabilidad y teoria de la información. Veremos métricas de desempeño para modelos de regresión. Nos llevará a cuestionar el modelo bajo el enfoque de predicción.\\
+*Lectura recomendada*: Capítulo 3 de citet:James2021. 
+#+END_NOTES
+
+
+* Table of Contents                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#datos-de-marketing][Datos de marketing]]
+- [[#el-modelo-simple][El modelo simple]]
+  - [[#estimación-de-parámetros][Estimación de parámetros]]
+  - [[#solución][Solución]]
+  - [[#precisión-en-los-estimadores][¿Precisión en los estimadores?]]
+  - [[#prueba-de-hipótesis][Prueba de hipótesis]]
+  - [[#el-valor-p][El valor-$p$]]
+  - [[#midiendo-la-precisión-del-modelo][Midiendo la precisión del modelo]]
+- [[#el-modelo-multivariado][El modelo multivariado]]
+  - [[#interpretación][Interpretación]]
+  - [[#estimación][Estimación]]
+  - [[#existe-una-relación-entre-la-respuesta-y-los-predictores][¿Existe una relación entre la respuesta y los predictores?]]
+  - [[#cuáles-son-los-predictores-importantes][¿Cuáles son los predictores importantes?]]
+  - [[#qué-tan-bien-ajusta-el-modelo][¿Qué tan bien ajusta el modelo?]]
+  - [[#cómo-predecimos-y-que-tan-precisa-es-nuestra-predicción][¿Cómo predecimos y que tan precisa es nuestra predicción?]]
+- [[#extensiones][Extensiones]]
+  - [[#predictores-cualitativos][Predictores cualitativos]]
+  - [[#interacciones][Interacciones]]
+  - [[#jerarquías][Jerarquías]]
+  - [[#interacciones-y-modelos-múltiples][Interacciones y modelos múltiples]]
+  - [[#problemas-con-supuestos][Problemas con supuestos.]]
+- [[#generalizaciones][Generalizaciones]]
+:END:
+
+
+* Introducción
+
+Aproximamos $f(X)$ como una combinación lineal de las entradas.
+
+** Datos de /marketing/
+
+¿Qué preguntas serían las que nos interesarían?
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+
+  ## Datos de marketing ---------------------------------
+  data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
+  data |> colnames()
+  data |> head()
+
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 300 :R-dev-args
+#+begin_src R :file images/sales.jpeg :results output graphics file :exports results
+
+  g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) + sin_lineas
+  g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) + sin_lineas
+  g3 <- ggplot(data, aes(newspaper, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) + sin_lineas
+
+  g1 + g2 + g3
+#+end_src
+
+#+RESULTS:
+[[file:../images/sales.jpeg]]
+
+#+BEGIN_NOTES
+¿Hay alguna relación entre datos de entrada? En especial, ¿hay alguna relación entre cuánto se le dedica al presupuesto de /marketing/ y las ventas observadas? ¿Qué tipo de /marketing/ contribuye mas a las ventas? ¿Qué tan precisos podemos ser con nuestras predicciones? La relación es lineal? ¿Hay algún tipo de sinergia?
+#+END_NOTES
+
+* El modelo simple
+
+\begin{align}
+Y = \beta_0 + \beta_1 X + \varepsilon\,.
+\end{align}
+
+#+BEGIN_NOTES
+Si tuvieramos un estimador $\hat \beta$, ¿cómo podemos realizar predicciones?
+#+END_NOTES
+
+** Estimación de parámetros
+
+\begin{align}
+\hat y_i = \hat \beta_0 + \hat \beta_1 x_i\,.
+\end{align}
+
+#+REVEAL: split
+#+BEGIN_NOTES
+Formulación de problema de optimización. Conexiones interesantes. 
+#+END_NOTES
+
+
+** Solución
+
+\begin{gather}
+\hat \beta_1 = \frac{\sum_{i = 1}^{n} (x_i - \bar x)(y_i - \bar y)}{\sum_{i = 1}^{n}(x_i - \bar x)^2}\,, \\
+\hat \beta_0 = \bar y - \hat \beta_1 \bar x\,.
+\end{gather}
+
+#+REVEAL: split
+#+begin_src R :exports none :results none
+  ## Modelo lineal simple --------------------------------
+#+end_src
+
+#+caption: Modelo lineal simple
+#+begin_src R :exports none :results none
+  model <- lm(sales ~ TV, data)
+#+end_src
+#+REVEAL: split
+
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/residuals.jpeg :exports results :results output graphics file
+  data |>
+    mutate(fitted = fitted(model)) |>
+    ggplot(aes(TV, sales)) + 
+    geom_smooth(method = "lm", se = FALSE) +
+    geom_errorbar(aes(ymin = fitted, ymax = sales),
+                  lty = 1, color = "gray") +
+    geom_point(color = 'red') + sin_lineas
+#+end_src
+
+#+caption: Ajuste y residuales a la recta de mínimos cuadrados. 
+#+RESULTS:
+[[file:../images/residuals.jpeg]]
+
+#+BEGIN_NOTES
+Qué deficiencia encuentras en el ajuste? 
+#+END_NOTES
+
+** ¿Precisión en los estimadores?
+
+\begin{gather}
+\mathsf{SE}(\hat \beta_1)^2 = \frac{\sigma^2}{\sum_{i = 1}^{n}(x_i - \bar x)^2}\,,\\
+\mathsf{SE}(\hat \beta_0)^2 = \sigma^2 \left[ \frac{1}{n} + \frac{\bar x^2}{\sum_{i = 1}^{n}(x_i - \bar x)^2}\right]\,.
+\end{gather}
+
+#+BEGIN_NOTES
+¿A qué se debe esta variabilidad? Se pueden construir *intervalos de confianza*. 
+#+END_NOTES
+
+#+REVEAL: split
+#+begin_src R :exports none :results none
+  ### Resumenes de modelos --------------------------
+#+end_src
+
+#+caption: Resumen del modelo. 
+#+begin_src R :results org
+  model |> 
+        summary()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+Call:
+lm(formula = sales ~ TV, data = data)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-8.386 -1.955 -0.191  2.067  7.212 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  7.03259    0.45784    15.4   <2e-16 ***
+TV           0.04754    0.00269    17.7   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 3.3 on 198 degrees of freedom
+Multiple R-squared:  0.612,	Adjusted R-squared:  0.61 
+F-statistic:  312 on 1 and 198 DF,  p-value: <2e-16
+#+end_src
+
+#+REVEAL: split
+#+caption: Resumen del modelo (/tidy/). 
+#+begin_src R
+  model |>
+    broom::tidy() 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+         term estimate std.error statistic p.value
+1 (Intercept)    7.033    0.4578        15 1.4e-35
+2          TV    0.048    0.0027        18 1.5e-42
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports none :results none
+  ### Simulación de variabilidad ---------------------------- 
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code
+  genera_datos <- function(id){
+    a <- 1; b <- 0; n <- 100
+    tibble(x = runif(n, -1, 1),
+           y = a * x + b + rnorm(n, sd = 1))
+  }
+  ajusta_modelo <- function(datos){
+    modelo <- lm(y ~ x, datos)
+    modelo
+  }
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results org
+  simulacion <-  tibble(id = seq(1, 10)) |>
+      mutate(datos  = map(id, genera_datos),
+             modelo = map(datos, ajusta_modelo),
+             ajuste = map(modelo, broom::tidy))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#+end_src
+
+#+begin_src R :exports none :results none
+  params <- simulacion |>
+    select(id, ajuste) |>
+    unnest(ajuste) |>
+    group_by(term) |>
+    summarise(estimate = mean(estimate)) |>
+    pull(estimate)
+#+end_src
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/incertidumbre.jpeg :exports results :results output graphics file
+  simulacion |>
+    select(id, ajuste) |>
+    unnest(ajuste) |>
+    pivot_wider(names_from = term, values_from = estimate, id_cols = id) |>
+    ggplot() +
+    geom_abline(aes(intercept = `(Intercept)`,
+                    slope = x), alpha = .7) +
+    geom_abline(intercept = 0, slope = 1, color = 'red', size = 3) + 
+    geom_abline(intercept = params[1], slope = params[2], color = 'blue', size = 2, lty = 2)
+#+end_src
+#+caption: Simulación de ajuste (variación en datos). 
+#+RESULTS:
+[[file:../images/incertidumbre.jpeg]]
+
+** Prueba de hipótesis
+
+\begin{align}
+H_0&: \qquad \text{ No hay relación entre } X \text{ y } Y\,,\\
+H_1&: \qquad \text{ Existe una hay relación entre } X \text{ y } Y\,.
+\end{align}
+
+#+BEGIN_NOTES
+La prueba de hipótesis se efectúa en el contexto del modelo que estamos proponiendo. 
+#+END_NOTES
+
+** El valor-$p$
+
+\begin{align}
+t = \frac{\hat \beta_1 - 0}{\textsf{SE}(\hat \beta_1)}, \qquad \text{ distribución } t_{n  - 2}\,.
+\end{align}
+
+** Midiendo la precisión del modelo 
+
+\begin{align}
+\textsf{RSE} = \sqrt{\frac{1}{n-2} \textsf{RSS}}\,.
+\end{align}
+
+#+BEGIN_NOTES
+\begin{align*}
+\textsf{RSS} =\sum_{i = 1}^{n}(y_i - \hat y_i)^2\,.
+\end{align*}
+
+Es una métrica usual de ajuste. Nos dice qué tan precisos podemos ser al calcular una nueva predicción. Tiene sentido cuando comparamos con las unidades de la variable respuesta. Es decir, no es una métrica absoluta. 
+#+END_NOTES
+
+
+#+REVEAL: split
+\begin{align}
+R^2 = \frac{\textsf{TSS} - \textsf{RSS}}{\textsf{TSS}}\,.
+\end{align}
+
+#+BEGIN_NOTES
+\begin{align*}
+\textsf{TSS} = \sum_{i = 1}^{n}(y_i - \bar y)^2\,.
+\end{align*}
+
+Hay que tener cuidado pues la $R^2$ es una métrica de correlación lineal, no de ajuste. Esto lo podemos ver en el caso sencillo de una variable respuesta y un modelo lineal. También está sujeta a la variación de la respuesta. Depende la aplicación para determinar cuándo tenemos un buen coeficiente de variación explicada.  
+#+END_NOTES
+
+
+* El modelo multivariado
+
+\begin{align}
+Y = \beta_0 + \beta_1 X_1 + \cdots + \beta_p X_p + \varepsilon\,.
+\end{align}
+
+#+BEGIN_NOTES
+Cuando tenemos multiples predictores nos gustaría poder entender la relación de cada uno con la respuesta. ¿Ajustaríamos un modelo independiente con sólo un predictor?
+#+END_NOTES
+
+** Interpretación 
+
+\begin{align}
+\mathsf{sales} = \beta_0 + \beta_1 \times \mathsf{TV} + \beta_2 \times \mathsf{radio} + \beta_3 \times\mathsf{newspaper} + \varepsilon\,.
+\end{align}
+
+#+BEGIN_NOTES
+El modelo de regresión lineal usualmente se interpreta como los efectos
+(¿promedio, esperados?) de cada variable al mantener todas las demás
+/constantes/. Hay problemas cuando hay correlación entre predictores. Cuidado con
+datos observacionales.
+#+END_NOTES
+
+** Estimación
+
+#+begin_src R :exports none :results none
+  ## Modelo lineal multiple --------------------------------
+#+end_src
+
+#+begin_src R :exports code :results none
+  model <- lm(sales ~ ., data)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org
+  model |>
+    broom::tidy() 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+         term estimate std.error statistic p.value
+1 (Intercept)    2.939    0.3119      9.42 1.3e-17
+2          TV    0.046    0.0014     32.81 1.5e-81
+3       radio    0.189    0.0086     21.89 1.5e-54
+4   newspaper   -0.001    0.0059     -0.18 8.6e-01
+#+end_src
+
+#+REVEAL: split
+#+BEGIN_NOTES
+Desarollo de verosimilitud.
+#+END_NOTES
+
+
+** ¿Existe una relación entre la respuesta y los predictores?
+
+Nos preguntamos si es que existe alguna $\beta_j \neq 0$ .
+
+\begin{align}
+F = \frac{(\mathsf{TSS} - \mathsf{RSS})/p}{\mathsf{RSS}/(n - p -1)} \sim F_{p, n-p-1}\,.
+\end{align}
+
+#+BEGIN_NOTES
+La prueba de hipótesis que formularíamos sería probar contra alguna $\beta_j \neq 0$ . Se puede probar que si el supuesto del modelo lineal es correcto y bajo la hipótesis nula el cociente será cercano a 1. En caso de que la hipótesis ~alternativa~ sea cierta entonces $F > 1$. 
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ### Resumenes globales --------------------------------
+#+end_src
+
+#+REVEAL: split
+#+caption: Resumen global del modelo (/tidy/). 
+#+begin_src R :exports both :results org
+  model |>
+    broom::glance() |>
+    select(statistic, p.value, df, df.residual)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  statistic p.value df
+1       570 1.6e-96  3
+#+end_src
+
+#+REVEAL: split
+-  ¿Por qué tenemos que evaluar en conjunto?  
+
+#+BEGIN_NOTES
+  ¿Qué pasa en el caso con 100 predictores donde no hay relación?
+#+END_NOTES
+
+** ¿Cuáles son los predictores importantes?
+
+Métodos de selección.
+
+#+BEGIN_NOTES
+La idea mas ingenua es ajustar todas las posibles combinaciones. Pero se pueden
+construir modelos de manera secuencial . Usualmente ajustando y comparando con
+respecto a /alguna métrica/. Mas adelante lo estudiaremos. 
+#+END_NOTES
+
+** ¿Qué tan bien ajusta el modelo?
+
+Podemos usar las métricas típicas como el $\mathsf{RSE}$ o la $R^2$.
+
+#+BEGIN_NOTES
+
+$R^2$: Agregar predictores siempre ayuda (en datos de entrenamiento). 
+
+$\mathsf{RSE}$: Podemos tener problemas pues mientras mas variables agregemos si el cambio en residuales es pequeño en relación al aumento de $p$. 
+#+END_NOTES
+
+** ¿Cómo predecimos y que tan precisa es nuestra predicción?
+
+#+BEGIN_NOTES
+Podemos utilizar ~intervalos confianza~. Mejor aún, podemos utilizar ~intervalos de predicción~. 
+#+END_NOTES
+
+* Extensiones
+** Predictores cualitativos
+
+#+BEGIN_NOTES
+Modelo con respuestas binarias (1D). ¿Qué tal que tenemos mas categorias?
+#+END_NOTES
+
+** Interacciones
+
+Eliminar el ~supuesto aditivo~: /interacciones/ y /no-linealidad/.
+#+begin_src R :exports none :results none
+  ## Modelos con interacciones ------------------------
+#+end_src
+#+REVEAL: split
+#+caption: Ajuste de modelos sin/con interacciones. 
+#+begin_src R :exports code :results none
+  model.1 <- lm(sales ~ TV + radio, data)
+  model.2 <- lm(sales ~ TV + radio + TV:radio, data)
+#+end_src
+
+#+REVEAL: split
+
+#+begin_src R :exports both :results org
+  tibble(modelo = list(model.1, model.2),
+         tipo   = c("lineal", "interaccion")) |>
+    mutate(resultados = map(modelo, broom::tidy)) |>
+    select(-modelo) |>
+    unnest(resultados) |>
+    select(tipo, term, estimate, p.value) 
+#+end_src
+#+caption: Resúmenes sobre los coeficientes.
+#+RESULTS:
+#+begin_src org
+         tipo        term estimate p.value
+1      lineal (Intercept)   2.9211 4.6e-19
+2      lineal          TV   0.0458 5.4e-82
+3      lineal       radio   0.1880 9.8e-59
+4 interaccion (Intercept)   6.7502 1.5e-68
+5 interaccion          TV   0.0191 2.4e-27
+6 interaccion       radio   0.0289 1.4e-03
+7 interaccion    TV:radio   0.0011 2.8e-51
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org
+  tibble(modelo = list(model.1, model.2)) |>
+    mutate(resultados = map(modelo, broom::glance)) |>
+    select(-modelo)|>
+    unnest(resultados) |>
+    select(r.squared, sigma, AIC, deviance) 
+#+end_src
+#+caption: Resúmenes globales de los modelos. 
+#+RESULTS:
+#+begin_src org
+  r.squared sigma AIC deviance
+1      0.90  1.68 780      557
+2      0.97  0.94 550      174
+#+end_src
+
+
+#+BEGIN_NOTES
+El efecto de incrementar el presupuesto en un canal de ventas puede aumentar la efectividad de otro. 
+#+END_NOTES
+
+** Jerarquías
+
+¿Qué pasa cuando un valor-$p$ de una interacción es pequeño, pero de los términos individuales no?
+
+** Interacciones y modelos múltiples
+
+#+REVEAL: split
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/students.jpeg :exports results :results output graphics file
+  data <- ISLR::Credit
+  data |>
+    ggplot(aes(Income, Balance, group = Student, color = Student)) +
+    geom_smooth(method = "lm", se = FALSE) + 
+    geom_point()
+#+end_src
+#+caption: Ajuste con interacción cualitativa y cuantitativa.
+#+RESULTS:
+[[file:../images/students.jpeg]]
+
+** Problemas con supuestos.
+- No hay una relación lineal.
+- Los errores están correlacionados.
+- No hay varianza constante.
+- Valores atípicos.
+- Multicolinealidad.
+- Puntos ancla. 
+
+* Generalizaciones
+
+- Problemas de clasificación (siguiente).
+- No-linealidad.
+- Interacciones.
+- Regularización. 
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
