@@ -3,18 +3,28 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Regresión lineal~
 #+STARTUP: showall
-:REVEAL_PROPERTIES:
-# Template uses org export with export option <R B>
-# Alternatives: use with citeproc
-#+LANGUAGE: es
-#+OPTIONS: num:nil toc:nil timestamp:nil
-#+REVEAL_REVEAL_JS_VERSION: 4
-#+REVEAL_THEME: night
-#+REVEAL_SLIDE_NUMBER: t
-#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
-#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
-#+REVEAL_EXTRA_CSS: ./mods.css
-#+REVEAL_PLUGINS: (notes)
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/02-regresion.pdf
 :END:
 #+PROPERTY: header-args:R :session regresion :exports both :results output org :tangle ../rscripts/02-regresion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
@@ -54,6 +64,7 @@
   - [[#interacciones-y-modelos-múltiples][Interacciones y modelos múltiples]]
   - [[#problemas-con-supuestos][Problemas con supuestos.]]
 - [[#generalizaciones][Generalizaciones]]
+- [[#aplicación-predicción-de-asistencia-en-partidos-de-football][Aplicación: Predicción de asistencia en partidos de football]]
 :END:
 
 
@@ -127,7 +138,7 @@ Si tuvieramos un estimador $\hat \beta$, ¿cómo podemos realizar predicciones?
 ** Estimación de parámetros
 
 \begin{align}
-\hat y_i = \hat \beta_0 + \hat \beta_1 x_i\,.
+\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_i\,.
 \end{align}
 
 #+REVEAL: split
@@ -551,7 +562,289 @@ El efecto de incrementar el presupuesto en un canal de ventas puede aumentar la 
 - Problemas de clasificación (siguiente).
 - No-linealidad.
 - Interacciones.
-- Regularización. 
+- Regularización.
+
+* Aplicación: Predicción de asistencia en partidos de /football/
+
+Tomado de esta [[https://juliasilge.com/blog/intro-tidymodels/][liga]] y es un buen ejemplo de lo que se puede empezar a hacer con [[https://www.tidymodels.org/][tidymodels]] citep:Kuhn2022.
+
+#+begin_src R :exports none :results none
+  ## Aplicación: Modelo de regresión asistencia partidos -----------------------
+#+end_src
+
+#+begin_src R :exports both :results org 
+  library(tidyverse)
+  base_url <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/"
+
+  attendance <- read_csv(paste(base_url, "attendance.csv", sep = ""),
+                         progress = FALSE, show_col_types = FALSE)
+  standings <- read_csv(paste(base_url, "standings.csv", sep = ""),
+                        progress = FALSE, show_col_types = FALSE)
+
+  attendance_joined <- attendance |>
+    left_join(standings, by = c("year", "team_name", "team"))
+  attendance_joined
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 10,846 × 20
+   team    team_n…¹  year  total   home   away  week weekl…²  wins  loss point…³
+   <chr>   <chr>    <dbl>  <dbl>  <dbl>  <dbl> <dbl>   <dbl> <dbl> <dbl>   <dbl>
+ 1 Arizona Cardina…  2000 893926 387475 506451     1   77434     3    13     210
+ 2 Arizona Cardina…  2000 893926 387475 506451     2   66009     3    13     210
+ 3 Arizona Cardina…  2000 893926 387475 506451     3      NA     3    13     210
+ 4 Arizona Cardina…  2000 893926 387475 506451     4   71801     3    13     210
+ 5 Arizona Cardina…  2000 893926 387475 506451     5   66985     3    13     210
+ 6 Arizona Cardina…  2000 893926 387475 506451     6   44296     3    13     210
+ 7 Arizona Cardina…  2000 893926 387475 506451     7   38293     3    13     210
+ 8 Arizona Cardina…  2000 893926 387475 506451     8   62981     3    13     210
+ 9 Arizona Cardina…  2000 893926 387475 506451     9   35286     3    13     210
+10 Arizona Cardina…  2000 893926 387475 506451    10   52244     3    13     210
+# … with 10,836 more rows, 9 more variables: points_against <dbl>,
+#   points_differential <dbl>, margin_of_victory <dbl>,
+#   strength_of_schedule <dbl>, simple_rating <dbl>, offensive_ranking <dbl>,
+#   defensive_ranking <dbl>, playoffs <chr>, sb_winner <chr>, and abbreviated
+#   variable names ¹​team_name, ²​weekly_attendance, ³​points_for
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/nfl-attendance.jpeg :exports results :results output graphics file
+  attendance_joined |>
+    filter(!is.na(weekly_attendance)) |>
+    ggplot(aes(fct_reorder(team_name, weekly_attendance),
+               weekly_attendance,
+               fill = playoffs)) +
+    geom_boxplot(outlier.alpha = 0.5) +
+    labs(
+      fill = NULL, x = NULL,
+      y = "Weekly NFL game attendance"
+    ) + sin_lineas + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))
+#+end_src
+#+caption: Asistencia en estadios por equipo. 
+#+RESULTS:
+[[file:../images/nfl-attendance.jpeg]]
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/nfl-margin-victory.jpeg :exports results :results output graphics file
+attendance_joined |>
+  distinct(team_name, year, margin_of_victory, playoffs) |>
+  ggplot(aes(margin_of_victory, fill = playoffs)) +
+  geom_histogram(position = "identity", alpha = 0.7) +
+  labs(
+    x = "Margin of victory",
+    y = "Number of teams",
+    fill = NULL
+  ) + sin_lineas
+#+end_src
+#+caption: Diferencia de puntos en partidos ganados.
+#+RESULTS:
+[[file:../images/nfl-margin-victory.jpeg]]
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/nfl-attendance-week.jpeg :exports results :results output graphics file
+attendance_joined |>
+  mutate(week = factor(week)) |>
+  ggplot(aes(week, weekly_attendance, fill = week)) +
+  geom_boxplot(show.legend = FALSE, outlier.alpha = 0.5) +
+  labs(
+    x = "Week of NFL season",
+    y = "Weekly NFL game attendance"
+  ) + sin_lineas
+#+end_src
+#+caption: Asistencia a lo largo de la temporada.
+#+RESULTS:
+[[file:../images/nfl-attendance-week.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  attendance_df <- attendance_joined |>
+  filter(!is.na(weekly_attendance)) |>
+  select(
+    weekly_attendance, team_name, year, week,
+    margin_of_victory, strength_of_schedule, playoffs
+  )
+
+attendance_df
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 10,208 × 7
+   weekly_attendance team_name  year  week margin_of_victory strength_…¹ playo…²
+               <dbl> <chr>     <dbl> <dbl>             <dbl>       <dbl> <chr>  
+ 1             77434 Cardinals  2000     1             -14.6        -0.7 No Pla…
+ 2             66009 Cardinals  2000     2             -14.6        -0.7 No Pla…
+ 3             71801 Cardinals  2000     4             -14.6        -0.7 No Pla…
+ 4             66985 Cardinals  2000     5             -14.6        -0.7 No Pla…
+ 5             44296 Cardinals  2000     6             -14.6        -0.7 No Pla…
+ 6             38293 Cardinals  2000     7             -14.6        -0.7 No Pla…
+ 7             62981 Cardinals  2000     8             -14.6        -0.7 No Pla…
+ 8             35286 Cardinals  2000     9             -14.6        -0.7 No Pla…
+ 9             52244 Cardinals  2000    10             -14.6        -0.7 No Pla…
+10             64223 Cardinals  2000    11             -14.6        -0.7 No Pla…
+# … with 10,198 more rows, and abbreviated variable names
+#   ¹​strength_of_schedule, ²​playoffs
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  library(tidymodels)
+
+  set.seed(108727)
+  attendance_split <- attendance_df |>
+    initial_split(strata = playoffs)
+
+  nfl_train <- training(attendance_split)
+  nfl_test <- testing(attendance_split)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  lm_spec <- linear_reg() |>
+    set_engine(engine = "lm")
+
+  lm_spec
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Linear Regression Model Specification (regression)
+
+Computational engine: lm
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  lm_fit <- lm_spec |>
+    fit(weekly_attendance ~ .,
+        data = nfl_train
+        )
+
+  lm_fit |> broom::tidy()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 37 × 5
+   term                estimate std.error statistic  p.value
+   <chr>                  <dbl>     <dbl>     <dbl>    <dbl>
+ 1 (Intercept)         -79125.     33598.   -2.36   1.85e- 2
+ 2 team_nameBears       -2613.       767.   -3.41   6.64e- 4
+ 3 team_nameBengals     -4757.       771.   -6.17   7.08e-10
+ 4 team_nameBills         106.       766.    0.138  8.90e- 1
+ 5 team_nameBroncos      2889.       775.    3.73   1.93e- 4
+ 6 team_nameBrowns        -21.6      775.   -0.0278 9.78e- 1
+ 7 team_nameBuccaneers  -2796.       752.   -3.72   2.04e- 4
+ 8 team_nameCardinals   -5905.       767.   -7.70   1.53e-14
+ 9 team_nameChargers    -5098.       774.   -6.59   4.76e-11
+10 team_nameChiefs       1802.       763.    2.36   1.83e- 2
+# … with 27 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  lm_fit |> broom::tidy(conf.int = TRUE)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 37 × 7
+   term                estimate std.error statistic  p.value conf.low conf.high
+   <chr>                  <dbl>     <dbl>     <dbl>    <dbl>    <dbl>     <dbl>
+ 1 (Intercept)         -79125.     33598.   -2.36   1.85e- 2 -144985.   -13264.
+ 2 team_nameBears       -2613.       767.   -3.41   6.64e- 4   -4117.    -1109.
+ 3 team_nameBengals     -4757.       771.   -6.17   7.08e-10   -6268.    -3246.
+ 4 team_nameBills         106.       766.    0.138  8.90e- 1   -1396.     1608.
+ 5 team_nameBroncos      2889.       775.    3.73   1.93e- 4    1371.     4408.
+ 6 team_nameBrowns        -21.6      775.   -0.0278 9.78e- 1   -1541.     1498.
+ 7 team_nameBuccaneers  -2796.       752.   -3.72   2.04e- 4   -4271.    -1321.
+ 8 team_nameCardinals   -5905.       767.   -7.70   1.53e-14   -7408.    -4401.
+ 9 team_nameChargers    -5098.       774.   -6.59   4.76e-11   -6615.    -3581.
+10 team_nameChiefs       1802.       763.    2.36   1.83e- 2     306.     3298.
+# … with 27 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  lm_fit |> broom::glance()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 12
+  r.squared adj.r.…¹ sigma stati…²   p.value    df  logLik    AIC    BIC devia…³
+      <dbl>    <dbl> <dbl>   <dbl>     <dbl> <dbl>   <dbl>  <dbl>  <dbl>   <dbl>
+1     0.152    0.148 8379.    38.1 7.30e-242    36 -80005. 1.60e5 1.60e5 5.35e11
+# … with 2 more variables: df.residual <int>, nobs <int>, and abbreviated
+#   variable names ¹​adj.r.squared, ²​statistic, ³​deviance
+# ℹ Use `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org
+  results_train <- lm_fit |>
+    predict(new_data = nfl_train) |>
+    mutate(truth = nfl_train$weekly_attendance,
+           model = "lm")
+  results_train |>
+    rmse(truth = truth, estimate = .pred)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 rmse    standard       8358.
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org
+  results_test <- lm_fit |>
+    predict(new_data = nfl_test) |>
+    mutate(truth = nfl_test$weekly_attendance,
+           model = "lm")
+  results_test |>
+    rmse(truth = truth, estimate = .pred)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 rmse    standard       8192.
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/nfl-linear-performance.jpeg :exports results :results output graphics file
+  results_test %>%
+    mutate(train = "testing") %>%
+    bind_rows(results_train %>%
+      mutate(train = "training")) %>%
+    ggplot(aes(truth, .pred)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(lty = 2, color = "salmon", size = 1.5) +
+    facet_wrap(~train) +
+    labs(
+      x = "Truth",
+      y = "Predicted attendance",
+      color = "Type of model"
+    ) + sin_lineas
+#+end_src
+#+caption: Comparativo de predicciones contra valores reales. 
+#+RESULTS:
+[[file:../images/nfl-linear-performance.jpeg]]
+
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
