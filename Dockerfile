@@ -1,4 +1,4 @@
-FROM rocker/verse:4.2.1
+FROM rocker/verse:4.2.2
 MAINTAINER Alfredo Garbuno Iñigo "alfredo.garbuno@itam.mx"
 
 # Lets declare some user variables =============================================
@@ -44,7 +44,7 @@ COPY renv.lock renv.lock
 COPY .Rprofile .Rprofile
 COPY renv/activate.R renv/activate.R
 COPY renv/settings.dcf renv/settings.dcf
-RUN install2.r --error rmarkdown httpgd languageserver
+RUN install2.r --error rmarkdown languageserver
 
 RUN R -e "renv::restore()"
 RUN rm -rf renv.lock .Rprofile renv
