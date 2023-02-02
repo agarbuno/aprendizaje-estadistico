@@ -1,0 +1,946 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Clasificación~
+#+STARTUP: showall
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/03-clasificacion.pdf
+:END:
+#+PROPERTY: header-args:R :session clasificacion :exports both :results output org :tangle ../rscripts/03-clasificacion.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc latex
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Clasificación. \\
+*Objetivo*. Conceptos de clasificación. Regresión logística. Análisis discriminante. Clases desbalanceadas. Curva ROC. \\
+*Lectura recomendada*: Capítulo 4 de citep:James2021. Capítulo 11 de citep:Kuhn2013. 
+#+END_NOTES
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#ejercicio][Ejercicio]]
+  - [[#créditos-a-estudiantes][Créditos a estudiantes]]
+  - [[#podemos-utilizar-un-modelo-de-regresión-lineal][¿Podemos utilizar un modelo de regresión lineal?]]
+  - [[#el-problema][El problema]]
+  - [[#otros-ejemplos-problemas-multiclase][Otros ejemplos: Problemas multiclase.]]
+- [[#regresión-logística][Regresión logística]]
+  - [[#estimando-los-parámetros][Estimando los parámetros]]
+  - [[#una-situación-interesante][Una situación interesante]]
+- [[#clasificación-para-mas-de-dos-clases][Clasificación para mas de dos clases]]
+- [[#análisis-discriminante][Análisis discriminante]]
+  - [[#la-regla-de-bayes][La regla de Bayes]]
+  - [[#por-qué-utilizar-un-lda][¿Por qué utilizar un LDA?]]
+  - [[#lda-con-p-1][LDA con $p =1$.]]
+    - [[#tarea][Tarea:]]
+  - [[#y-en-la-vida-real][¿Y en la vida real?]]
+  - [[#lda-con-p-1][LDA con $p >1$.]]
+  - [[#predicciones][Predicciones]]
+- [[#lda-en-datos][LDA en datos]]
+  - [[#evaluación-de-modelos][Evaluación de modelos]]
+  - [[#el-punto-de-corte][El punto de corte]]
+  - [[#post-procesando-las-probabilidades][Post-procesando las probabilidades]]
+- [[#otros-modelos-discriminantes][Otros modelos discriminantes]]
+  - [[#análisis-discriminante-cuadrático][Análisis discriminante cuadrático]]
+  - [[#clasificador-ingenuo-bayesiano][Clasificador ingenuo Bayesiano]]
+- [[#relación-entre-clasificadores][Relación entre clasificadores]]
+- [[#resumen][Resumen]]
+- [[#otros-modelos-útiles][Otros modelos útiles]]
+:END:
+
+
+* Introducción
+
+Nos interesa hacer predicciones sobre respuestas ~qualitativas~. Donde suponemos que las respuestas corresponden a valores dentro de un conjunto $\mathcal{C}$.
+
+#+REVEAL: split
+La tarea de predicción es: considerando que tenemos un vector de *características* $X$ queremos predecir la *respuesta* $Y \in \mathcal{C}$ por medio de una función $C : \mathcal{X} \rightarrow \mathcal{C}$.
+
+#+REVEAL: split
+/Usualmente/ resolvemos esto buscando poder predecir la ~probabilidad~ de que $X$ pertenezca a la categoría $\mathcal{C}$.
+
+#+BEGIN_NOTES
+Los modelos que estudiaremos en esta sección no son tan computacionalmente intensivos como otras alternativas. 
+#+END_NOTES
+
+
+** Ejercicio
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+¿Puedes pensar en situaciones que podrían interesarles como un problema de clasificación?
+
+** Créditos a estudiantes
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/datos-credito.jpeg :exports results :results output graphics file
+
+  ## Datos: credito ---------------------------
+  library(ISLR)
+  data <- Default
+  data |> colnames()
+  data |> head()
+
+  g1 <- data |>
+    ggplot(aes(balance, income)) +
+    geom_point(aes(color = default, shape = default),
+               size = 2.5, alpha = .6) +
+    sin_leyenda + sin_lineas
+
+  g2 <- data |>
+    ggplot(aes(default, balance)) +
+    geom_boxplot(aes(fill = default)) +
+    sin_leyenda + sin_lineas
+
+  g3 <- data |>
+    ggplot(aes(default, income)) +
+    geom_boxplot(aes(fill = default)) +
+    sin_leyenda + sin_lineas
+
+  g1 + g2 + g3 + plot_layout(ncol = 3, widths = c(3,1,1))
+
+#+end_src
+#+caption: Datos de tarjetas de crédito para estudiantes.
+#+RESULTS:
+[[file:../images/datos-credito.jpeg]]
+
+** ¿Podemos utilizar un modelo de regresión lineal?
+Podemos ~codificar~ la respuesta como 
+\begin{align}
+Y = \begin{cases}
+0, \qquad \text{ si } \texttt{No} \\
+1, \qquad \text{ si } \texttt{Si}\,,
+\end{cases}
+\end{align}
+por lo que podríamos definir una regla como
+#+begin_quote
+Clasificar ~Si~ si la predicción $\hat Y > 0.5$. 
+#+end_quote
+
+#+BEGIN_NOTES
+Podríamos ajustar un modelo lineal y calificar como ~Si~ si tenemos $\hat Y > 0.5$ . Este modelo es equivalente a un clasificador por medio de análisis discriminante lineal (LDA). La /garantía/ que tenemos es que
+\begin{align}
+\mathbb{E}[Y | X = x] = \mathbb{P}(Y = 1|X = x)\,.
+\end{align}
+#+END_NOTES
+
+** El problema
+La respuesta del modelo lineal no la podemos interpretar como una probabilidad. Además implícitamente estaríamos dispuestos a otorgar cierto orden a las categorías.
+
+#+REVEAL: split
+Por ejemplo, consideremos un problema de clasificación con mas categorías:
+\begin{align}
+Y = \begin{cases}
+1 \qquad \text{  llueve }\\
+2 \qquad \text{  está nublado }\\
+3 \qquad \text{ tiembla}\,.
+\end{cases}
+\end{align}
+
+#+BEGIN_NOTES
+Asumimos un orden. Suponemos que la condición de que el día esté nublado está entre lluvia y temblor. Además, reflejamos que la diferencia entre lluvia y nubes, y nubes y temblores es la misma. 
+#+END_NOTES
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/linear-logistic-credit.jpeg :exports results :results output graphics file
+
+  g1 <- data |>
+    mutate(default = ifelse(default == "Yes", 1, 0)) |>
+    ggplot(aes(balance, default)) +
+    geom_smooth(method = "lm", se = FALSE) +
+    geom_point() + sin_lineas +
+    geom_hline(yintercept = c(1,0) , lty = 2) +
+    ggtitle("Regresión lineal")
+
+
+  g2 <- data |>
+    mutate(default = ifelse(default == "Yes", 1, 0)) |>
+    ggplot(aes(balance, default)) +
+    geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE) +
+    geom_point() + sin_lineas +
+    geom_hline(yintercept = c(1,0) , lty = 2) +
+    ggtitle("Regresión logística")
+
+
+  g1 + g2
+#+end_src
+#+caption: Comparación de ajuste entre un modelo de regresión y un logístico. 
+#+RESULTS:
+[[file:../images/linear-logistic-credit.jpeg]]
+
+** Otros ejemplos: Problemas multiclase. 
+
+#+DOWNLOADED: screenshot @ 2022-02-16 12:13:34
+#+caption: Ejemplo multiclase típico ([[https://en.wikipedia.org/wiki/MNIST_database][MNIST]]). 
+#+attr_html: :width 800 :align center
+[[file:images/20220216-121334_screenshot.png]]
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-02-16 12:15:24
+#+caption: Ejemplo multiclase ([[https://www.tensorflow.org/datasets/catalog/fashion_mnist][Fashion MNIST]]).
+#+attr_html: :height 800 :align center
+[[file:images/20220216-121524_screenshot.png]]
+
+#+REVEAL: split
+Por supuesto un modelo de regresión o un ~predictor binario~ no es apropiado y necesitamos considerar otros modelos (que veremos mas adelante) como ~Regresión logística multiclase~ o ~Análisis Discriminante~. 
+
+* Regresión logística
+
+Escribiremos $\mathbb{P}(Y = 1| X) = p(X)$ y consideraremos el escenario /simple/. La regresión logística utiliza la transformación
+\begin{align}
+p(X) = \frac{e^{\beta_0 + \beta_1 X}}{1 + e^{\beta_0 +\beta_1 X}}\,.
+\end{align}
+
+#+BEGIN_NOTES
+La función $p(X)$ es la podemos interpretar como un /score/. Pues, en el contexto de nuestro ejemplo, un banco estaría dispuesto a ser conservador para clasificar a un cliente como un cliente que no pagará si $P(X) > 0.15$.   La función $\sigma(x) = e^x / (1 + e^x)$  se conoce como ~función logística~. Análogamente, la función $\sigma(x) = 1/ (1 + e^{-x})$ se conoce como la ~función sigmoide~. Son... lo mismo.
+#+END_NOTES
+
+#+REVEAL: split
+Con un poco de álgebra podemos escribir
+\begin{align}
+\log \left( \frac{p(X)}{1 - p(X)} \right) = \beta_0 + \beta_1 X\,.
+\end{align}
+
+#+BEGIN_NOTES
+A esta transformación se le llama ~logit~ o ~log-momio~. 
+#+END_NOTES
+
+#+REVEAL: split
+Regresión logística nos ayuda a restringir la salida de nuestro modelo predictivo.
+#+caption: La salida del modelo logistico está restringido gracias a la ~transformación no lineal~.
+file:../images/linear-logistic-credit.jpeg
+
+** Estimando los parámetros
+
+Utilizamos el principio de máxima verosimilitud para expresar nuestra función objetivo como
+\begin{align}
+\mathcal{L}_n(\beta_0, \beta_1) = \prod_{i = 1}^{n} p(x_i)^{y_i} (1 - p(x_i))^{1 - y_i}\,.
+\end{align}
+#+BEGIN_NOTES
+La verosimilitud es la función de densidad (masa de probabilidad) conjunta de una muestra de $n$ observaciones. Representa el ~proceso generador de datos~ y la consideramos una función de los parámetros de interés. Con este enfoque, se convierte en la función que dadas las observaciones explica el /origen/ de los datos bajo el modelo supuesto. 
+#+END_NOTES
+
+#+REVEAL: split
+El objetivo es encontrar
+\begin{align}
+(\hat \beta_0, \hat \beta_1)  = \underset{\beta_0, \beta_1}{\arg\max} \, \mathcal{L}_n(\beta_0, \beta_1)\,.
+\end{align}
+
+#+begin_src R :exports none :results none
+  ## Modelo logistico -------------------------
+#+end_src
+#+REVEAL: split
+#+caption: Ajuste de modelo logistico.
+#+begin_src R :exports code :results none
+  modelo <- glm(default ~ balance, family = "binomial", data = data)
+#+end_src
+
+#+begin_src R
+  modelo |>
+    summary()
+#+end_src
+
+#+RESULTS:
+#+caption: Resumen del modelo logistico. 
+#+begin_src org
+
+Call:
+glm(formula = default ~ balance, family = "binomial", data = data)
+
+Deviance Residuals: 
+   Min      1Q  Median      3Q     Max  
+-2.270  -0.146  -0.059  -0.022   3.759  
+
+Coefficients:
+             Estimate Std. Error z value Pr(>|z|)    
+(Intercept) -10.65133    0.36116   -29.5   <2e-16 ***
+balance       0.00550    0.00022    24.9   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 2920.6  on 9999  degrees of freedom
+Residual deviance: 1596.5  on 9998  degrees of freedom
+AIC: 1600
+
+Number of Fisher Scoring iterations: 8
+#+end_src
+
+#+REVEAL: split
+#+begin_src R
+  modelo |>
+    broom::tidy() 
+#+end_src
+#+caption: Resumen de modelo logistico (~tidy~). 
+#+RESULTS:
+#+begin_src org
+         term estimate std.error statistic  p.value
+1 (Intercept) -10.6513   0.36116       -29 3.6e-191
+2     balance   0.0055   0.00022        25 2.0e-137
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports results
+  logistic.respuestas <- tibble(type = c("response", "link")) |>
+    mutate(preds = map(type, function(type.str){
+                   predict(modelo,
+                           tibble(balance = c(1000, 2000)),
+                           type = type.str) |>
+                     as_tibble()               
+    })) |>
+    unnest(preds) |>
+    mutate(balance = rep(c(1000, 2000), 2)) |>
+    pivot_wider(values_from = value, names_from = type) |>
+     mutate(`sigma(link)` = map(link, function(x){
+        exp(x)/(1 + exp(x))
+        }))
+
+  logistic.respuestas 
+#+end_src
+#+caption: Tipos de respuesta de un modelo logistico con ~glm~. 
+#+RESULTS:
+#+begin_src org
+  balance response  link sigma(link)
+1    1000   0.0058 -5.15      0.0058
+2    2000   0.5858  0.35        0.59
+#+end_src
+
+#+REVEAL: split
+#+caption: Ajuste de modelo logistico. 
+#+begin_src R :exports code
+  modelo <- glm(default ~ balance + income + student,
+                data = data,
+                family = "binomial")
+#+end_src
+
+#+begin_src R :exports results
+  modelo |>
+    broom::tidy() 
+#+end_src
+#+caption: Resumen del modelo logistico multivariado. 
+#+RESULTS:
+#+begin_src org
+         term estimate std.error statistic  p.value
+1 (Intercept) -1.1e+01   4.9e-01    -22.08 4.9e-108
+2     balance  5.7e-03   2.3e-04     24.74 4.2e-135
+3      income  3.0e-06   8.2e-06      0.37  7.1e-01
+4  studentYes -6.5e-01   2.4e-01     -2.74  6.2e-03
+#+end_src
+
+** Una situación interesante
+
+#+begin_src R :exports none :results none
+  ## Una paradoja ----------------------------------
+  modelo.1 <- glm(default ~ student,
+                  data = data,
+                family = "binomial")
+
+  modelo.2 <- glm(default ~ balance + income + student,
+                data = data,
+                family = "binomial")
+#+end_src
+
+#+begin_src R :exports results 
+  modelo.1 |> broom::tidy() 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+         term estimate std.error statistic  p.value
+1 (Intercept)   -3.504    0.0707    -49.55 0.000000
+2  studentYes    0.405    0.1150      3.52 0.000431
+#+end_src
+
+#+begin_src R :exports results 
+  modelo.2 |> broom::tidy()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+         term  estimate std.error statistic   p.value
+1 (Intercept) -1.09e+01  4.92e-01    -22.08 4.91e-108
+2     balance  5.74e-03  2.32e-04     24.74 4.22e-135
+3      income  3.03e-06  8.20e-06      0.37  7.12e-01
+4  studentYes -6.47e-01  2.36e-01     -2.74  6.19e-03
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/simpson-paradox.jpeg :exports results :results output graphics file
+  g1 <- data |>
+    filter(balance <= 2200) |>
+      mutate(balance.discrete = cut(balance, breaks = 20)) |>
+    group_by(student, balance.discrete) |>
+    summarise(count = n(),
+              defaults = sum(ifelse(default == 'Yes', 1, 0)),
+              rate  = defaults/count) |>
+    ungroup() |>
+    ggplot(aes(balance.discrete, rate)) +
+    geom_line(aes(group = student, color = student)) +
+    geom_hline(data = data |>
+                 group_by(student) |>
+                 summarise(rate = mean(ifelse(default == "Yes", 1, 0))),
+               aes(yintercept = rate, color = student), lty = 2) + 
+    sin_leyenda + sin_lineas +
+    theme(axis.text.x = element_blank()) +
+    xlab("balance") + ylab("Tasa default")
+
+  g2 <- data |>
+    ggplot(aes(student, balance)) +
+    geom_boxplot(aes(fill = student)) + sin_lineas + sin_leyenda
+
+  g1 + g2
+#+end_src
+#+caption: Aparente paradoja para la tasa de /Default/. 
+#+RESULTS:
+[[file:../images/simpson-paradox.jpeg]]
+
+* Clasificación para mas de dos clases
+
+Podemos extender a un problema ~multi-clase~
+\begin{align}
+\mathbb{P}(Y = {\color{orange} k} | X) = \frac{e^{\beta_{0,{\color{orange}k}} + \beta_{1,{\color{orange}k}} X_1 + \cdots + \beta_{p,{\color{orange}k}} X_p}}{\sum_{{\color{magenta}\ell} = 1}^{K} e^{\beta_{0,{\color{magenta}\ell}} + \beta_{1,{\color{magenta}\ell}} X_1 + \cdots + \beta_{p,{\color{magenta}\ell}} X_p}}
+\end{align}
+
+#+BEGIN_NOTES
+El modelo de arriba se puede reducir para tener $K-1$ ecuaciones. 
+#+END_NOTES
+
+* Análisis discriminante
+
+Modelamos la distribución de las características en cada una de las clases de manera separada. Luego, utilizamos el ~teorema de Bayes~ para obtener la probabilidad $\mathbb{P}(Y | X)$.
+
+Se puede utilizar cualquier distribución, pero nos quedaremos en el caso Gaussiano.
+
+** La regla de Bayes
+
+La regla de Bayes (o teorema de Bayes) lo expresamos en términos de probabilidades condicionales
+\begin{align}
+\mathbb{P}(Y = {\color{orange} k} | X = x) = \frac{\mathbb{P}(X = x | Y = {\color{orange}k}) \cdot \mathbb{P}(Y = {\color{orange}k})}{\mathbb{P}(X = x)}\,.
+\end{align}
+
+#+REVEAL: split
+En el contexto de análisis discriminante utilizamos
+\begin{align}
+\mathbb{P}(Y = {\color{orange} k} | X = x) = \frac{\pi_{\color{orange}k} \, f_{\color{orange}k}(x)}{\sum_{\ell= 1}^{K} \pi_{\ell} \, f_\ell(x)}\,,
+\end{align}
+donde
+- $f_k$ es la densidad de $X$ para la clase $k$,
+- $\pi_k$ es la proporción de datos en la clase $k$. 
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/discriminant-example.jpeg :exports results :results output graphics file
+  ## Ejemplo analisis discriminante ----------------- 
+  g1 <- tibble(x = seq(-4, 4, length.out = 100)) |>
+    mutate(f.1 = dnorm(x, -2),
+           f.2 = dnorm(x,  2)) |>
+    pivot_longer(cols = f.1:f.2) |>
+    ggplot(aes(x, value)) +
+    geom_line(aes(group = name, color = name)) +
+    sin_leyenda + sin_lineas + 
+    geom_vline(xintercept = 0, lty = 2) +
+    ggtitle(expression(pi[1]==pi[2])) 
+
+  g2 <- tibble(x = seq(-4, 4, length.out = 100)) |>
+    mutate(f.1 = .3 * dnorm(x, -2),
+           f.2 = .7 * dnorm(x,  2)) |>
+    pivot_longer(cols = f.1:f.2) |>
+    ggplot(aes(x, value)) +
+    geom_line(aes(group = name, color = name)) +
+    sin_leyenda + sin_lineas + 
+    geom_vline(xintercept = -0.225, lty = 2) +
+    ggtitle(expression(pi[1]<pi[2]))
+
+  g1 + g2
+#+end_src
+#+caption: Analisis discriminante con densidades Gaussianas. 
+#+RESULTS:
+[[file:../images/discriminant-example.jpeg]]
+
+** ¿Por qué utilizar un LDA?
+
+- En casos con clases ~separables~, los estimadores de regresión logística son inestables. 
+- Si $n$ es pequeña y las densidades son aproximadamente normales en cada una de las clases entonces LDA es mas estable.
+- LDA nos permite visualizaciones de dimensiones bajas.
+** LDA con $p =1$.
+
+Asumimos $\sigma_k = \sigma$ para toda $k$, para poder escribir nuestra $p_k(x)$.
+
+#+BEGIN_NOTES
+Los términos constantes se eliminan. 
+#+END_NOTES
+
+#+REVEAL: split
+Como dijimos antes, clasificamos de acuerdo a cual $p_k$ es la mas grande para $x$. Lo que nos lleva a buscar el /score/ discriminante mas grande
+\begin{align}
+\delta_k(x) = x \frac{\mu_k}{\sigma^2} - \frac{\mu_k^2}{2 \sigma_2} + \log(\pi_k) \,.
+\end{align}
+
+#+BEGIN_NOTES
+Tomamos logaritmos y eliminamos los términos que no dependen de $k$. Notemos que $\delta_k(\cdot)$ es una función /lineal/ para $x$. 
+#+END_NOTES
+
+*** Tarea:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Prueba que para el caso $K = 2$ y $\pi_1 = \pi_2 = .5$ la frontera de la decisión está en
+\begin{align}
+x = \frac{\mu_1 + \mu_2}{2}\,.
+\end{align}
+
+** ¿Y en la vida real?
+
+Estimamos los parámetros con los criterios usuales.
+
+#+BEGIN_NOTES
+Los parámetros que se ajustarán serán: $\pi_k, \mu_k, \sigma_k, \sigma$. 
+#+END_NOTES
+
+** LDA con $p >1$. 
+
+La función discriminante es
+\begin{align}
+\delta_k(x) = x^\top \Sigma^{-1} \mu_k -  \frac{1}{2} \mu_k^\top \Sigma^{-1}\mu_k  + \log (\pi_k)\,.
+\end{align}
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/lda-2-dimensions.jpeg :exports results :results output graphics file
+  ## Graficando un lda con K = 3, p = 2 -------------------------------
+  library(mvtnorm)
+
+  Sigma <- matrix(c(1, .6, .6, 1), nrow = 2)
+
+  poblacion <- tibble(class = c(1, 2, 3),
+         mu = list(c(-1,-1), c(1,2), c(2,1))) |>
+    mutate(samples = map(mu, function(mean){
+      rmvnorm(1000, mean = mean, sigma = Sigma) |>
+        as_tibble()
+    }))
+
+  modelo.lda <- MASS::lda(class ~ V1 + V2, poblacion |> unnest(samples))
+
+  expand.grid(V1 = seq(-4, 5, length.out = 100),
+              V2 = seq(-4, 4, length.out = 100)) |>
+    as_tibble() |>
+    nest(data = c(V1, V2)) |>
+    mutate(preds = map(data, function(datos){
+      tibble(class = predict(modelo.lda, newdata = datos)$class,
+             pi.1  = dmvnorm(datos, mean = c(-1,-1), sigma = Sigma), 
+             pi.2  = dmvnorm(datos, mean = c(1,2), sigma = Sigma),
+             pi.3  = dmvnorm(datos, mean = c(2,1), sigma = Sigma))
+    })) |>
+    unnest(data, preds) |>
+    ggplot(aes(V1, V2, color=class)) +
+      geom_point(size = 1, alpha = .4) + sin_leyenda + sin_lineas + 
+    geom_contour(aes(V1, V2, z = pi.1), breaks = c(2e-2), color = "#F8766D") +
+    geom_contour(aes(V1, V2, z = pi.2), breaks = c(2e-2), color = "#7CAE00") +
+    geom_contour(aes(V1, V2, z = pi.3), breaks = c(2e-2), color = "#00BFC4") +
+    coord_equal()
+
+
+#+end_src
+#+caption: LDA en dos dimensiones. 
+#+RESULTS:
+[[file:../images/lda-2-dimensions.jpeg]]
+
+** Predicciones
+Una vez que tenemos ajustadas nuestras $\hat \delta_k(x)$ podemos utilizarlas para asignar probabilidades de clase:
+\begin{align}
+\hat{\mathbb{P}}(Y = k| X = x) = \frac{e^{\hat \delta_k(x)}}{\sum_{\ell = 1}^{K} e^{\hat \delta_\ell(x)}}\,.
+\end{align}
+
+* LDA en datos
+
+#+begin_src R :exports none :results none
+  ## Clasificacion y métricas -----------------
+  options(digits = 3)
+#+end_src
+
+#+begin_src R
+  data <- Default
+  data |> head()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  default student balance income
+1      No      No     730  44362
+2      No     Yes     817  12106
+3      No      No    1074  31767
+4      No      No     529  35704
+5      No      No     786  38463
+6      No     Yes     920   7492
+#+end_src
+
+#+begin_src R :exports none :results none
+
+  data <- data |>
+    mutate(default = factor(default, levels = c("Yes", "No")))
+
+#+end_src
+
+
+#+REVEAL: split
+#+caption: Modelo ajustado para los datos de crédito de estudiantes. 
+#+begin_src R :exports code :results none
+  lda.model <- MASS::lda(default ~ balance, data)
+#+end_src
+
+#+begin_src R
+  library(yardstick)
+  data <- data |>
+    as_tibble() |>
+    mutate(predicted = predict(lda.model)$class,
+           probability = predict(lda.model)$posterior[,1])
+  data |>
+    conf_mat(truth = default, estimate = predicted)
+#+end_src
+#+caption: Matriz de confusión. 
+#+RESULTS:
+#+begin_src org
+          Truth
+Prediction  Yes   No
+       Yes   76   24
+       No   257 9643
+#+end_src
+
+#+REVEAL: split
+#+begin_src R
+  data |>
+    accuracy(truth = default, estimate = predicted) 
+#+end_src
+#+caption: Precisión del modelo.
+#+RESULTS:
+#+begin_src org
+   .metric .estimator .estimate
+1 accuracy     binary     0.972
+#+end_src
+
+La tasa de errores de clasificación es: $(24+257)/10,000 \approx 0.028$. 
+
+#+BEGIN_NOTES
+¿Qué hubiera pasado si clasificamos a todos con la clase mayoritaria? 
+#+END_NOTES
+
+** Evaluación de modelos
+
+La proporción de ~aciertos~ para la clase ~Si~ es: 
+#+begin_src R
+  data |>
+    recall(truth = default, estimate = predicted) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  recall     binary     0.228
+#+end_src
+
+La proporción de ~errores~ para la clase ~Si~ se le llama ~Tasa de Falsos Positivos~ (apróx. 77.2%).
+
+#+REVEAL: split
+La proporción de ~aciertos~ para la clase ~No~ es: 
+#+begin_src R
+  data |>
+    recall(truth = default, estimate = predicted, event_level = 'second') 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  recall     binary     0.998
+#+end_src
+
+La proporción de ~errores~ para la clase ~No~ se le llama ~Tasa de Falsos Negativos~ (apróx. 0.2%).
+
+#+REVEAL: split
+Una combinación de ambos
+#+begin_src R
+  data |>
+    f_meas(truth = default, estimate = predicted) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  f_meas     binary     0.351
+#+end_src
+
+#+BEGIN_NOTES
+La métrica $F$ es un compromiso entre las dos métricas que hemos visto anteriormente. Es decir, el /recall/ (la tasa con la que podemos identificar los objetos que buscamos) y la *precisión* (la tasa con la que correctamente identificamos ambos casos). De tal manera, que la métrica $F$ (el caso particular para $F_1$) es
+\begin{align}
+F = 2 \cdot \frac{\text{precision}\quad \text{recall}}{\text{precision} + \text{recall}}\,.
+\end{align}
+#+END_NOTES
+
+
+** El punto de corte
+
+Para las métricas anteriores consideramos que si $\hat p(x) > .5$ entonces la predicción de clase será ~Si~. Si cambiamos el punto de corte podemos modificar la tasa de error en ambas.
+
+#+begin_src R :exports none :results none
+  ### Modificamos el punto de corte ---------------------
+#+end_src
+
+#+begin_src R :exports code :results none
+    data <- data |>
+      mutate(predicted.score = factor(ifelse(probability >= .2,"Yes", "No"), levels = c("Yes", "No")))
+#+end_src
+
+#+begin_src R :exports results :results org
+  data |>
+    accuracy(truth = default, estimate = predicted.score) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+   .metric .estimator .estimate
+1 accuracy     binary     0.963
+#+end_src
+
+#+begin_src R :exports results :results org
+  data |>
+    recall(truth = default, estimate = predicted.score) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  recall     binary     0.586
+#+end_src
+
+#+begin_src R :exports results :results org
+  data |>
+    recall(truth = default, estimate = predicted.score, event_level = 'second')
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1  recall     binary     0.976
+#+end_src
+
+
+#+REVEAL: split
+
+#+begin_src R :exports none :results none
+  ### Grafico ROC -------------------------- 
+#+end_src
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/roc-curve-credit.jpeg :exports results :results output graphics file
+  g1 <- data |>
+    roc_curve(default, probability) |>
+    ggplot(aes(1 - specificity, sensitivity)) +
+    geom_line() +
+    geom_abline(slope = 1, intercept = 0, lty = 2) +
+    sin_lineas
+
+  g2 <- data |>
+    roc_curve(default, probability) |>
+    ggplot(aes(1 - specificity, sensitivity)) +
+    geom_line() +
+    geom_abline(slope = 1, intercept = 0, lty = 2) +
+    sin_lineas +
+    xlab("Tasa de Falsos Positivos") +
+    ylab("Tasa de Verdaderos Positivos")
+
+  g1 + g2
+#+end_src
+#+caption: Gráfico ROC (/Receiver Characteristic Curve/). 
+#+RESULTS:
+[[file:../images/roc-curve-credit.jpeg]]
+
+#+REVEAL: split
+También podemos pedir un resumen de la gráfica por medio del área bajo la curva (más alto mejor).
+#+begin_src R
+  data |>
+    roc_auc(default, probability)
+#+end_src
+#+caption: Resumen curva ROC. 
+#+RESULTS:
+#+begin_src org
+  .metric .estimator .estimate
+1 roc_auc     binary     0.948
+#+end_src
+
+** Post-procesando las /probabilidades/
+
+#+BEGIN_NOTES
+La predicción de probabilidad de clase (por ejemplo, $\hat p_1(x)$) en general
+no puede entenderse como una probabilidad. Lo podemos interpretar cómo un /score/
+de pertenencia a la clase $1$. Nos encantaría poder interpretar dicha predicción
+como una probabilidad. En el sentido frecuentista nos encantaría buscar que la
+frecuencia relativa de la categoría $1$ dentro de los individuos con las
+características $x$ sea cercana a $\hat p_1(x)$. Esto lo podemos estudiar a
+través de un ~gráfico de calibración~ de probabilidades, donde evaluamos la
+/cobertura/ de dichos /scores/ (ver mas en Capítulo 11 de citep:Kuhn2013).
+#+END_NOTES
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/probabilidades-calibradas.jpeg :exports results :results output graphics file
+  data |>
+    ## Bin the probability in buckets
+    mutate(bins = cut(probability,
+                      seq(0,1,length.out = 11))) |>
+    ## Group by bin to get summaries
+    group_by(bins) |>
+    summarise(events = sum(ifelse(default == "Yes", 1, 0)),
+              count = n(),
+              observed.rate = events/count) |>
+    ## Compute expected rates
+    mutate(predicted.rate = seq(5,100,by=10)/100) |>
+    ggplot(aes(predicted.rate, observed.rate)) +
+    geom_line() + geom_point() +
+    geom_abline(slope = 1, intercept = 0, lty = 2, color = 'grey') +
+    sin_lineas
+#+end_src
+#+caption: Gráfico de calibración de probabilidades. 
+#+RESULTS:
+[[file:../images/probabilidades-calibradas.jpeg]]
+
+#+BEGIN_NOTES
+En la práctica es importante contextualizar los costos de una mala
+clasificación. Por ejemplo, el costo de no identificar a los clientes que te van
+a dejar de pagar un crédito, o los pacientes que no necesitan un tratamiento
+médico. La curva /lift/ nos ayuda a contextualizar esto y en consecuencia buscar
+un punto de corte apropiado para el problema de predicción de clases. Si
+pensamos en que estudiaremos con mayor cuidado las predicciones mas seguras,
+querríamos que nuestro modelo sea capaz de /encontrar/ a los individuos de interés
+con tan sólo ordenarlos por esas /probabilidades/. Puedes consultar mas de esto en
+el Capítulo 11 de citep:Kuhn2013.
+#+END_NOTES
+
+#+REVEAL: split
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/curva-lift.jpeg :exports results :results output graphics file
+  g1 <- data |>
+    ## Muestreo aleatorio para mantener clases balanceadas 50%
+    group_by(default) |>
+    sample_n(300, replace = FALSE) |>
+    ungroup() |>
+    ## Ordenamos por score
+    arrange(-probability) |>
+    mutate(found = cumsum(ifelse(default == "Yes", 1, 0))/3,
+           tested = 1:n()/n()*100) |>
+    select(probability, found, tested) |>
+    ggplot(aes(tested, found)) +
+    geom_polygon(data = tibble(x = c(0,50,100),
+                               y = c(0,100,100)),
+                 aes(x,y), alpha = .4, fill = 'gray') +
+    geom_abline(slope = 1, intercept = 0, lty = 2, color = 'gray') +
+    geom_line() +
+    sin_lineas +
+    ylab("Casos encontrados (%)") +
+    xlab("Casos probados (%)")  
+  g1
+#+end_src
+#+caption: Curva /lift/.
+#+RESULTS:
+[[file:../images/curva-lift.jpeg]]
+
+
+* Otros modelos discriminantes
+
+Si asumimos diferentes formas para $f_k(x)$ podemos recuperar diferentes modelos discriminantes clásicos.
+- Si consideramos un modelo Gaussiano con distintas $\Sigma_k$ entonces tenemos un ~modelo discriminante cuadrático~.
+- Si consideramos que /dentro de cada clase/ las /características son independientes/ tenemos el ~clasificador Bayesiano ingenuo~.
+- Hay muchos mas que se pueden explorar considerando estimadores no-paramétricos. 
+
+** Análisis discriminante cuadrático
+
+Si dejamos que el término de varianzas cambie con respecto a  ${\color{orange}k}$ entonces
+\begin{align}
+\delta_k(x) = -\frac{1}{2} (x - \mu_k)^\top \Sigma_k^{-1}(x - \mu_k) + \log \pi_k - \frac{1}{2} \log |\Sigma_k|\,.
+\end{align}
+
+** Clasificador ingenuo /Bayesiano/
+
+Cada atributo es independiente de los demás. Tiene muy buenas capacidades predictivas cuando $p$ es grande.
+\begin{align}
+\delta_k(x) \propto \log \left( \pi_k  \prod_{j = 1}^{p} f_{kj} (x_j)\right)  = -\frac12 \sum_{j = 1}^{p} \left( \frac{(x_j - \mu_{kj})^2}{\sigma^2_{kj}} + \log \sigma^2_{kj} \right) + \log \pi_k\,.
+\end{align}
+
+#+BEGIN_NOTES
+Se puede utilizar con mezcla de atributos /mixtos/. Es decir, cuando tenemos atributos continuos y discretos. 
+#+END_NOTES
+
+* Relación entre clasificadores
+
+En el caso binario se puede mostrar que LDA y la función /liga/ de regresión logística tienen la misma forma. La diferencia es cómo se estiman los parámetros:
+- Con regresión logística aprendemos $\mathbb{P}(Y|X)$ (que se conoce como ~aprendizaje discriminante~).
+- Con LDA aprendemos $\mathbb{P}(X,Y)$ (que se conoce como ~aprendizaje generativo~).
+
+#+BEGIN_NOTES
+En la práctica los resultados entre un modelo logístico y un LDA son muy similares. 
+#+END_NOTES
+
+* Resumen
+
+- Regresión logistica es popular, especialmente en clasificación binaria.
+- LDA es útil cuando $n$ es pequeña o las clases son separables, y /además/ los supuestos Gaussianos son razonables.
+- El clasificador ingenuo Bayesiano es útil cuando tenemos muchas categorías. 
+
+* Otros modelos útiles
+
+- Modelos lineales generalizados.
+- Vecinos más cercanos. 
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
+
