@@ -3,28 +3,19 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Clasificación~
 #+STARTUP: showall
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/03-clasificacion.pdf
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session clasificacion :exports both :results output org :tangle ../rscripts/03-clasificacion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
@@ -421,7 +412,7 @@ Number of Fisher Scoring iterations: 8
     unnest(preds) |>
     mutate(balance = rep(c(1000, 2000), 2)) |>
     pivot_wider(values_from = value, names_from = type) |>
-     mutate(`sigma(link)` = map(link, function(x){
+     mutate(`sigma(link)` = map_dbl(link, function(x){
         exp(x)/(1 + exp(x))
         }))
 
@@ -430,9 +421,15 @@ Number of Fisher Scoring iterations: 8
 #+caption: Tipos de respuesta de un modelo logistico con ~glm~. 
 #+RESULTS:
 #+begin_src org
-  balance response  link sigma(link)
-1    1000   0.0058 -5.15      0.0058
-2    2000   0.5858  0.35        0.59
+Error in `mutate()`:
+! Problem while computing `preds = map(...)`.
+Caused by error:
+! object 'income' not found
+# A tibble: 2 × 4
+  balance response   link `sigma(link)`
+    <dbl>    <dbl>  <dbl> <list>       
+1    1000  0.00575 -5.15  <dbl [1]>    
+2    2000  0.586    0.347 <dbl [1]>
 #+end_src
 
 #+REVEAL: split
@@ -817,7 +814,7 @@ esquemática en [[fig:conf-matrix-recall]].
 #+DOWNLOADED: screenshot @ 2023-02-08 20:49:39
 #+attr_html: :width 700 :align center
 #+attr_latex: :width .45\linewidth
-#+caption: Matriz de confusión con predicciones de $\mathsf{LDA}$.
+#+caption: Esquema cálculo de exhaustividad (/recall/).
 #+name: fig:conf-matrix-recall
 [[file:images/20230208-214640_screenshot.png]]
 
@@ -848,7 +845,7 @@ Cuya representación esquemática se muestra en [[fig:conf-matrix-precision]].
 
 #+attr_html: :width 700 :align center
 #+attr_latex: :width .45\linewidth
-#+caption: Matriz de confusión con predicciones de $\mathsf{LDA}$.
+#+caption: Esquema cálculo de precisión.
 #+name: fig:conf-matrix-precision
 [[file:images/20230208-214806_screenshot.png]]
 
@@ -942,6 +939,7 @@ Las métricas anteriores esconden una peculiaridad: se esconde detrás una selec
            ))
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports results :results org
   data |>
     accuracy(truth = default, estimate = predicted.score)
@@ -968,6 +966,7 @@ Las métricas anteriores esconden una peculiaridad: se esconde detrás una selec
 1 recall  binary         0.586
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports results :results org
   data |>
     precision(truth = default, estimate = predicted.score)
@@ -1040,7 +1039,7 @@ Esta curva la podemos resumir por medio del área bajo la curva ROC
 #+end_src
 
 #+REVEAL: split
-De la misma manera podemos mostrar también gráfico con todas las posibles
+De la misma manera podemos mostrar también un gráfico con todas las posibles
 combinaciones de ~recall~ y ~precision~ dados los diferentes puntos de corte que
 podemos realizar.
 
@@ -1109,6 +1108,9 @@ el Capítulo 11 de citep:Kuhn2013.
 #+END_NOTES
 
 #+REVEAL: split
+Podemos ordenar de acuerdo a los /scores/ que obtenemos del modelo. De esta
+manera, fijarnos en cuántos casos positivos estamos realmente capturando.
+
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/gain-curve.jpeg :exports results :results output graphics file
   data |>
