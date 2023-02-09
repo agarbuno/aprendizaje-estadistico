@@ -85,8 +85,8 @@
   - [[#lda-con-p-1][LDA con $p >1$.]]
   - [[#predicciones][Predicciones]]
 - [[#lda-en-datos][LDA en datos]]
-  - [[#evaluación-de-modelos][Evaluación de modelos]]
-  - [[#el-punto-de-corte][El punto de corte]]
+- [[#evaluación-de-modelos][Evaluación de modelos]]
+  - [[#sensibilidad-al-punto-de-corte][Sensibilidad al punto de corte]]
   - [[#post-procesando-las-probabilidades][Post-procesando las probabilidades]]
 - [[#otros-modelos-discriminantes][Otros modelos discriminantes]]
   - [[#análisis-discriminante-cuadrático][Análisis discriminante cuadrático]]
@@ -99,13 +99,13 @@
 
 * Introducción
 
-Nos interesa hacer predicciones sobre respuestas ~qualitativas~. Donde suponemos que las respuestas corresponden a valores dentro de un conjunto $\mathcal{C}$.
+Nos interesa hacer predicciones sobre respuestas ~qualitativas~. Donde suponemos que las respuestas corresponden a valores dentro de un conjunto $\mathcal{C} = \{1, \ldots, K\}$.
 
 #+REVEAL: split
 La tarea de predicción es: considerando que tenemos un vector de *características* $X$ queremos predecir la *respuesta* $Y \in \mathcal{C}$ por medio de una función $C : \mathcal{X} \rightarrow \mathcal{C}$.
 
 #+REVEAL: split
-/Usualmente/ resolvemos esto buscando poder predecir la ~probabilidad~ de que $X$ pertenezca a la categoría $\mathcal{C}$.
+/Usualmente/ resolvemos esto buscando poder predecir una medida  de que tan seguros estamos que $X$ pertenezca a la categoría $\mathcal{C}$. Esto lo denotamos por $p(X)$. 
 
 #+BEGIN_NOTES
 Los modelos que estudiaremos en esta sección no son tan computacionalmente intensivos como otras alternativas. 
@@ -157,24 +157,26 @@ Los modelos que estudiaremos en esta sección no son tan computacionalmente inte
 Podemos ~codificar~ la respuesta como 
 \begin{align}
 Y = \begin{cases}
-0, \qquad \text{ si } \texttt{No} \\
-1, \qquad \text{ si } \texttt{Si}\,,
+0, \qquad \text{ si } \texttt{Si paga a tiempo} \\
+1, \qquad \text{ si } \texttt{No paga a tiempo}\,,
 \end{cases}
 \end{align}
 por lo que podríamos definir una regla como
 #+begin_quote
-Clasificar ~Si~ si la predicción $\hat Y > 0.5$. 
+Clasificar  que *no pagará  a tiempo* si la predicción $\hat Y > 0.5$. 
 #+end_quote
 
 #+BEGIN_NOTES
-Podríamos ajustar un modelo lineal y calificar como ~Si~ si tenemos $\hat Y > 0.5$ . Este modelo es equivalente a un clasificador por medio de análisis discriminante lineal (LDA). La /garantía/ que tenemos es que
+Podríamos ajustar un modelo lineal y calificar que ~no pagará a tiempo~ si tenemos $\hat Y > 0.5$ . Este modelo es equivalente a un clasificador por medio de análisis discriminante lineal (LDA). La /garantía/ que tenemos es que
 \begin{align}
 \mathbb{E}[Y | X = x] = \mathbb{P}(Y = 1|X = x)\,.
 \end{align}
 #+END_NOTES
 
 ** El problema
-La respuesta del modelo lineal no la podemos interpretar como una probabilidad. Además implícitamente estaríamos dispuestos a otorgar cierto orden a las categorías.
+La respuesta del modelo lineal de regresión *no* la podemos interpretar como una
+medida de qué tan seguros estamos o, idealmente, como una probabilidad. Además
+implícitamente estaríamos dispuestos a otorgar cierto orden a las categorías.
 
 #+REVEAL: split
 Por ejemplo, consideremos un problema de clasificación con mas categorías:
@@ -233,17 +235,25 @@ Asumimos un orden. Suponemos que la condición de que el día esté nublado est�
 [[file:images/20220216-121524_screenshot.png]]
 
 #+REVEAL: split
-Por supuesto un modelo de regresión o un ~predictor binario~ no es apropiado y necesitamos considerar otros modelos (que veremos mas adelante) como ~Regresión logística multiclase~ o ~Análisis Discriminante~. 
+Por supuesto, para estas situaciones con $K > 2$, un modelo de regresión o un
+~predictor binario~ no es apropiado y necesitamos considerar otros modelos (que
+veremos mas adelante) como ~Regresión logística multiclase~ o ~Análisis
+Discriminante~.
 
 * Regresión logística
 
-Escribiremos $\mathbb{P}(Y = 1| X) = p(X)$ y consideraremos el escenario /simple/. La regresión logística utiliza la transformación
+Consideremos el problema binario. Es decir, $Y \in \{0, 1\}$. Podríamos utilizar un predictor de $p(X)$ por medio de un modelo lineal
 \begin{align}
-p(X) = \frac{e^{\beta_0 + \beta_1 X}}{1 + e^{\beta_0 +\beta_1 X}}\,.
+p_{\mathsf{L}}(X) = X^\top \beta\,.
+\end{align}
+
+El problema es que $p_{\mathsf{L}} : \mathbb{R} \rightarrow \mathbb{R}$, cosa que no podemos interpretar como un /score/ para la clase $Y$. Por lo tanto usaremos la transformación 
+\begin{align}
+p_{\mathsf{L}}(X) = \frac{e^{\beta_0 + \beta_1 X}}{1 + e^{\beta_0 +\beta_1 X}}\,.
 \end{align}
 
 #+BEGIN_NOTES
-La función $p(X)$ es la podemos interpretar como un /score/. Pues, en el contexto de nuestro ejemplo, un banco estaría dispuesto a ser conservador para clasificar a un cliente como un cliente que no pagará si $P(X) > 0.15$.   La función $\sigma(x) = e^x / (1 + e^x)$  se conoce como ~función logística~. Análogamente, la función $\sigma(x) = 1/ (1 + e^{-x})$ se conoce como la ~función sigmoide~. Son... lo mismo.
+La función $p(X)$ es la podemos interpretar como un /score/. Pues, en el contexto de nuestro ejemplo, un banco estaría dispuesto a ser conservador para clasificar a un cliente como un cliente que no pagará si $p(X) > 0.15$.   La función $\sigma(x) = e^x / (1 + e^x)$  se conoce como ~función logística~. Análogamente, la función $\sigma(x) = 1/ (1 + e^{-x})$ se conoce como la ~función sigmoide~. Son... lo mismo.
 #+END_NOTES
 
 #+REVEAL: split
@@ -263,7 +273,75 @@ file:../images/linear-logistic-credit.jpeg
 
 ** Estimando los parámetros
 
-Utilizamos el principio de máxima verosimilitud para expresar nuestra función objetivo como
+Una vez definido nuestro predictor para $Y$ en función de características
+$X$. Necesitamos definir el objetivo a minimizar para encontrar la mejor
+configuración dada la muestra que tenemos para ajustar dicho modelo.
+
+#+REVEAL: split
+Podríamos seguir el camino recorrido en nuestros modelos de regresión y buscar minimizar
+\begin{align}
+L(\mathcal{D}_n) = \frac{1}{n} \sum_{i = 1}^{n} (y_i - p(x_i))^2\,.
+\end{align}
+A esta pérdida se le conoce como la ~función de pérdida Brier~. La cual tiene
+propiedades teóricas deseables. Por ejemplo, ¿qué función minimiza la pérdida de Brier?
+
+#+REVEAL: split
+Sin embargo, la pérdida de Brier penaliza de manera muy laxa aquellas
+situaciones donde nos equivocamos al predecir casos positivos, $Y = 1$, por
+medio de un /score/ muy bajo $\hat{p}(X) = \epsilon$. 
+
+#+begin_src R :exports results :results org 
+  error_1 <- (1 - 0.01)**2
+  error_2 <- (1 - 0.00001)**2
+
+  c(error_1 = error_1, error_2 = error_2, diferencia = abs(error_1-error_2))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+   error_1    error_2 diferencia 
+    0.9801     1.0000     0.0199
+#+end_src
+
+#+REVEAL: split
+Una métrica adecuada, podríamos argumentar, sería aquella que:
+1. Sea una función continua y decreciente en el dominio $[0,1]$.
+2. Si no nos equivocamos, entonces la pérdida es 0.
+3. Si nos equivocamos con una $p(X)$ muy pequeña entonces la pérdida es muy grande.
+
+
+#+REVEAL: split
+La opción analítica que satisface estos puntos es la pérdida logarítmica:
+\begin{align}
+L(y, {p}(x)) = - \log ({p}(x))\,,
+\end{align}
+que se muestra en [[fig:brier-log]].
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/brier-log-loss.jpeg :exports results :results output graphics file
+  tibble(px = seq(0,1, length.out = 1000)) |>
+    mutate(brier.loss = (1 - px)**2, log.loss = -log(px)) |>
+    pivot_longer(cols = c(brier.loss, log.loss)) |>
+    ggplot(aes(px, value, group = name, color = name)) +
+    geom_line(lwd = 2) +
+    coord_cartesian(ylim = c(0, 4.5)) + 
+    sin_lineas
+#+end_src
+#+name: fig:brier-log
+#+caption: Comparación entre pérdida de Brier y pérdida logarítmica. 
+#+RESULTS:
+[[file:../images/brier-log-loss.jpeg]]
+
+#+REVEAL: split
+Por supuesto, sólo estamos mostrando los errores cuando $Y = 1$ pero utilizando un argumento análogo podemos definir la pérdida por medio de
+\begin{align}
+L(y, {p}(x)) = - y \log({p}(x)) - (1 - y) \log(1 - {p}(x))\,.
+\end{align}
+La cual se conoce como ~pérdida entrópica~ o ~devianza binomial~. 
+
+#+REVEAL: split
+También podemos ligar dicha pérdida con el principio de máxima verosimilitud
+para expresar nuestra función objetivo como
 \begin{align}
 \mathcal{L}_n(\beta_0, \beta_1) = \prod_{i = 1}^{n} p(x_i)^{y_i} (1 - p(x_i))^{1 - y_i}\,.
 \end{align}
@@ -278,7 +356,7 @@ El objetivo es encontrar
 \end{align}
 
 #+begin_src R :exports none :results none
-  ## Modelo logistico -------------------------
+  ## Modelo logistico ----------------------------------------------------------
 #+end_src
 #+REVEAL: split
 #+caption: Ajuste de modelo logistico.
@@ -612,32 +690,43 @@ Una vez que tenemos ajustadas nuestras $\hat \delta_k(x)$ podemos utilizarlas pa
 
 #+begin_src R
   data <- Default
+  data <- data |> as_tibble() |>
+    mutate(default = ifelse(default == "Yes", "positive", "negative"))
   data |> head()
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-  default student balance income
-1      No      No     730  44362
-2      No     Yes     817  12106
-3      No      No    1074  31767
-4      No      No     529  35704
-5      No      No     786  38463
-6      No     Yes     920   7492
+# A tibble: 6 × 4
+  default  student balance income
+  <chr>    <fct>     <dbl>  <dbl>
+1 negative No         730. 44362.
+2 negative Yes        817. 12106.
+3 negative No        1074. 31767.
+4 negative No         529. 35704.
+5 negative No         786. 38463.
+6 negative Yes        920.  7492.
 #+end_src
 
 #+begin_src R :exports none :results none
 
   data <- data |>
-    mutate(default = factor(default, levels = c("Yes", "No")))
+    mutate(default = factor(default, levels = c("positive", "negative")))
 
 #+end_src
-
 
 #+REVEAL: split
 #+caption: Modelo ajustado para los datos de crédito de estudiantes. 
 #+begin_src R :exports code :results none
   lda.model <- MASS::lda(default ~ balance, data)
+#+end_src
+
+* Evaluación de modelos 
+
+Con nuestro modelo entrenado podemos comparar lo que predecimos contra lo que realmente sucede. 
+
+#+begin_src R :exports none :results none
+  ## Evaluación de modelos -----------------------------------------------------
 #+end_src
 
 #+begin_src R
@@ -649,36 +738,65 @@ Una vez que tenemos ajustadas nuestras $\hat \delta_k(x)$ podemos utilizarlas pa
   data |>
     conf_mat(truth = default, estimate = predicted)
 #+end_src
-#+caption: Matriz de confusión. 
+#+caption: Comparación predicciones contra etiquetas verdaderas.
 #+RESULTS:
 #+begin_src org
           Truth
-Prediction  Yes   No
-       Yes   76   24
-       No   257 9643
+Prediction positive negative
+  positive       76       24
+  negative      257     9643
 #+end_src
 
 #+REVEAL: split
+Lo cual es una realización de un concepto que podemos establecer por medio de [[fig:conf-matrix]].
+
+#+DOWNLOADED: screenshot @ 2023-02-08 20:03:15
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .45\linewidth
+#+caption: Matriz de confusión.
+#+name: fig:conf-matrix
+[[file:images/20230208-214332_screenshot.png]]
+
+
+#+REVEAL: split
+La capacidad predictiva usualmente está medida en términos de la exactitud
+(/acurracy/). Esto es la tasa de aciertos.
 #+begin_src R
   data |>
     accuracy(truth = default, estimate = predicted) 
 #+end_src
-#+caption: Precisión del modelo.
+#+caption: Exactitud del modelo.
 #+RESULTS:
 #+begin_src org
-   .metric .estimator .estimate
-1 accuracy     binary     0.972
+# A tibble: 1 × 3
+  .metric  .estimator .estimate
+  <chr>    <chr>          <dbl>
+1 accuracy binary         0.972
 #+end_src
 
-La tasa de errores de clasificación es: $(24+257)/10,000 \approx 0.028$. 
+Con esta exactitud, la ~tasa de errores de clasificación~ es: $(24+257)/10,000 \approx 0.028$ (complemento). 
+
+#+REVEAL: split
+La exactitud la podemos ilustrar en el contexto de nuestros datos como se muestra en [[fig:conf-matrix-numbers]].
+
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .45\linewidth
+#+caption: Matriz de confusión con predicciones de $\mathsf{LDA}$.
+#+name: fig:conf-matrix-numbers
+[[file:images/20230208-214432_screenshot.png]]
+
+
+#+REVEAL: split
+Esto nos muestra una moraleja: En problemas donde tenemos la misma proporción
+para cada clase (~datos balanceados~) es una buena métrica de ajuste. Pero en caso
+donde no (~datos desbalanceados~) entonces puede ser una métrica engañosa.
 
 #+BEGIN_NOTES
 ¿Qué hubiera pasado si clasificamos a todos con la clase mayoritaria? 
 #+END_NOTES
 
-** Evaluación de modelos
-
-La proporción de ~aciertos~ para la clase ~Si~ es: 
+#+REVEAL: split
+Por ejemplo, la capacidad de acertar en la identificación para los casos ~positivos~ es: 
 #+begin_src R
   data |>
     recall(truth = default, estimate = predicted) 
@@ -686,14 +804,58 @@ La proporción de ~aciertos~ para la clase ~Si~ es:
 
 #+RESULTS:
 #+begin_src org
+# A tibble: 1 × 3
   .metric .estimator .estimate
-1  recall     binary     0.228
+  <chr>   <chr>          <dbl>
+1 recall  binary         0.228
 #+end_src
 
-La proporción de ~errores~ para la clase ~Si~ se le llama ~Tasa de Falsos Positivos~ (apróx. 77.2%).
+#+REVEAL: split
+A esta métrica le llamamos ~exhaustividad~ (/recall/) y expresamos de manera
+esquemática en [[fig:conf-matrix-recall]].
+
+#+DOWNLOADED: screenshot @ 2023-02-08 20:49:39
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .45\linewidth
+#+caption: Matriz de confusión con predicciones de $\mathsf{LDA}$.
+#+name: fig:conf-matrix-recall
+[[file:images/20230208-214640_screenshot.png]]
+
+
+#+BEGIN_NOTES
+El término de exhaustividad se interpreta como qué tan hábil es una entidad en
+recuperar los elementos importantes o de interés dentro de una población.
+#+END_NOTES
 
 #+REVEAL: split
-La proporción de ~aciertos~ para la clase ~No~ es: 
+La proporción de aciertos para la clase positiva es lo que denominamos ~precisión~ (/precision/) y para nuestro modelo tenemos
+
+#+begin_src R
+  data |>
+    precision(truth = default, estimate = predicted) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric   .estimator .estimate
+  <chr>     <chr>          <dbl>
+1 precision binary          0.76
+#+end_src
+
+#+REVEAL: split
+Cuya representación esquemática se muestra en [[fig:conf-matrix-precision]]. 
+
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .45\linewidth
+#+caption: Matriz de confusión con predicciones de $\mathsf{LDA}$.
+#+name: fig:conf-matrix-precision
+[[file:images/20230208-214806_screenshot.png]]
+
+
+#+REVEAL: split
+Por otro lado, la capacidad de identificación de para la clase ~negativa~ es:
+
 #+begin_src R
   data |>
     recall(truth = default, estimate = predicted, event_level = 'second') 
@@ -701,14 +863,48 @@ La proporción de ~aciertos~ para la clase ~No~ es:
 
 #+RESULTS:
 #+begin_src org
+# A tibble: 1 × 3
   .metric .estimator .estimate
-1  recall     binary     0.998
+  <chr>   <chr>          <dbl>
+1 recall  binary         0.998
 #+end_src
 
-La proporción de ~errores~ para la clase ~No~ se le llama ~Tasa de Falsos Negativos~ (apróx. 0.2%).
+#+REVEAL: split
+Esta métrica también tiene un nombre particular y es el de ~specificidad~.
+#+begin_src R :exports code :results org 
+  data |>
+    spec(truth = default, estimate = predicted)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 spec    binary         0.998
+#+end_src
 
 #+REVEAL: split
-Una combinación de ambos
+También podemos fijarnos en  la proporción de aciertos para la clase negativa es
+#+begin_src R
+  data |>
+    precision(truth = default, estimate = predicted, event_level = 'second') 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric   .estimator .estimate
+  <chr>     <chr>          <dbl>
+1 precision binary         0.974
+#+end_src
+
+#+REVEAL: split
+La pregunta natural es: ¿en qué métrica nos fijamos?
+La respuesta es: tenemos que hacer un compromiso. 
+
+#+REVEAL: split
+Nos puede interesar ambas, y podemos construir métrica que las combine:
 #+begin_src R
   data |>
     f_meas(truth = default, estimate = predicted) 
@@ -716,8 +912,10 @@ Una combinación de ambos
 
 #+RESULTS:
 #+begin_src org
+# A tibble: 1 × 3
   .metric .estimator .estimate
-1  f_meas     binary     0.351
+  <chr>   <chr>          <dbl>
+1 f_meas  binary         0.351
 #+end_src
 
 #+BEGIN_NOTES
@@ -728,75 +926,97 @@ F = 2 \cdot \frac{\text{precision}\quad \text{recall}}{\text{precision} + \text{
 #+END_NOTES
 
 
-** El punto de corte
+** Sensibilidad al punto de corte
 
-Para las métricas anteriores consideramos que si $\hat p(x) > .5$ entonces la predicción de clase será ~Si~. Si cambiamos el punto de corte podemos modificar la tasa de error en ambas.
+Las métricas anteriores esconden una peculiaridad: se esconde detrás una selección para tomar una decisión. 
 
 #+begin_src R :exports none :results none
-  ### Modificamos el punto de corte ---------------------
+  ## Cambio de punto de corte --------------------------------------------------
 #+end_src
 
 #+begin_src R :exports code :results none
-    data <- data |>
-      mutate(predicted.score = factor(ifelse(probability >= .2,"Yes", "No"), levels = c("Yes", "No")))
+  data <- data |>
+    mutate(predicted.score = factor(
+             ifelse(probability >= .2,"positive", "negative"),
+             levels = c("positive", "negative")
+           ))
 #+end_src
 
 #+begin_src R :exports results :results org
   data |>
-    accuracy(truth = default, estimate = predicted.score) 
+    accuracy(truth = default, estimate = predicted.score)
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-   .metric .estimator .estimate
-1 accuracy     binary     0.963
+# A tibble: 1 × 3
+  .metric  .estimator .estimate
+  <chr>    <chr>          <dbl>
+1 accuracy binary         0.963
 #+end_src
 
 #+begin_src R :exports results :results org
   data |>
-    recall(truth = default, estimate = predicted.score) 
+    recall(truth = default, estimate = predicted.score)
 #+end_src
 
 #+RESULTS:
 #+begin_src org
+# A tibble: 1 × 3
   .metric .estimator .estimate
-1  recall     binary     0.586
+  <chr>   <chr>          <dbl>
+1 recall  binary         0.586
 #+end_src
 
 #+begin_src R :exports results :results org
   data |>
-    recall(truth = default, estimate = predicted.score, event_level = 'second')
+    precision(truth = default, estimate = predicted.score)
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-  .metric .estimator .estimate
-1  recall     binary     0.976
+# A tibble: 1 × 3
+  .metric   .estimator .estimate
+  <chr>     <chr>          <dbl>
+1 precision binary         0.452
 #+end_src
 
+#+begin_src R :exports results :results org
+  data |>
+    f_meas(truth = default, estimate = predicted.score) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 f_meas  binary         0.510
+#+end_src
 
 #+REVEAL: split
+Entonces, lo que necesitaríamos es tener una visión global para cada punto de corte que podamos elegir. Para esto podemos construir el espacio ROC (/receiver operating characteristic/) de clasificadores posibles con el modelo entrenado. 
 
 #+begin_src R :exports none :results none
-  ### Grafico ROC -------------------------- 
+  ### Grafico ROC --------------------------------------------------------------
 #+end_src
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/roc-curve-credit.jpeg :exports results :results output graphics file
   g1 <- data |>
     roc_curve(default, probability) |>
-    ggplot(aes(1 - specificity, sensitivity)) +
-    geom_line() +
+    ggplot(aes(1 - specificity, sensitivity, color = .threshold)) +
+    geom_path(size = 1.8) +
     geom_abline(slope = 1, intercept = 0, lty = 2) +
     sin_lineas
 
   g2 <- data |>
     roc_curve(default, probability) |>
-    ggplot(aes(1 - specificity, sensitivity)) +
-    geom_line() +
+    ggplot(aes(1 - specificity, sensitivity, color = .threshold)) +
+    geom_path(size = 1.8) +
     geom_abline(slope = 1, intercept = 0, lty = 2) +
     sin_lineas +
     xlab("Tasa de Falsos Positivos") +
-    ylab("Tasa de Verdaderos Positivos")
+    ylab("Recall")
 
   g1 + g2
 #+end_src
@@ -805,17 +1025,41 @@ Para las métricas anteriores consideramos que si $\hat p(x) > .5$ entonces la p
 [[file:../images/roc-curve-credit.jpeg]]
 
 #+REVEAL: split
-También podemos pedir un resumen de la gráfica por medio del área bajo la curva (más alto mejor).
-#+begin_src R
+Esta curva la podemos resumir por medio del área bajo la curva ROC
+#+begin_src R 
   data |>
-    roc_auc(default, probability)
+    roc_auc(default, probability) 
 #+end_src
-#+caption: Resumen curva ROC. 
+
 #+RESULTS:
 #+begin_src org
+# A tibble: 1 × 3
   .metric .estimator .estimate
-1 roc_auc     binary     0.948
+  <chr>   <chr>          <dbl>
+1 roc_auc binary         0.948
 #+end_src
+
+#+REVEAL: split
+De la misma manera podemos mostrar también gráfico con todas las posibles
+combinaciones de ~recall~ y ~precision~ dados los diferentes puntos de corte que
+podemos realizar.
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/precision-recall-curve.jpeg :exports results :results output graphics file
+  g1 <- data |>
+    pr_curve(default, probability) |>
+    ggplot(aes(recall, precision, color = .threshold)) +
+    geom_path(size = 1.8) +
+    geom_abline(slope = 1, intercept = 0, lty = 2) +
+    sin_lineas +
+    xlab("Recall") +
+    ylab("Precision")
+  g1
+#+end_src
+
+#+RESULTS:
+[[file:../images/precision-recall-curve.jpeg]]
+
 
 ** Post-procesando las /probabilidades/
 
@@ -838,7 +1082,7 @@ través de un ~gráfico de calibración~ de probabilidades, donde evaluamos la
                       seq(0,1,length.out = 11))) |>
     ## Group by bin to get summaries
     group_by(bins) |>
-    summarise(events = sum(ifelse(default == "Yes", 1, 0)),
+    summarise(events = sum(ifelse(default == "positive", 1, 0)),
               count = n(),
               observed.rate = events/count) |>
     ## Compute expected rates
@@ -866,31 +1110,51 @@ el Capítulo 11 de citep:Kuhn2013.
 
 #+REVEAL: split
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
-#+begin_src R :file images/curva-lift.jpeg :exports results :results output graphics file
-  g1 <- data |>
-    ## Muestreo aleatorio para mantener clases balanceadas 50%
-    group_by(default) |>
-    sample_n(300, replace = FALSE) |>
-    ungroup() |>
-    ## Ordenamos por score
-    arrange(-probability) |>
-    mutate(found = cumsum(ifelse(default == "Yes", 1, 0))/3,
-           tested = 1:n()/n()*100) |>
-    select(probability, found, tested) |>
-    ggplot(aes(tested, found)) +
-    geom_polygon(data = tibble(x = c(0,50,100),
+#+begin_src R :file images/gain-curve.jpeg :exports results :results output graphics file
+  data |>
+    gain_curve(default, probability) |>
+    ggplot(aes(.percent_tested, .percent_found)) +
+    geom_polygon(data = tibble(x = c(0, 3.33,100),
                                y = c(0,100,100)),
                  aes(x,y), alpha = .4, fill = 'gray') +
-    geom_abline(slope = 1, intercept = 0, lty = 2, color = 'gray') +
-    geom_line() +
-    sin_lineas +
-    ylab("Casos encontrados (%)") +
-    xlab("Casos probados (%)")  
-  g1
+    geom_path(size = 1.8) +
+    geom_abline(slope = 1, intercept = 0, lty = 2) +
+    xlab("% Clasificado positivo") + 
+    ylab("Sensibilidad") + 
+    sin_lineas
 #+end_src
-#+caption: Curva /lift/.
+
 #+RESULTS:
-[[file:../images/curva-lift.jpeg]]
+[[file:../images/gain-curve.jpeg]]
+
+#+REVEAL: split
+Este gráfico nos ayuda a identificar con qué facilidad estamos encontrando los
+casos positivos si siguiéramos lo que el modelo nos indica de acuerdo a los
+/scores/. Esto puede determinar una estrategia de selección o intervención
+basada en un modelo predictivo. 
+
+#+REVEAL: split
+Otra alternativa es graficar en el eje vertical la sensibilidad entre
+el $\%$ de clasificados como positivos.
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/lift-curve.jpeg :exports results :results output graphics file
+  data |>
+    lift_curve(default, probability) |>
+    ggplot(aes(.percent_tested, .lift)) +
+    geom_path(size = 1.8) +
+    xlab("% Clasificado positivo") + 
+    ylab("Lift") + 
+    sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/lift-curve.jpeg]]
+
+#+BEGIN_NOTES
+En este último gráfico podemos identificar aquellos casos donde el /lift/ es mayor
+a uno, cuando el modelo es superior a escoger los casos al azar.
+#+END_NOTES
 
 
 * Otros modelos discriminantes
