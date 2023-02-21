@@ -3,28 +3,19 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Remuestreo~
 #+STARTUP: showall
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/04-remuestreo.pdf
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session remuestreo :exports both :results output org :tangle ../rscripts/04-remuestreo.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
@@ -130,6 +121,8 @@ El error cuantificado en el conjunto de validación nos da un estimador del erro
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2023-02-21 09:12:39
 #+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras. Imagen tomada de [[cite:&Kuhn2022]].
 [[file:images/20230221-091239_screenshot.png]]
 
 
@@ -137,8 +130,9 @@ El error cuantificado en el conjunto de validación nos da un estimador del erro
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2023-02-21 09:13:27
 #+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras con el objetivo de evaluar capacidad predictiva. Imagen tomada de [[cite:&Kuhn2022]].
 [[file:images/20230221-091327_screenshot.png]]
-
 
 
 ** Ejercicio: Autos
@@ -252,12 +246,16 @@ Es una técnica que nos permite elegir la /mejor/ configuración de un modelo y 
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2023-02-21 09:14:45
 #+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras por medio de validación cruzada. Imagen tomada de [[cite:&Kuhn2022]].
 [[file:images/20230221-091445_screenshot.png]]
 
 
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2023-02-21 09:15:11
 #+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras y flujo de entrenamiento/validación. Imagen tomada de [[cite:&Kuhn2022]].
 [[file:images/20230221-091511_screenshot.png]]
 
 ** Detalles (regresión)
@@ -624,6 +622,8 @@ cual podemos extraer percentiles para construir un intervalo de confianza.
 #+REVEAL: split
 #+DOWNLOADED: screenshot @ 2023-02-21 09:16:42
 #+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras por medio de remuestreo simple. Imagen tomada de [[cite:&Kuhn2022]].
 [[file:images/20230221-091642_screenshot.png]]
 
 
