@@ -3,19 +3,28 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Remuestreo~
 #+STARTUP: showall
-:REVEAL_PROPERTIES:
-# Template uses org export with export option <R B>
-# Alternatives: use with citeproc
-#+LANGUAGE: es
-#+OPTIONS: num:nil toc:nil timestamp:nil
-#+REVEAL_REVEAL_JS_VERSION: 4
-#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-#+REVEAL_THEME: night
-#+REVEAL_SLIDE_NUMBER: t
-#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
-#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
-#+REVEAL_EXTRA_CSS: ./mods.css
-#+REVEAL_PLUGINS: (notes)
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/04-remuestreo.pdf
 :END:
 #+PROPERTY: header-args:R :session remuestreo :exports both :results output org :tangle ../rscripts/04-remuestreo.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc
@@ -118,6 +127,20 @@ Utilizamos una partición de nuestro conjunto de datos: ~datos de entrenamiento~
 El error cuantificado en el conjunto de validación nos da un estimador del error de prueba. Típicamente utilizamos el mismo criterio de error con el que entrenamos (RMSE, precisión, etc.). 
 #+END_NOTES
 
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:12:39
+#+attr_html: :width 700 :align center
+[[file:images/20230221-091239_screenshot.png]]
+
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:13:27
+#+attr_html: :width 700 :align center
+[[file:images/20230221-091327_screenshot.png]]
+
+
+
 ** Ejercicio: Autos
 
 Obtener una predicción del rendimiento de combustible en términos de la potencia del motor. 
@@ -135,18 +158,21 @@ Obtener una predicción del rendimiento de combustible en términos de la potenc
 
 #+REVEAL: split
 #+begin_src R :exports results :results org
-  data |> head()
+  data |> print(n = 5)
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-  mpg cylinders displacement horsepower weight acceleration year origin
-1  18         8          307        130   3504           12   70      1
-2  15         8          350        165   3693           12   70      1
-3  18         8          318        150   3436           11   70      1
-4  16         8          304        150   3433           12   70      1
-5  17         8          302        140   3449           10   70      1
-6  15         8          429        198   4341           10   70      1
+# A tibble: 392 × 8
+    mpg cylinders displacement horsepower weight acceleration  year origin
+  <dbl>     <int>        <dbl>      <dbl>  <int>        <dbl> <int>  <int>
+1    18         8          307        130   3504         12      70      1
+2    15         8          350        165   3693         11.5    70      1
+3    18         8          318        150   3436         11      70      1
+4    16         8          304        150   3433         12      70      1
+5    17         8          302        140   3449         10.5    70      1
+# … with 387 more rows
+# ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
 #+REVEAL: split
@@ -170,14 +196,16 @@ Dividimos nuestro conjunto en ~entrenamiento~ y ~prueba~.
   }
 
   eval_error <- function(model, data){
-    mean((data$mpg - predict(model, newdata = data))**2)
+    (mean((data$mpg - predict(model, newdata = data))**2))
   }
 
   g1 <- tibble(degree = 1:10) |>
     mutate(model = map(degree, fit_model, data_train),
            error = map_dbl(model, eval_error, data_test)) |>
     ggplot(aes(degree, error)) + 
-    geom_point() + geom_line() + ylim(16, 26)+ sin_lineas
+    geom_point() + geom_line() +  sin_lineas +
+    coord_cartesian(ylim = c(16, 26) ) + 
+    ggtitle("Error en test")
 
   eval_resample <- function(id){
     ## Hace splits
@@ -186,8 +214,8 @@ Dividimos nuestro conjunto en ~entrenamiento~ y ~prueba~.
     data_test <- data[-sample_rows,]
     ## Entrena y evalua
     tibble(degree = 1:10) |>
-    mutate(model = map(degree, fit_model, data_train),
-           error = map_dbl(model, eval_error, data_test))
+      mutate(model = map(degree, fit_model, data_train),
+             error = map_dbl(model, eval_error, data_test))
   }
 
   g2 <- tibble(id = factor(1:10)) |>
@@ -195,7 +223,9 @@ Dividimos nuestro conjunto en ~entrenamiento~ y ~prueba~.
     unnest(resultados) |>
     ggplot(aes(degree, error, color = id)) +
     geom_line() + geom_point() + sin_leyenda +
-    ylim(16,26) + sin_lineas
+    sin_lineas +
+      coord_cartesian(ylim = c(16, 26) ) + 
+    ggtitle("Error en test \n(multiples particiones)")
 
   g1 + g2
 #+end_src
@@ -216,6 +246,19 @@ Es una técnica que nos permite elegir la /mejor/ configuración de un modelo y 
 1. Dividir el conjunto de datos en $K$ bloques.
 2. Utilizar un método iterativo para ajustar modelos con $K-1$ bloques y
    registrar el error de ajuste con el bloque fuera del entrenamiento.
+
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:14:45
+#+attr_html: :width 1200 :align center
+[[file:images/20230221-091445_screenshot.png]]
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:15:11
+#+attr_html: :width 1200 :align center
+[[file:images/20230221-091511_screenshot.png]]
 
 ** Detalles (regresión)
 
@@ -251,6 +294,17 @@ h_i = \frac{1}{n} + \frac{(x_i - \bar x_n)^2}{\sum_{j = 1}^{n}(x_j - \bar x_n)^2
 
 Podemos usar las funciones de la librería [[https://rsample.tidymodels.org/][~rsample~]].
 
+
+#+REVEAL: split
+Tenemos que empezar con una partición de datos para obtener ~entrenamiento~ y ~prueba~:
+
+#+begin_src R :exports none :results none
+  set.seed(1087)
+  data_split <- rsample::initial_split(data, prop = .5)
+  data_train <- training(data_split)
+  data_test <- testing(data_split)
+#+end_src
+
 #+REVEAL: split
 #+caption: Código ejemplo para procesar datos en entrenamiento y validación. 
 #+begin_src R :exports code :results none
@@ -269,41 +323,230 @@ Podemos usar las funciones de la librería [[https://rsample.tidymodels.org/][~r
 #+REVEAL: split
 #+caption: Funciones para hacer los bloques de validación cruzada. 
 #+begin_src R :exports code :results none
-  data |> vfold_cv(5)
-  data |> loo_cv()
+  data_train |> vfold_cv(5)
+  data_train |> loo_cv()
 #+end_src
-
 
 #+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/valdicion-cruzada-loo.jpeg :exports results :results output graphics file
-  g.loo <- data |>
-      rsample::loo_cv() |>
-      mutate(results = map(splits, ajusta_modelo)) |>
-      unnest(results) |>
-      group_by(degree) |>
-      summarise(error.loo = mean(error)) |>
-      ggplot(aes(degree, error.loo)) +
-      geom_line() + geom_point() +
-      ggtitle("Leave-one out") +
-      ylim(16, 26)+ sin_lineas
+  train.loo <- data_train |>
+    rsample::loo_cv() |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    group_by(degree) |>
+    summarise(error.loo = mean(error))
 
-  g.cv <- data |>
-      vfold_cv(10, repeats = 10) |>
-      mutate(results = map(splits, ajusta_modelo)) |>
-      unnest(results) |>
-      group_by(id, degree) |>
-      summarise(error.cv = mean(error)) |>
-      ggplot(aes(degree, error.cv, color = id)) +
-      geom_line() + geom_point() + sin_leyenda +
-      ggtitle("Validación cruzada K=10") +
-      ylim(16, 26)+ sin_lineas
+  g.loo <- train.loo |>
+    ggplot(aes(degree, error.loo)) +
+    geom_line() + geom_point() +
+    ggtitle("Leave-one out") +  sin_lineas +
+    coord_cartesian(ylim = c(18, 27) ) 
 
-    g.loo + g.cv
+  train.kcv <- data_train |>
+    vfold_cv(10, repeats = 10) |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    group_by(id, degree) |>
+    summarise(error.cv = mean(error))
+
+  g.cv <- train.kcv |>
+    ggplot(aes(degree, error.cv, color = id)) +
+    geom_line() + geom_point() + sin_leyenda +
+    ggtitle("Validación cruzada K=10") +  sin_lineas +
+    coord_cartesian(ylim = c(18, 27) ) 
+
+  g.loo + g.cv
 #+end_src
 #+caption: Métricas de error bajo validación cruzada. 
 #+RESULTS:
 [[file:../images/valdicion-cruzada-loo.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports none :results none
+  library(tidymodels)
+#+end_src
+
+#+begin_src R :exports none :results none
+  evalua_ajuste <- function(modelo, datos){
+    eval_metrics <- metric_set(rmse)
+    predict(modelo, datos) |>
+      as_tibble() |>
+      bind_cols(datos |> select(mpg)) |>
+      eval_metrics(mpg, value) |>
+      mutate(mse = .estimate**2)
+  }
+
+  test.kcv <- data_train |>
+    vfold_cv(K = 10) |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    mutate(tests = map(model, evalua_ajuste, data_test)) |>
+    unnest(tests)
+
+  test.loo <- data_train |>
+    loo_cv() |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    mutate(tests = map(model, evalua_ajuste, data_test)) |>
+    unnest(tests)
+
+  train.kcv.summary <- train.kcv |>
+    group_by(degree) |>
+    summarise(train.error = mean(error.cv),
+              inf.error = quantile(error.cv, 0.05),
+              sup.error = quantile(error.cv, 0.95))
+
+  train.loo.summary <- train.loo |>
+    mutate(train.error = error.loo,
+           sup.error = train.error,
+           inf.error = train.error) |>
+    select(-error.loo)
+#+end_src
+
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/loo-uq-testing.jpeg :exports results :results output graphics file
+  g.kcv <-  test.kcv |>
+    group_by(degree) |>
+    summarise(train.error = mean(error),
+              test.error  = mean(mse),
+              inf.error = quantile(mse, 0.05),
+              sup.error = quantile(mse, 0.95)) |>
+    ggplot(aes(degree, test.error)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+    geom_line() + geom_point() + 
+    geom_line(data = train.kcv.summary, aes(degree, train.error), lty = 2, color = "salmon") +
+    geom_ribbon(data = train.kcv.summary, aes(x = degree, y = train.error,
+                                              ymin = inf.error, ymax = sup.error),
+                alpha = .3, fill = "salmon") +
+    ggtitle("Validación cruzada K=10") +
+    coord_cartesian(ylim = c(18, 27) ) +
+    sin_lineas
+
+  g.loo <- test.loo |>
+    group_by(degree) |>
+    summarise(train.error = mean(error),
+              test.error  = mean(mse),
+              inf.error = quantile(mse, 0.05),
+              sup.error = quantile(mse, 0.95)) |>
+    ggplot(aes(degree, test.error)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+    geom_line() + geom_point() + 
+    geom_line(data = train.loo.summary, aes(degree, train.error), lty = 2, color = "salmon") +
+    ggtitle("Leave-one-out") +
+    coord_cartesian(ylim = c(18, 27) ) +
+    sin_lineas
+
+  g.loo + g.kcv
+#+end_src
+#+caption: Métricas de error condicional bajo validación cruzada. Rojo: error bajo conjunto de entrenamiento. Negro: error bajo conjunto de prueba.
+#+RESULTS:
+[[file:../images/loo-uq-testing.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports none :results none :tangle no :eval never
+  modeling_workflow <- function(id){
+    # Separo mis muestras
+    data_split <- rsample::initial_split(data, prop = .5)
+    data_train <- training(data_split)
+    data_test <- testing(data_split)
+    # Ajusta el modelo y evalua en test (kcv)
+    test.kcv <- data_train |>
+      vfold_cv(K = 10) |>
+      mutate(results = map(splits, ajusta_modelo)) |>
+      unnest(results) |>
+      mutate(tests = map(model, evalua_ajuste, data_test)) |>
+      unnest(tests)
+    # Ajusta el modelo y evalua en test (loo)
+    test.loo <- data_train |>
+      loo_cv() |>
+      mutate(results = map(splits, ajusta_modelo)) |>
+      unnest(results) |>
+      mutate(tests = map(model, evalua_ajuste, data_test)) |>
+      unnest(tests)
+    # Resumen y pega loo con kvc
+    kcv.summary <- test.kcv |>
+      group_by(degree) |>
+      summarise(train.error = mean(error),
+                test.error  = mean(mse),
+                inf.error = quantile(mse, 0.05),
+                sup.error = quantile(mse, 0.95)) |>
+      mutate(metodo = "kcv") 
+    loo.summary <- test.loo |>
+            group_by(degree) |>
+            summarise(train.error = mean(error),
+                      test.error  = mean(mse),
+                      inf.error = quantile(mse, 0.05),
+                      sup.error = quantile(mse, 0.95)) |>
+            mutate(metodo = "loo")
+    kcv.summary |>
+      bind_rows(loo.summary)
+  }
+#+end_src
+
+#+begin_src R :exports none :results none :tangle no :eval never
+  set.seed(108)
+  resultados.wf <- tibble(id = 1:200) |>
+      mutate(results = map(id, modeling_workflow))
+#+end_src
+
+#+begin_src R :exports none :results none :tangle no :eval never
+  train.results <- train.loo.summary |>
+    mutate(metodo = "loo") |>
+    rbind(train.kcv.summary |> mutate(metodo = "kvc") ) |>
+    mutate(metodo = factor(ifelse(metodo == "loo", "Leave-one-out", "K-Fold"),
+                           levels = c("Leave-one-out", "K-Fold"))) 
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/loo-cv-test-marginal.jpeg :exports results :results output graphics file :tangle no :eval never
+  resultados.wf |>
+    unnest(results) |>
+    group_by(metodo, degree) |>
+    summarise(test.error = mean(test.error),
+              inf.error = quantile(test.error, 0.05),
+              sup.error = quantile(test.error, 0.95), .groups = "drop") |>
+    mutate(metodo = factor(ifelse(metodo == "loo", "Leave-one-out", "K-Fold"),
+                           levels = c("Leave-one-out", "K-Fold"))) |>
+    ggplot(aes(degree, test.error)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+    geom_point() + geom_line() +
+    coord_cartesian(ylim = c(18, 27)) +
+    geom_line(data = train.results, aes(degree, train.error), lty = 2, color = "red") +
+    geom_ribbon(data = train.results, aes(degree, train.error,
+                                          ymin = inf.error, ymax = sup.error),
+                fill = "salmon", alpha = .3) + 
+    facet_wrap(~metodo) + sin_lineas
+#+end_src
+#+caption: Métricas de error marginal utilizando validación cruzada para estimarlo. Rojo: error bajo conjunto de entrenamiento (original). Negro: error bajo conjunto de prueba (remuestreado).
+#+RESULTS:
+[[file:../images/loo-cv-test-marginal.jpeg]]
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 450 :R-dev-args bg="transparent"
+#+begin_src R :file images/loo-cv-error-marginal.jpeg :exports results :results output graphics file :tangle no :eval never
+  resultados.wf |>
+    unnest(results) |>
+    pivot_longer(cols = train.error:test.error) |>
+    group_by(metodo, name, degree) |>
+    summarise(error = mean(value),
+              inf.error = quantile(value, 0.05),
+              sup.error = quantile(value, 0.95), .groups = "drop") |>
+    mutate(metodo = factor(ifelse(metodo == "loo", "Leave-one-out", "K-Fold"),
+                           levels = c("Leave-one-out", "K-Fold"))) |>
+    ggplot(aes(degree, error, group = name, color = name)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error, fill = name), color = "white", alpha = .3) + 
+    geom_point() + geom_line() +
+    coord_cartesian(ylim = c(15, 27)) +
+    facet_wrap(~metodo) + sin_lineas +
+  theme(legend.position="top", legend.title = element_blank())
+#+end_src
+#+caption: Métricas de error marginal utilizando validación cruzada para estimarlo. Rojo: error bajo conjunto de entrenamiento (remuestreado). Negro: error bajo conjunto de prueba (remuestreado).
+#+RESULTS:
+[[file:../images/loo-cv-error-marginal.jpeg]]
+
 
 ** Observaciones
 
@@ -323,7 +566,6 @@ En la práctica un /buen compromiso/ se puede establecer con $K = 5$ ó $10$
 (experimentación empírica).
 
 ** ¿Y para clasificación?
-
 
 
 ** Un caso para pensar
@@ -377,6 +619,13 @@ De esta manera, creamos conjuntos de datos ficticios (a partir de los datos
 observados) que nos permiten estimar las cantidades de interés. Con un número
 suficiente de réplicas podemos obtener una distribución de estimadores de la
 cual podemos extraer percentiles para construir un intervalo de confianza.
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:16:42
+#+attr_html: :width 1200 :align center
+[[file:images/20230221-091642_screenshot.png]]
+
 
 ** Observaciones
 :PROPERTIES:
