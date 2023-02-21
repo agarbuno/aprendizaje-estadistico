@@ -24,7 +24,7 @@ sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 ## Datos de marketing ---------------------------------
 data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
 data |> colnames()
-data |> head()
+data |> print(n = 5)
 
 g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) + sin_lineas
 g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) + sin_lineas
