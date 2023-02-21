@@ -30,7 +30,7 @@ data <- read.csv("https://www.statlearning.com/s/Auto.csv") |>
   select(-name) |> 
   filter(!is.na(horsepower))
 
-data |> head()
+data |> print(n = 5)
 
 set.seed(108790)
 sample_rows <- sample(1:nrow(data), nrow(data)/2)
@@ -43,14 +43,16 @@ fit_model <- function(power, data){
 }
 
 eval_error <- function(model, data){
-  mean((data$mpg - predict(model, newdata = data))**2)
+  (mean((data$mpg - predict(model, newdata = data))**2))
 }
 
 g1 <- tibble(degree = 1:10) |>
   mutate(model = map(degree, fit_model, data_train),
          error = map_dbl(model, eval_error, data_test)) |>
   ggplot(aes(degree, error)) + 
-  geom_point() + geom_line() + ylim(16, 26)+ sin_lineas
+  geom_point() + geom_line() +  sin_lineas +
+  coord_cartesian(ylim = c(16, 26) ) + 
+  ggtitle("Error en test")
 
 eval_resample <- function(id){
   ## Hace splits
@@ -59,8 +61,8 @@ eval_resample <- function(id){
   data_test <- data[-sample_rows,]
   ## Entrena y evalua
   tibble(degree = 1:10) |>
-  mutate(model = map(degree, fit_model, data_train),
-         error = map_dbl(model, eval_error, data_test))
+    mutate(model = map(degree, fit_model, data_train),
+           error = map_dbl(model, eval_error, data_test))
 }
 
 g2 <- tibble(id = factor(1:10)) |>
@@ -68,9 +70,16 @@ g2 <- tibble(id = factor(1:10)) |>
   unnest(resultados) |>
   ggplot(aes(degree, error, color = id)) +
   geom_line() + geom_point() + sin_leyenda +
-  ylim(16,26) + sin_lineas
+  sin_lineas +
+    coord_cartesian(ylim = c(16, 26) ) + 
+  ggtitle("Error en test \n(multiples particiones)")
 
 g1 + g2
+
+set.seed(1087)
+data_split <- rsample::initial_split(data, prop = .5)
+data_train <- training(data_split)
+data_test <- testing(data_split)
 
 ## Validación cruzada -----------------------------------
 ajusta_modelo <- function(split){
@@ -83,70 +92,103 @@ ajusta_modelo <- function(split){
              error = map_dbl(model, eval_error, valid))
   }
 
-data |> vfold_cv(5)
-data |> loo_cv()
+data_train |> vfold_cv(5)
+data_train |> loo_cv()
 
-g.loo <- data |>
-    rsample::loo_cv() |>
-    mutate(results = map(splits, ajusta_modelo)) |>
-    unnest(results) |>
-    group_by(degree) |>
-    summarise(error.loo = mean(error)) |>
-    ggplot(aes(degree, error.loo)) +
-    geom_line() + geom_point() +
-    ggtitle("Leave-one out") +
-    ylim(16, 26)+ sin_lineas
+train.loo <- data_train |>
+  rsample::loo_cv() |>
+  mutate(results = map(splits, ajusta_modelo)) |>
+  unnest(results) |>
+  group_by(degree) |>
+  summarise(error.loo = mean(error))
 
-g.cv <- data |>
-    vfold_cv(10, repeats = 10) |>
-    mutate(results = map(splits, ajusta_modelo)) |>
-    unnest(results) |>
-    group_by(id, degree) |>
-    summarise(error.cv = mean(error)) |>
-    ggplot(aes(degree, error.cv, color = id)) +
-    geom_line() + geom_point() + sin_leyenda +
-    ggtitle("Validación cruzada K=10") +
-    ylim(16, 26)+ sin_lineas
+g.loo <- train.loo |>
+  ggplot(aes(degree, error.loo)) +
+  geom_line() + geom_point() +
+  ggtitle("Leave-one out") +  sin_lineas +
+  coord_cartesian(ylim = c(18, 27) ) 
 
-  g.loo + g.cv
+train.kcv <- data_train |>
+  vfold_cv(10, repeats = 10) |>
+  mutate(results = map(splits, ajusta_modelo)) |>
+  unnest(results) |>
+  group_by(id, degree) |>
+  summarise(error.cv = mean(error))
 
+g.cv <- train.kcv |>
+  ggplot(aes(degree, error.cv, color = id)) +
+  geom_line() + geom_point() + sin_leyenda +
+  ggtitle("Validación cruzada K=10") +  sin_lineas +
+  coord_cartesian(ylim = c(18, 27) ) 
 
-## Ejemplo --------------------------------------------------------------------
-## Objetivo: Predicciones, multisplits
+g.loo + g.cv
 
 library(tidymodels)
-data(ames)
-glimpse(ames)
 
-ames <- mutate(ames, Sale_Price = log10(Sale_Price))
+evalua_ajuste <- function(modelo, datos){
+  eval_metrics <- metric_set(rmse)
+  predict(modelo, datos) |>
+    as_tibble() |>
+    bind_cols(datos |> select(mpg)) |>
+    eval_metrics(mpg, value) |>
+    mutate(mse = .estimate**2)
+}
 
-set.seed(502)
-ames_split <- initial_split(ames, prop = 0.80, strata = Sale_Price)
-ames_train <- training(ames_split)
-ames_test  <-  testing(ames_split)
+test.kcv <- data_train |>
+  vfold_cv(K = 10) |>
+  mutate(results = map(splits, ajusta_modelo)) |>
+  unnest(results) |>
+  mutate(tests = map(model, evalua_ajuste, data_test)) |>
+  unnest(tests)
 
-ames_rec <- 
-  recipe(Sale_Price ~ Neighborhood + Gr_Liv_Area + Year_Built + Bldg_Type + 
-           Latitude + Longitude, data = ames_train) %>%
-  step_log(Gr_Liv_Area, base = 10) %>% 
-  step_other(Neighborhood, threshold = 0.01) %>% 
-  step_dummy(all_nominal_predictors()) %>% 
-  step_interact( ~ Gr_Liv_Area:starts_with("Bldg_Type_") ) %>% 
-  step_ns(Latitude, Longitude, deg_free = 20)
+test.loo <- data_train |>
+  loo_cv() |>
+  mutate(results = map(splits, ajusta_modelo)) |>
+  unnest(results) |>
+  mutate(tests = map(model, evalua_ajuste, data_test)) |>
+  unnest(tests)
 
-lm_model <- linear_reg() %>% set_engine("lm")
+train.kcv.summary <- train.kcv |>
+  group_by(degree) |>
+  summarise(train.error = mean(error.cv),
+            inf.error = quantile(error.cv, 0.05),
+            sup.error = quantile(error.cv, 0.95))
 
-lm_wflow <- 
-  workflow() %>% 
-  add_model(lm_model) %>% 
-  add_recipe(ames_rec)
+train.loo.summary <- train.loo |>
+  mutate(train.error = error.loo,
+         sup.error = train.error,
+         inf.error = train.error) |>
+  select(-error.loo)
 
-lm_fit <- fit(lm_wflow, ames_train)
+g.kcv <-  test.kcv |>
+  group_by(degree) |>
+  summarise(train.error = mean(error),
+            test.error  = mean(mse),
+            inf.error = quantile(mse, 0.05),
+            sup.error = quantile(mse, 0.95)) |>
+  ggplot(aes(degree, test.error)) +
+  geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+  geom_line() + geom_point() + 
+  geom_line(data = train.kcv.summary, aes(degree, train.error), lty = 2, color = "salmon") +
+  geom_ribbon(data = train.kcv.summary, aes(x = degree, y = train.error,
+                                            ymin = inf.error, ymax = sup.error),
+              alpha = .3, fill = "salmon") +
+  ggtitle("Validación cruzada K=10") +
+  coord_cartesian(ylim = c(18, 27) ) +
+  sin_lineas
 
-set.seed(1001)
-ames_folds <- vfold_cv(ames_train, v = 10)
+g.loo <- test.loo |>
+  group_by(degree) |>
+  summarise(train.error = mean(error),
+            test.error  = mean(mse),
+            inf.error = quantile(mse, 0.05),
+            sup.error = quantile(mse, 0.95)) |>
+  ggplot(aes(degree, test.error)) +
+  geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+  geom_line() + geom_point() + 
+  geom_line(data = train.loo.summary, aes(degree, train.error), lty = 2, color = "salmon") +
+  ggtitle("Leave-one-out") +
+  coord_cartesian(ylim = c(18, 27) ) +
+  sin_lineas
 
-control_fit <- control_resamples(verbose = TRUE)
-
-set.seed(1003)
-lm_res <- lm_wflow %>% fit_resamples(resamples = ames_folds, control = control_fit)
+g.loo + g.kcv
