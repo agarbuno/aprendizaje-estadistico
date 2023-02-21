@@ -335,3 +335,113 @@ data |>
   xlab("% Clasificado positivo") + 
   ylab("Lift") + 
   sin_lineas
+
+
+## Modelo de clasificacion ----------------------------------------------------
+
+library(tidyverse)
+base_url <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-04/"
+
+attendance <- read_csv(paste(base_url, "attendance.csv", sep = ""),
+                       progress = FALSE, show_col_types = FALSE)
+standings <- read_csv(paste(base_url, "standings.csv", sep = ""),
+                      progress = FALSE, show_col_types = FALSE)
+
+capacity <- attendance |> 
+  group_by(team_name) |> 
+  summarise(capacity = max(weekly_attendance, na.rm = TRUE))            
+
+
+attendance_joined <- attendance |>
+  left_join(standings, by = c("year", "team_name", "team")) |> 
+  left_join(capacity, by = c("team_name"))  
+
+attendance_joined |> 
+  mutate(proportion = weekly_attendance/capacity) |> 
+  ggplot(aes(proportion)) + 
+  geom_histogram() + sin_lineas
+
+attendance_joined |> 
+  mutate(proportion = weekly_attendance/capacity) |> 
+  ggplot(aes(team_name, proportion)) + 
+  geom_boxplot(show.legend = FALSE, outlier.alpha = 0.5) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5)) +
+  sin_lineas
+
+attendance_df <- attendance_joined |> 
+  mutate(proportion = weekly_attendance/capacity, 
+         sellout    = factor(ifelse(proportion >= .85, "positive", "negative"), 
+         levels = c("positive", "negative"))) |> 
+  filter(!is.na(weekly_attendance)) |>
+  select(
+    sellout, team_name, year, week, strength_of_schedule, playoffs
+  )
+
+glimpse(attendance_df)
+
+## Ajuste del modelo ----------------------------------------------------------
+## Objetivo: Predicciones, dl, multimetrics
+
+
+library(tidymodels)
+
+attendance_split <- attendance_df |>
+  initial_split(strata = playoffs)
+
+nfl_train <- training(attendance_split)
+nfl_test <- testing(attendance_split)
+
+
+set.seed(108727)
+log_spec <- logistic_reg() |> 
+  set_engine(engine = "glm")
+
+log_fit <- log_spec |>
+  fit(sellout ~ .,
+      data = nfl_train
+      ) 
+
+log_fit |> broom::tidy()
+
+log_fit |> broom::glance()
+
+augment(log_fit, new_data = attendance_df) |>
+  conf_mat(truth = sellout, estimate = .pred_class)
+
+augment(log_fit, new_data = nfl_test) |>
+  conf_mat(truth = sellout, estimate = .pred_class)
+
+augment(log_fit, new_data = nfl_test) |> 
+  accuracy(sellout, .pred_class)
+
+augment(log_fit, new_data = nfl_test) |> 
+  recall(sellout, .pred_class)
+
+augment(log_fit, new_data = nfl_test) |> 
+  precision(sellout, .pred_class)
+
+augment(log_fit, new_data = nfl_test) |> 
+  f_meas(sellout, .pred_class)
+
+augment(log_fit, new_data = nfl_test) |> 
+  roc_auc(sellout, .pred_positive)
+
+augment(log_fit, new_data = nfl_test) |> 
+  roc_curve(sellout, .pred_positive) |> 
+  autoplot()
+
+augment(log_fit, new_data = nfl_test) |> 
+  gain_curve(sellout, .pred_positive) |> 
+  autoplot()
+
+
+## Atajos de computo ----------------------------------------------------------
+
+class_metrics <- metric_set(accuracy, recall, precision, f_meas)
+
+augment(log_fit, new_data = nfl_train) |>
+    class_metrics(truth = sellout, estimate = .pred_class)
+
+
+augment(log_fit, new_data = nfl_test) |>
+    class_metrics(truth = sellout, estimate = .pred_class)

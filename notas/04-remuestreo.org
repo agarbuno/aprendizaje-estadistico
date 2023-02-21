@@ -1,0 +1,658 @@
+#+TITLE: EST-25134: Aprendizaje Estadistico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Remuestreo~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+#+PROPERTY: header-args:R :session remuestreo :exports both :results output org :tangle ../rscripts/04-remuestreo.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Remuestreo.\\
+*Objetivo*: Estudiaremos estrategias para cuantificar el error de generalización utilizando la información disponible. Revisaremos conceptos separación de muestras, validación cruzada y Bootstrap.\\
+*Lectura recomendada*: Capítulo 5 de citep:James2021 y Capítulo 4 de citep:Kuhn2013. 
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup --------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#cuál-es-la-mejor-manera-para-estimar-de-manera-confiable-el-error-de-generalización][¿Cuál es la mejor manera para estimar de manera confiable el error de generalización?]]
+  - [[#qué-alternativas-tenemos][¿Qué alternativas tenemos?]]
+- [[#utilizando-un-conjunto-de-validación][Utilizando un conjunto de validación]]
+  - [[#ejercicio-autos][Ejercicio: Autos]]
+- [[#validación-cruzada][Validación cruzada]]
+  - [[#detalles-regresión][Detalles (regresión)]]
+  - [[#caso-especial-loo-cv][Caso especial: LOO-CV]]
+  - [[#pseudocódigo---validación-cruzada][Pseudocódigo - validación cruzada]]
+  - [[#observaciones][Observaciones]]
+  - [[#y-para-clasificación][¿Y para clasificación?]]
+  - [[#un-caso-para-pensar][Un caso para pensar]]
+  - [[#cómo-escoger-k][¿Cómo escoger $K$?]]
+- [[#bootstrap][Bootstrap]]
+  - [[#observaciones][Observaciones]]
+  - [[#cuantificando-el-error-de-generalización][Cuantificando el error de generalización]]
+:END:
+
+
+* Introducción
+
+Estudiaremos métodos de ~remuestreo~: validación cruzada y /bootstrap/ como mecanismos computacionales para obtener información adicional sobre el modelo ajustado.
+
+#+REVEAL: split
+Queremos evaluar la capacidad predictiva de nuestro modelo en instancias que no habíamos visto antes. El error cuantificado en el conjunto de entrenamiento usualmente es =optimista= en el sentido de estar sujeto a predecir en instancias ya observadas.
+
+#+REVEAL: split
+Esto es relevante en instancias donde hay parámetros (~hiper-parámetros~) que no son ajustados en el procedimiento de entrenamiento. Por ejemplo, el grado de polinomio en una regresión polinomial o el número de vecinos en un algoritmos de =vecinos mas cercanos=.
+
+#+REVEAL: split
+Hasta ahora, hemos considerado $\mathcal{D}_n$ y $\mathcal{T}_m$ como la separación de datos en dos conjuntos /provenientes/ de la misma población.
+Nos permiten cuantificar:
+- El *error de entrenamiento* $\mathcal{L}(\mathcal{D}_n)$ .
+- El *error de prueba* o ~generalización~ $\mathcal{L}(\mathcal{T}_m | \mathcal{D}_n)$ .
+
+#+BEGIN_NOTES
+La idea es poder predecir nuevas observaciones con el mismo nivel de precisión que observamos en el conjunto de entrenamiento. ¿Qué garantías tenemos para poder confiar en un modelo entrenado? Por supuesto, estamos tratando bajo los supuestos de que nuestros datos son representativos de la población sobre la cual haremos predicciones. Estamos sujetos al problema de ~sobre-ajuste~. 
+#+END_NOTES
+
+#+DOWNLOADED: screenshot @ 2022-02-27 08:59:36
+#+caption: Comportamiento típico del error de generalización y entrenamiento. 
+#+attr_html: :width 700 :align center
+[[file:images/20220227-085936_screenshot.png]]
+
+** ¿Cuál es la mejor manera para estimar de manera confiable el error de generalización?
+
+(LGN) Un conjunto de datos grande que permita cuantificar /bien/ el error.
+
+** ¿Qué alternativas tenemos?
+
+1. Utilizar métodos que hacen correcciones al sesgo por utilizar el conjunto de datos para generalizar.
+2. Utilizar un conjunto ~fuera de entrenamiento~.
+
+* Utilizando un conjunto de validación
+
+Utilizamos una partición de nuestro conjunto de datos: ~datos de entrenamiento~ y ~datos de validación~.
+
+#+BEGIN_NOTES
+El error cuantificado en el conjunto de validación nos da un estimador del error de prueba. Típicamente utilizamos el mismo criterio de error con el que entrenamos (RMSE, precisión, etc.). 
+#+END_NOTES
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:12:39
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras. Imagen tomada de [[cite:&Kuhn2022]].
+[[file:images/20230221-091239_screenshot.png]]
+
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:13:27
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras con el objetivo de evaluar capacidad predictiva. Imagen tomada de [[cite:&Kuhn2022]].
+[[file:images/20230221-091327_screenshot.png]]
+
+
+** Ejercicio: Autos
+
+Obtener una predicción del rendimiento de combustible en términos de la potencia del motor. 
+
+#+begin_src R :exports code :results none
+  ## Separación entrenamiento - prueba ---------------------------
+  library(rsample)
+
+  data <- read.csv("https://www.statlearning.com/s/Auto.csv") |>
+    as_tibble() |>
+    mutate(horsepower = as.numeric(horsepower)) |>
+    select(-name) |> 
+    filter(!is.na(horsepower))
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports results :results org
+  data |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 392 × 8
+    mpg cylinders displacement horsepower weight acceleration  year origin
+  <dbl>     <int>        <dbl>      <dbl>  <int>        <dbl> <int>  <int>
+1    18         8          307        130   3504         12      70      1
+2    15         8          350        165   3693         11.5    70      1
+3    18         8          318        150   3436         11      70      1
+4    16         8          304        150   3433         12      70      1
+5    17         8          302        140   3449         10.5    70      1
+# … with 387 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+Dividimos nuestro conjunto en ~entrenamiento~ y ~prueba~. 
+
+#+caption: Separación de datos en entrenamiento validación. 
+#+begin_src R :exports code :results none
+  set.seed(108790)
+  sample_rows <- sample(1:nrow(data), nrow(data)/2)
+
+  data_train <- data[sample_rows,]
+  data_test <- data[-sample_rows,]
+#+end_src
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/error-entrenamiento-validacion.jpeg :exports results :results output graphics file
+  fit_model <- function(power, data){
+    lm(mpg ~ poly(horsepower, power), data)
+  }
+
+  eval_error <- function(model, data){
+    (mean((data$mpg - predict(model, newdata = data))**2))
+  }
+
+  g1 <- tibble(degree = 1:10) |>
+    mutate(model = map(degree, fit_model, data_train),
+           error = map_dbl(model, eval_error, data_test)) |>
+    ggplot(aes(degree, error)) + 
+    geom_point() + geom_line() +  sin_lineas +
+    coord_cartesian(ylim = c(16, 26) ) + 
+    ggtitle("Error en test")
+
+  eval_resample <- function(id){
+    ## Hace splits
+    sample_rows <- sample(1:nrow(data), nrow(data)/2)
+    data_train <- data[sample_rows,]
+    data_test <- data[-sample_rows,]
+    ## Entrena y evalua
+    tibble(degree = 1:10) |>
+      mutate(model = map(degree, fit_model, data_train),
+             error = map_dbl(model, eval_error, data_test))
+  }
+
+  g2 <- tibble(id = factor(1:10)) |>
+    mutate(resultados = map(id, eval_resample)) |>
+    unnest(resultados) |>
+    ggplot(aes(degree, error, color = id)) +
+    geom_line() + geom_point() + sin_leyenda +
+    sin_lineas +
+      coord_cartesian(ylim = c(16, 26) ) + 
+    ggtitle("Error en test \n(multiples particiones)")
+
+  g1 + g2
+#+end_src
+#+caption: Error de validación utilizando /una/ partición del conjunto de datos (izquierda). Error de validación con distintas particiones de los datos (derecha). 
+#+RESULTS:
+[[file:../images/error-entrenamiento-validacion.jpeg]]
+
+#+BEGIN_NOTES
+Nota que las estimaciones son muy variables. Son altamente sensibles al conjunto
+de entrenamiento y validación que se utillizaron. Podríamos estar
+*sobre-estimando* el error de generalización pues dejamos de lado un conjunto de datos
+para entrenar el modelo. 
+#+END_NOTES
+
+* Validación cruzada
+
+Es una técnica que nos permite elegir la /mejor/ configuración de un modelo y nos da indicios del error de /generalización/. La idea es:
+1. Dividir el conjunto de datos en $K$ bloques.
+2. Utilizar un método iterativo para ajustar modelos con $K-1$ bloques y
+   registrar el error de ajuste con el bloque fuera del entrenamiento.
+
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:14:45
+#+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras por medio de validación cruzada. Imagen tomada de [[cite:&Kuhn2022]].
+[[file:images/20230221-091445_screenshot.png]]
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:15:11
+#+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras y flujo de entrenamiento/validación. Imagen tomada de [[cite:&Kuhn2022]].
+[[file:images/20230221-091511_screenshot.png]]
+
+** Detalles (regresión)
+
+Sean $K$ bloques y utilicemos  $C_1, C_2, \ldots C_K$ para denotar con $C_k$ el conjunto de índices en el bloque $k$. En total tenemos $n_k$ observaciones en cada bloque. Un caso particular es $n_k = n / K$.
+
+#+REVEAL: split
+En cada iteración ($k$) ~calculamos el error de predicción~ ($\mathsf{MSE}_k$) sobre el ~conjunto que dejamos fuera del entrenamiento~. Promediamos todos los errores para reportar el error de pérdida bajo validación cruzada. 
+\begin{align}
+\mathsf{CV}_{(K)} = \sum_{k = 1}^{K} \frac{n_k}{n} \mathsf{MSE}_k\,.
+\end{align}
+
+** Caso especial: ~LOO-CV~
+
+Si utilizamos $K = n$, entonces tenemos lo que se conoce como /leave-one out cross-validation/ (~LOO-CV~).
+
+#+REVEAL: split
+En el ~caso de estimadores lineales~ por mínimos cuadrados (como regresión polinomial) tenemos un /atajo/ para calcular con /un sólo ajuste/
+\begin{align}
+\mathsf{CV}_{(n)} = \frac{1}{n}\sum_{i= 1}^{n}\left( \frac{y_i - \hat y_i}{1 - h_i} \right)^2\,.
+\end{align}
+
+Donde $h_i$ es el estadístico de ~anclaje~ de la observación $i$.
+
+#+BEGIN_NOTES
+La definición de este estadístico lo puedes encontrar en el Capítulo 3 de citep:James2021 en la página 99,
+\begin{align}
+h_i = \frac{1}{n} + \frac{(x_i - \bar x_n)^2}{\sum_{j = 1}^{n}(x_j - \bar x_n)^2}\,.
+\end{align}
+#+END_NOTES
+
+
+** Pseudocódigo - validación cruzada
+
+Podemos usar las funciones de la librería [[https://rsample.tidymodels.org/][~rsample~]].
+
+
+#+REVEAL: split
+Tenemos que empezar con una partición de datos para obtener ~entrenamiento~ y ~prueba~:
+
+#+begin_src R :exports none :results none
+  set.seed(1087)
+  data_split <- rsample::initial_split(data, prop = .5)
+  data_train <- training(data_split)
+  data_test <- testing(data_split)
+#+end_src
+
+#+REVEAL: split
+#+caption: Código ejemplo para procesar datos en entrenamiento y validación. 
+#+begin_src R :exports code :results none
+  ## Validación cruzada -----------------------------------
+  ajusta_modelo <- function(split){
+      ## Separa en entrenamiento / validacion
+      train <-  analysis(split)
+      valid <- assessment(split)
+      ## Entrena y evalua
+      tibble(degree = 1:10) |>
+        mutate(model = map(degree, fit_model, train),
+               error = map_dbl(model, eval_error, valid))
+    }
+#+end_src
+
+#+REVEAL: split
+#+caption: Funciones para hacer los bloques de validación cruzada. 
+#+begin_src R :exports code :results none
+  data_train |> vfold_cv(5)
+  data_train |> loo_cv()
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/valdicion-cruzada-loo.jpeg :exports results :results output graphics file
+  train.loo <- data_train |>
+    rsample::loo_cv() |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    group_by(degree) |>
+    summarise(error.loo = mean(error))
+
+  g.loo <- train.loo |>
+    ggplot(aes(degree, error.loo)) +
+    geom_line() + geom_point() +
+    ggtitle("Leave-one out") +  sin_lineas +
+    coord_cartesian(ylim = c(18, 27) ) 
+
+  train.kcv <- data_train |>
+    vfold_cv(10, repeats = 10) |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    group_by(id, degree) |>
+    summarise(error.cv = mean(error))
+
+  g.cv <- train.kcv |>
+    ggplot(aes(degree, error.cv, color = id)) +
+    geom_line() + geom_point() + sin_leyenda +
+    ggtitle("Validación cruzada K=10") +  sin_lineas +
+    coord_cartesian(ylim = c(18, 27) ) 
+
+  g.loo + g.cv
+#+end_src
+#+caption: Métricas de error bajo validación cruzada. 
+#+RESULTS:
+[[file:../images/valdicion-cruzada-loo.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports none :results none
+  library(tidymodels)
+#+end_src
+
+#+begin_src R :exports none :results none
+  evalua_ajuste <- function(modelo, datos){
+    eval_metrics <- metric_set(rmse)
+    predict(modelo, datos) |>
+      as_tibble() |>
+      bind_cols(datos |> select(mpg)) |>
+      eval_metrics(mpg, value) |>
+      mutate(mse = .estimate**2)
+  }
+
+  test.kcv <- data_train |>
+    vfold_cv(K = 10) |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    mutate(tests = map(model, evalua_ajuste, data_test)) |>
+    unnest(tests)
+
+  test.loo <- data_train |>
+    loo_cv() |>
+    mutate(results = map(splits, ajusta_modelo)) |>
+    unnest(results) |>
+    mutate(tests = map(model, evalua_ajuste, data_test)) |>
+    unnest(tests)
+
+  train.kcv.summary <- train.kcv |>
+    group_by(degree) |>
+    summarise(train.error = mean(error.cv),
+              inf.error = quantile(error.cv, 0.05),
+              sup.error = quantile(error.cv, 0.95))
+
+  train.loo.summary <- train.loo |>
+    mutate(train.error = error.loo,
+           sup.error = train.error,
+           inf.error = train.error) |>
+    select(-error.loo)
+#+end_src
+
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/loo-uq-testing.jpeg :exports results :results output graphics file
+  g.kcv <-  test.kcv |>
+    group_by(degree) |>
+    summarise(train.error = mean(error),
+              test.error  = mean(mse),
+              inf.error = quantile(mse, 0.05),
+              sup.error = quantile(mse, 0.95)) |>
+    ggplot(aes(degree, test.error)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+    geom_line() + geom_point() + 
+    geom_line(data = train.kcv.summary, aes(degree, train.error), lty = 2, color = "salmon") +
+    geom_ribbon(data = train.kcv.summary, aes(x = degree, y = train.error,
+                                              ymin = inf.error, ymax = sup.error),
+                alpha = .3, fill = "salmon") +
+    ggtitle("Validación cruzada K=10") +
+    coord_cartesian(ylim = c(18, 27) ) +
+    sin_lineas
+
+  g.loo <- test.loo |>
+    group_by(degree) |>
+    summarise(train.error = mean(error),
+              test.error  = mean(mse),
+              inf.error = quantile(mse, 0.05),
+              sup.error = quantile(mse, 0.95)) |>
+    ggplot(aes(degree, test.error)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+    geom_line() + geom_point() + 
+    geom_line(data = train.loo.summary, aes(degree, train.error), lty = 2, color = "salmon") +
+    ggtitle("Leave-one-out") +
+    coord_cartesian(ylim = c(18, 27) ) +
+    sin_lineas
+
+  g.loo + g.kcv
+#+end_src
+#+caption: Métricas de error condicional bajo validación cruzada. Rojo: error bajo conjunto de entrenamiento. Negro: error bajo conjunto de prueba.
+#+RESULTS:
+[[file:../images/loo-uq-testing.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports none :results none :tangle no :eval never
+  modeling_workflow <- function(id){
+    # Separo mis muestras
+    data_split <- rsample::initial_split(data, prop = .5)
+    data_train <- training(data_split)
+    data_test <- testing(data_split)
+    # Ajusta el modelo y evalua en test (kcv)
+    test.kcv <- data_train |>
+      vfold_cv(K = 10) |>
+      mutate(results = map(splits, ajusta_modelo)) |>
+      unnest(results) |>
+      mutate(tests = map(model, evalua_ajuste, data_test)) |>
+      unnest(tests)
+    # Ajusta el modelo y evalua en test (loo)
+    test.loo <- data_train |>
+      loo_cv() |>
+      mutate(results = map(splits, ajusta_modelo)) |>
+      unnest(results) |>
+      mutate(tests = map(model, evalua_ajuste, data_test)) |>
+      unnest(tests)
+    # Resumen y pega loo con kvc
+    kcv.summary <- test.kcv |>
+      group_by(degree) |>
+      summarise(train.error = mean(error),
+                test.error  = mean(mse),
+                inf.error = quantile(mse, 0.05),
+                sup.error = quantile(mse, 0.95)) |>
+      mutate(metodo = "kcv") 
+    loo.summary <- test.loo |>
+            group_by(degree) |>
+            summarise(train.error = mean(error),
+                      test.error  = mean(mse),
+                      inf.error = quantile(mse, 0.05),
+                      sup.error = quantile(mse, 0.95)) |>
+            mutate(metodo = "loo")
+    kcv.summary |>
+      bind_rows(loo.summary)
+  }
+#+end_src
+
+#+begin_src R :exports none :results none :tangle no :eval never
+  set.seed(108)
+  resultados.wf <- tibble(id = 1:200) |>
+      mutate(results = map(id, modeling_workflow))
+#+end_src
+
+#+begin_src R :exports none :results none :tangle no :eval never
+  train.results <- train.loo.summary |>
+    mutate(metodo = "loo") |>
+    rbind(train.kcv.summary |> mutate(metodo = "kvc") ) |>
+    mutate(metodo = factor(ifelse(metodo == "loo", "Leave-one-out", "K-Fold"),
+                           levels = c("Leave-one-out", "K-Fold"))) 
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/loo-cv-test-marginal.jpeg :exports results :results output graphics file :tangle no :eval never
+  resultados.wf |>
+    unnest(results) |>
+    group_by(metodo, degree) |>
+    summarise(test.error = mean(test.error),
+              inf.error = quantile(test.error, 0.05),
+              sup.error = quantile(test.error, 0.95), .groups = "drop") |>
+    mutate(metodo = factor(ifelse(metodo == "loo", "Leave-one-out", "K-Fold"),
+                           levels = c("Leave-one-out", "K-Fold"))) |>
+    ggplot(aes(degree, test.error)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
+    geom_point() + geom_line() +
+    coord_cartesian(ylim = c(18, 27)) +
+    geom_line(data = train.results, aes(degree, train.error), lty = 2, color = "red") +
+    geom_ribbon(data = train.results, aes(degree, train.error,
+                                          ymin = inf.error, ymax = sup.error),
+                fill = "salmon", alpha = .3) + 
+    facet_wrap(~metodo) + sin_lineas
+#+end_src
+#+caption: Métricas de error marginal utilizando validación cruzada para estimarlo. Rojo: error bajo conjunto de entrenamiento (original). Negro: error bajo conjunto de prueba (remuestreado).
+#+RESULTS:
+[[file:../images/loo-cv-test-marginal.jpeg]]
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 450 :R-dev-args bg="transparent"
+#+begin_src R :file images/loo-cv-error-marginal.jpeg :exports results :results output graphics file :tangle no :eval never
+  resultados.wf |>
+    unnest(results) |>
+    pivot_longer(cols = train.error:test.error) |>
+    group_by(metodo, name, degree) |>
+    summarise(error = mean(value),
+              inf.error = quantile(value, 0.05),
+              sup.error = quantile(value, 0.95), .groups = "drop") |>
+    mutate(metodo = factor(ifelse(metodo == "loo", "Leave-one-out", "K-Fold"),
+                           levels = c("Leave-one-out", "K-Fold"))) |>
+    ggplot(aes(degree, error, group = name, color = name)) +
+    geom_ribbon(aes(ymin = inf.error, ymax = sup.error, fill = name), color = "white", alpha = .3) + 
+    geom_point() + geom_line() +
+    coord_cartesian(ylim = c(15, 27)) +
+    facet_wrap(~metodo) + sin_lineas +
+  theme(legend.position="top", legend.title = element_blank())
+#+end_src
+#+caption: Métricas de error marginal utilizando validación cruzada para estimarlo. Rojo: error bajo conjunto de entrenamiento (remuestreado). Negro: error bajo conjunto de prueba (remuestreado).
+#+RESULTS:
+[[file:../images/loo-cv-error-marginal.jpeg]]
+
+
+** Observaciones
+
+Utilizamos conjuntos de datos mas pequeños para entrenar. Por lo tanto tenemos
+un sesgo en el error mas grande de lo que hubiéramos querido.
+
+El sesgo se /puede eliminar/ al tomar $K = n$ pero tiene una /gran varianza/.
+
+#+BEGIN_NOTES
+Al tener bloques de entrenamiento de tamaño $n-1$ con una alta probabilidad
+habrá correlación en los $\mathsf{MSE}_k$ lo que ocasiona que se infle la
+varianza.
+#+END_NOTES
+
+
+En la práctica un /buen compromiso/ se puede establecer con $K = 5$ ó $10$
+(experimentación empírica).
+
+** ¿Y para clasificación?
+
+
+** Un caso para pensar
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+Consideremos que tenemos un conjunto de datos con pocas muestras y muchos atributos, $p \gg n$.
+Para ajustar un modelo lo que hacemos es:
+1. Encontrar los $p =20$ predictores con mayor correlación con la respuesta. 
+2. Utilizar validación cruzada para entrenar un modelo con esos $p =20$ predictores y cuantificar su error de generalización.
+
+#+begin_quote
+¿Está bien esta estrategia?
+#+end_quote
+
+** ¿Cómo escoger $K$?
+
+La elección usual es 5 ó 10 (en principio cualquier elección en este intervalo). Lo que queremos es poder estimar el error de generalización. Sin embargo, el estimador de error por validación cruzada puede tener tanto =sesgo= o =varianza= elevada.
+
+#+REVEAL: split
+Como mencionamos antes, con ~LOO-CV~ tenemos bloques altamente correlacionados lo cual nos contamina la estimación de varianza (error estándar) de nuestro estimador aunque  con un sesgo mas pequeño.
+
+#+REVEAL: split
+Validación cruzada  con un número limitado de bloques nos puede ayudar a controlar la varianza (¿por qué?) aunque a un costo de aumento en sesgo.
+
+#+REVEAL: split
+En la práctica, podemos hacer varias réplicas del procedimiento de validación cruzada (utilizando distintas particiones en $K$ bloques) para mejorar nuestras estimaciones del error estándar y /mejorar/ nuestra cuantificación del valor esperado del estimador.
+
+*Nota*: Por /mejorar/ no hacemos referencia a disminuir la incertidumbre (error estándar o amplitud de un intervalo) si no a una estimación mas cercana a los valores reales. 
+
+* /Bootstrap/
+
+Es una técnica de remuestreo que nos permite cuantificar incertidumbre sobre un /estimador/ o un /procedimiento de estimación/.
+
+#+REVEAL: split
+Lo usamos muchas veces para estimar el /error estándar/ de un estimador o poder
+reportar intervalos de confianza basados en percentiles. (No utilizamos
+supuestos asintóticos).
+
+#+REVEAL: split
+Si pudiéramos generar muestras de la población no tendríamos problemas. Pero en
+muchas ocasiones no tenemos acceso al generador de datos.
+
+#+REVEAL: split
+Resolvemos estos problemas tomando ~re-muestras~ de las observaciones que tenemos
+utilizando ~muestreo aleatorio con reemplazo~.
+
+#+REVEAL: split
+De esta manera, creamos conjuntos de datos ficticios (a partir de los datos
+observados) que nos permiten estimar las cantidades de interés. Con un número
+suficiente de réplicas podemos obtener una distribución de estimadores de la
+cual podemos extraer percentiles para construir un intervalo de confianza.
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-21 09:16:42
+#+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+#+caption: Estrategia de separación de muestras por medio de remuestreo simple. Imagen tomada de [[cite:&Kuhn2022]].
+[[file:images/20230221-091642_screenshot.png]]
+
+
+** Observaciones
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Muchas veces hay que tener cuidado con la forma en que generamos las
+remuestras. Por ejemplo, en situaciones con datos temporales o geográficos.
+
+** Cuantificando el error de generalización
+
+En validación cruzada los bloques no tienen traslape. Esto es ventajoso para
+cuantificar el error y su variación.
+
+#+REVEAL: split
+Si utilizáramos /bootstrap/ entonces los bloques ocasionarían problemas con los
+estimadores. Esto es por que aproximadamente el 63% de las observaciones se
+repiten en el muestreo con reemplazo. Esto es equivalente a una validación
+cruzada con $K \approx 2$ bloques.
+
+#+BEGIN_NOTES
+Utilizar /bootstrap/ implica utilizar un mecanismo de muestreo aleatorio *con* reeemplazo. Si tenemos una colección de $n$ instancias y queremos calcular la probabilidad de escoger *al menos una vez* la instancia $i$ -ésima, lo calculamos por medio de
+\begin{align}
+1 - \mathbb{P}(\text{no escoger el índice } i) = 1 - \left( 1 - \frac1n  \right)^n \approx 1 - e^{-1} \approx 63.2 \% \,.
+\end{align}
+#+END_NOTES
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
+ 

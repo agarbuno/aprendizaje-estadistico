@@ -3,19 +3,28 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Clasificación~
 #+STARTUP: showall
-:REVEAL_PROPERTIES:
-# Template uses org export with export option <R B>
-# Alternatives: use with citeproc
-#+LANGUAGE: es
-#+OPTIONS: num:nil toc:nil timestamp:nil
-#+REVEAL_REVEAL_JS_VERSION: 4
-#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-#+REVEAL_THEME: night
-#+REVEAL_SLIDE_NUMBER: t
-#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
-#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
-#+REVEAL_EXTRA_CSS: ./mods.css
-#+REVEAL_PLUGINS: (notes)
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/03-clasificacion.pdf
 :END:
 #+PROPERTY: header-args:R :session clasificacion :exports both :results output org :tangle ../rscripts/03-clasificacion.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
@@ -259,7 +268,7 @@ A esta transformación se le llama ~logit~ o ~log-momio~.
 
 #+REVEAL: split
 Regresión logística nos ayuda a restringir la salida de nuestro modelo predictivo.
-#+caption: La salida del modelo logistico está restringido gracias a la ~transformación no lineal~.
+#+caption: La salida del modelo logístico está restringido gracias a la ~transformación no lineal~.
 file:../images/linear-logistic-credit.jpeg
 
 ** Estimando los parámetros
@@ -347,10 +356,10 @@ El objetivo es encontrar
 \end{align}
 
 #+begin_src R :exports none :results none
-  ## Modelo logistico ----------------------------------------------------------
+  ## Modelo logístico ----------------------------------------------------------
 #+end_src
 #+REVEAL: split
-#+caption: Ajuste de modelo logistico.
+#+caption: Ajuste de modelo logístico.
 #+begin_src R :exports code :results none
   modelo <- glm(default ~ balance, family = "binomial", data = data)
 #+end_src
@@ -361,7 +370,7 @@ El objetivo es encontrar
 #+end_src
 
 #+RESULTS:
-#+caption: Resumen del modelo logistico. 
+#+caption: Resumen del modelo logístico. 
 #+begin_src org
 
 Call:
@@ -392,7 +401,7 @@ Number of Fisher Scoring iterations: 8
   modelo |>
     broom::tidy() 
 #+end_src
-#+caption: Resumen de modelo logistico (~tidy~). 
+#+caption: Resumen de modelo logístico (~tidy~). 
 #+RESULTS:
 #+begin_src org
          term estimate std.error statistic  p.value
@@ -418,7 +427,7 @@ Number of Fisher Scoring iterations: 8
 
   logistic.respuestas 
 #+end_src
-#+caption: Tipos de respuesta de un modelo logistico con ~glm~. 
+#+caption: Tipos de respuesta de un modelo logístico con ~glm~. 
 #+RESULTS:
 #+begin_src org
 Error in `mutate()`:
@@ -433,7 +442,7 @@ Caused by error:
 #+end_src
 
 #+REVEAL: split
-#+caption: Ajuste de modelo logistico. 
+#+caption: Ajuste de modelo logístico. 
 #+begin_src R :exports code
   modelo <- glm(default ~ balance + income + student,
                 data = data,
@@ -444,7 +453,7 @@ Caused by error:
   modelo |>
     broom::tidy() 
 #+end_src
-#+caption: Resumen del modelo logistico multivariado. 
+#+caption: Resumen del modelo logístico multivariado. 
 #+RESULTS:
 #+begin_src org
          term estimate std.error statistic  p.value
