@@ -39,6 +39,7 @@
 #+begin_src R :exports none :results none
   ## Setup --------------------------------------------
   library(tidyverse)
+  library(tidymodels)
   library(patchwork)
   library(scales)
 
@@ -88,6 +89,7 @@
   - [[#regresión-ridge][Regresión Ridge]]
     - [[#para-pensar][Para pensar:]]
   - [[#ridge-datos-de-crédito][Ridge: datos de crédito]]
+    - [[#implementación-con-tidymodels][Implementación con tidymodels:]]
   - [[#regresión-lasso][Regresión LASSO]]
   - [[#lasso-datos-de-crédito][LASSO: datos de crédito]]
   - [[#comparación-ridge-v-lasso][Comparación: Ridge v. LASSO]]
@@ -96,7 +98,6 @@
 - [[#métodos-de-reducción-de-dimensiones][Métodos de reducción de dimensiones]]
   - [[#regresión-con-reducción-de-dimensiones][Regresión con reducción de dimensiones]]
   - [[#otros-métodos-de-reducción-de-dimensiones][Otros métodos de reducción de dimensiones]]
-- [[#referencias][Referencias]]
 :END:
 
 * Introducción
@@ -192,12 +193,16 @@ El proceso sería el siguiente.
 #+caption: Muestra de datos del conjunto ~Credit~. 
 #+RESULTS:
 #+begin_src org
-  Income Limit Rating Cards Age Education Gender Student Married Balance
-1     18  2860    235     4  63        16 Female      No      No      89
-2     23  4923    355     1  47        18 Female      No     Yes     663
-3     40  3969    301     2  27        20   Male      No     Yes     211
-4     16  5466    413     4  66        10   Male      No     Yes     957
-5     45  5765    437     3  53        13 Female     Yes      No    1246
+# A tibble: 400 × 10
+  Income Limit Rating Cards   Age Education Gender Student Married Balance
+   <dbl> <int>  <int> <int> <int>     <int> <fct>  <fct>   <fct>     <int>
+1   14.9  3606    283     2    34        11 Male   No      Yes         333
+2  106.   6645    483     3    82        15 Female Yes     Yes         903
+3  105.   7075    514     4    71        11 Male   No      No          580
+4  149.   9504    681     3    36        11 Female No      No          964
+5   55.9  4897    357     2    68        16 Male   No      Yes         331
+# … with 395 more rows
+# ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
 #+REVEAL: split
@@ -224,9 +229,11 @@ Nota que el mecanismo iterativo no tiene garantía de encontrar el mejor modelo 
 #+caption: Métricas de bondad de ajuste para los datos de ~Credit~.
 #+RESULTS:
 #+begin_src org
-   estrategia sigma r.squared adj.r.squared  AIC deviance
-1 subconjunto   100      0.95          0.95 4823  3915058
-2    adelante   101      0.95          0.95 4835  4032502
+# A tibble: 2 × 6
+  estrategia  sigma r.squared adj.r.squared   AIC deviance
+  <chr>       <dbl>     <dbl>         <dbl> <dbl>    <dbl>
+1 subconjunto  99.6     0.954         0.953 4823. 3915058.
+2 adelante    101.      0.952         0.952 4835. 4032502.
 #+end_src
 
 *** Para pensar:
@@ -485,30 +492,6 @@ Al penalizar sobre los coeficientes necesitamos que todos /platiquen/ en el mism
 #+END_NOTES
 
 #+REVEAL: split
-~Instrucciones útiles~:
-
-#+caption: Definir procesamiento de normalización con [[https://recipes.tidymodels.org/][~recipes~]]. 
-#+begin_src R :exports code :results none :tangle no :eval never
-  ## Preparo el objetivo del modelo 
-  rec <- recipe(respuesta ~ .,  data = train)
-  ## Defino procesamiento de datos
-  estandarizador <- rec |>
-    step_normalize(Income, Limit, Rating, Cards, Age, Education, respuesta)
-#+end_src
-
-#+REVEAL: split
-#+caption: Aplicación del proceso de normalización. 
-#+begin_src R :exports code :results none :tangle no :eval never
-  ## Calculo medias y desviaciones estandar en entrenamiento
-  estandarizador.ajustado <- prep(estandarizador, train)
-  ## Normalizo ambos conjuntos
-  valid.std <- bake(estandarizador.ajustado, valid)
-  train.std <- bake(estandarizador.ajustado, train)
-  list(train = train.std, valid = valid.std)
-#+end_src
-
-
-#+REVEAL: split
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/ridge-cv-credit.jpeg :exports results :results output graphics file
   ## Cuantifico el error de validacion
@@ -525,7 +508,7 @@ Al penalizar sobre los coeficientes necesitamos que todos /platiquen/ en el mism
     geom_linerange(aes(ymin = cv.error - 2 * se.error,
                        ymax = cv.error + 2 * se.error)) +
     geom_point(color = 'red', size = 2) + sin_lineas + 
-    xlab(expression(1/lambda)) +
+    xlab(paste(expression(1/lambda), " (Complejidad)")) +
     ylab("Error Validación Cruzada") +
     scale_x_log10()
   g2
@@ -535,6 +518,258 @@ Al penalizar sobre los coeficientes necesitamos que todos /platiquen/ en el mism
 [[file:../images/ridge-cv-credit.jpeg]]
 
 Con validación cruzada podemos identificar qué valor de $\lambda$ es el adecuado para penalizar. Una vez realizada esta elección, re-entrenamos el modelo utilizando ~todo~ el conjunto de datos para predecir situaciones/observaciones futuras. 
+
+*** Implementación con ~tidymodels~:
+
+Primero tenemos que realizar un /split/ de los datos en entrenamiento y prueba.
+
+#+begin_src R :exports none :results none
+  ## Implementación tidymodels -------------------------------------------------
+#+end_src
+
+#+begin_src R :exports code :results none
+  data_split <- initial_split(data)
+  data_train <- training(data_split)
+  data_test <- testing(data_split)
+#+end_src
+
+#+REVEAL: split
+Tenemos que especificar el modelo. 
+
+#+begin_src R :exports both :results org
+  ridge_spec <- linear_reg(penalty = tune(), mixture = 0) |>
+      set_engine(engine = "glmnet")
+
+  ridge_spec
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Linear Regression Model Specification (regression)
+
+Main Arguments:
+  penalty = tune()
+  mixture = 0
+
+Computational engine: glmnet
+#+end_src
+
+#+REVEAL: split
+Con el modelo especificado podemos definir el proceso de pre-preocesamiento a través de un ~recipe~. 
+
+#+caption: Definir el pre-procesamiento con [[https://recipes.tidymodels.org/][~recipes~]]. 
+#+begin_src R :exports both :results org
+  ## Defino el pre-procesamiento
+  ridge_recipe <- recipe(Balance ~ .,  data = data_train) |>
+    step_dummy(all_nominal_predictors()) |>
+    step_normalize(all_predictors()) 
+
+    ridge_recipe
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Recipe
+
+Inputs:
+
+      role #variables
+   outcome          1
+ predictor          9
+
+Operations:
+
+Dummy variables from all_nominal_predictors()
+Centering and scaling for all_predictors()
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  ridge_workflow <- workflow() |>
+    add_recipe(ridge_recipe) |> 
+    add_model(ridge_spec)
+
+  ridge_workflow
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+══ Workflow ══════════════════════════════════════════════════════════════════════════════════════
+Preprocessor: Recipe
+Model: linear_reg()
+
+── Preprocessor ──────────────────────────────────────────────────────────────────────────────────
+2 Recipe Steps
+
+• step_dummy()
+• step_normalize()
+
+── Model ─────────────────────────────────────────────────────────────────────────────────────────
+Linear Regression Model Specification (regression)
+
+Main Arguments:
+  penalty = tune()
+  mixture = 0
+
+Computational engine: glmnet
+#+end_src
+
+#+REVEAL: split
+Definimos la partición de los datos para realizar una estimación del error de generalización. 
+
+#+begin_src R :exports both :results org 
+  data_folds <- vfold_cv(data_train, v = 10)
+  data_folds |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#  10-fold cross-validation 
+# A tibble: 10 × 2
+  splits           id    
+  <list>           <chr> 
+1 <split [270/30]> Fold01
+2 <split [270/30]> Fold02
+3 <split [270/30]> Fold03
+4 <split [270/30]> Fold04
+5 <split [270/30]> Fold05
+# … with 5 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+Definimos el espacio de búsqueda de $\lambda$
+
+#+begin_src R :exports both :results org 
+  penalty_grid <- grid_regular(penalty(range = c(-3, 5)), levels = 50)
+  penalty_grid |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 50 × 1
+  penalty
+    <dbl>
+1 0.001  
+2 0.00146
+3 0.00212
+4 0.00309
+5 0.00450
+# … with 45 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+
+#+REVEAL: split
+Usamos la partición de los datos en bloques para ajustar múltiples modelos con distintos conjuntos de entrenamiento y sus respectivas métricas de generalización
+
+#+begin_src R :exports both :results org 
+  tune_res <- tune_grid(
+    ridge_workflow,
+    resamples = data_folds,
+    metrics = metric_set(rmse),
+    grid = penalty_grid
+  )
+  tune_res |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# Tuning results
+# 10-fold cross-validation 
+# A tibble: 10 × 4
+  splits           id     .metrics           .notes          
+  <list>           <chr>  <list>             <list>          
+1 <split [270/30]> Fold01 <tibble [100 × 5]> <tibble [0 × 3]>
+2 <split [270/30]> Fold02 <tibble [100 × 5]> <tibble [0 × 3]>
+3 <split [270/30]> Fold03 <tibble [100 × 5]> <tibble [0 × 3]>
+4 <split [270/30]> Fold04 <tibble [100 × 5]> <tibble [0 × 3]>
+5 <split [270/30]> Fold05 <tibble [100 × 5]> <tibble [0 × 3]>
+# … with 5 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  tune_res |> unnest(.metrics) |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1,000 × 8
+  splits           id     penalty .metric .estimator .estimate .config  .notes  
+  <list>           <chr>    <dbl> <chr>   <chr>          <dbl> <chr>    <list>  
+1 <split [270/30]> Fold01 0.001   rmse    standard        131. Preproc… <tibble>
+2 <split [270/30]> Fold01 0.00146 rmse    standard        131. Preproc… <tibble>
+3 <split [270/30]> Fold01 0.00212 rmse    standard        131. Preproc… <tibble>
+4 <split [270/30]> Fold01 0.00309 rmse    standard        131. Preproc… <tibble>
+5 <split [270/30]> Fold01 0.00450 rmse    standard        131. Preproc… <tibble>
+# … with 995 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  collect_metrics(tune_res) |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 100 × 7
+  penalty .metric .estimator    mean     n std_err .config              
+    <dbl> <chr>   <chr>        <dbl> <int>   <dbl> <chr>                
+1 0.001   rmse    standard   122.       10 3.87    Preprocessor1_Model01
+2 0.001   rsq     standard     0.937    10 0.00575 Preprocessor1_Model01
+3 0.00146 rmse    standard   122.       10 3.87    Preprocessor1_Model02
+4 0.00146 rsq     standard     0.937    10 0.00575 Preprocessor1_Model02
+5 0.00212 rmse    standard   122.       10 3.87    Preprocessor1_Model03
+# … with 95 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/cv-ridge-tidy.jpeg :exports results :results output graphics file
+  autoplot(tune_res) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/cv-ridge-tidy.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  best_penalty <- select_best(tune_res, metric = "rmse")
+  best_penalty
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 2
+  penalty .config              
+    <dbl> <chr>                
+1   0.001 Preprocessor1_Model01
+#+end_src
+
+#+REVEAL: split
+Podemos seleccionar el mejor modelo regularizado
+
+#+begin_src R :exports code :results none
+  ridge_final <- finalize_workflow(ridge_workflow, best_penalty)
+  ridge_final_fit <- fit(ridge_final, data = data_train)
+#+end_src
+
+y obtener su capacidad predictiva en el conjunto de prueba para reportar
+#+begin_src R :exports both :results org 
+  augment(ridge_final_fit, new_data = data_test) |>
+    rmse(truth = Balance, estimate = .pred)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 rmse    standard        111.
+#+end_src
 
 ** Regresión /LASSO/
 
@@ -643,8 +878,8 @@ Observa que LASSO tiene la propiedad de eliminar completamente los predictores
                        ymax = cv.error + se.error), size = 2) +
     geom_linerange(aes(ymin = cv.error - 2 * se.error,
                        ymax = cv.error + 2 * se.error)) +
-    geom_point(color = 'red', size = 2) + sin_lineas + 
-    xlab(expression(1/lambda)) +
+    geom_point(color = 'red', size = 2) + sin_lineas +
+      xlab(paste(expression(1/lambda), " (Complejidad)")) +
     ylab("Error Validación Cruzada") +
     scale_x_log10()
   g2
@@ -720,6 +955,9 @@ El modelo restringe automáticamente las $\beta_j$ pues tienen que tomar una for
 - Utilizar /partial least squares/ (~varianza máxima~ entre ~predictores y respuesta~).
 - Utilizar /least angle regression/ (trayectoria de ~contribución lineal predictiva~ de atributos). 
 
-* Referencias                                                         :latex:
+
 bibliographystyle:abbrvnat
 bibliography:references.bib
+
+
+
