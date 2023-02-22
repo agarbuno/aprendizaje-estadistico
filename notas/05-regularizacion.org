@@ -85,6 +85,7 @@
   - [[#r2-ajustada][$R^2$ ajustada]]
   - [[#objetivo][Objetivo]]
     - [[#selección-de-modelo-datos-de-crédito][Selección de modelo: Datos de crédito]]
+  - [[#el-método-de-un-error-estándar][El método de un error estándar]]
 - [[#regularización][Regularización]]
   - [[#regresión-ridge][Regresión Ridge]]
     - [[#para-pensar][Para pensar:]]
@@ -379,6 +380,30 @@ El objetivo es predecir el ~Saldo~ en términos de los demás predictores. Se se
 [[file:../images/errror-validacion-cruzada-swf.jpeg]]
 
 Escogemos el modelo con el error mas pequeño. Sin embargo, validación cruzada nos puede dar una métrica de incertidumbre (¿cuál?). ¿Y si el problema de decisión lo planteamos como una prueba de hipótesis?
+
+** El método de ~un error estándar~
+
+1. Se estima la función de pérdida generalizada parametrizada por los hiper-parámetros.
+   \begin{align}
+  \mathsf{CV}_{(K)}(\lambda) = \frac1K  \sum_{k=1}^{K} \mathsf{MSE}_k (\lambda)\,.
+   \end{align} 
+2. Se localiza el valor de los hiper-parámetros que minimicen dicha función de pérdida.
+   \begin{align}
+   \hat{\lambda} = \arg \min_{\lambda \in \Lambda}   \mathsf{CV}_{(K)}(\lambda)\,.
+   \end{align}  
+3. Se escoge el modelo mas sencillo que se encuentre a un error estándar.
+   \begin{align}
+   \hat{\lambda}^\star \text{ tal que }    \mathsf{CV}_{(K)}(\lambda) \leq  \mathsf{CV}_{(K)}(\hat{\lambda}) + \mathsf{SE}\left(   \mathsf{CV}_{(K)}(\hat{\lambda}) \right)\,.
+   \end{align}
+
+   
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-02-22 11:44:17
+#+attr_html: :width 700 :align center
+#+attr_latex: :width .55\linewidth
+#+caption: Imagen tomada de las notas del curso ofrecido en [[https://www.cs.cmu.edu/][CMU]].
+[[file:images/20230222-114417_screenshot.png]]
+
 
 * Regularización 
 
