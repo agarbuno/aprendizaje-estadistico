@@ -73,6 +73,7 @@
 - [[#bootstrap][Bootstrap]]
   - [[#observaciones][Observaciones]]
   - [[#cuantificando-el-error-de-generalización][Cuantificando el error de generalización]]
+- [[#aplicación][Aplicación]]
 :END:
 
 
@@ -293,6 +294,10 @@ h_i = \frac{1}{n} + \frac{(x_i - \bar x_n)^2}{\sum_{j = 1}^{n}(x_j - \bar x_n)^2
 Podemos usar las funciones de la librería [[https://rsample.tidymodels.org/][~rsample~]].
 
 
+#+begin_src R :exports none :results none
+  ## Validación cruzada --------------------------------------------------------
+#+end_src
+
 #+REVEAL: split
 Tenemos que empezar con una partición de datos para obtener ~entrenamiento~ y ~prueba~:
 
@@ -306,7 +311,6 @@ Tenemos que empezar con una partición de datos para obtener ~entrenamiento~ y ~
 #+REVEAL: split
 #+caption: Código ejemplo para procesar datos en entrenamiento y validación. 
 #+begin_src R :exports code :results none
-  ## Validación cruzada -----------------------------------
   ajusta_modelo <- function(split){
       ## Separa en entrenamiento / validacion
       train <-  analysis(split)
@@ -360,6 +364,10 @@ Tenemos que empezar con una partición de datos para obtener ~entrenamiento~ y ~
 #+RESULTS:
 [[file:../images/valdicion-cruzada-loo.jpeg]]
 
+#+begin_src R :exports none :results none
+  ## Tidy - Validación cruzada -------------------------------------------------
+#+end_src
+
 #+REVEAL: split
 #+begin_src R :exports none :results none
   library(tidymodels)
@@ -404,7 +412,7 @@ Tenemos que empezar con una partición de datos para obtener ~entrenamiento~ y ~
 
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
-#+begin_src R :file images/loo-uq-testing.jpeg :exports results :results output graphics file
+#+begin_src R :file images/loo-uq-testing.jpeg :exports results :results output graphics file :tangle no
   g.kcv <-  test.kcv |>
     group_by(degree) |>
     summarise(train.error = mean(error),
@@ -656,3 +664,11 @@ bibliographystyle:abbrvnat
 bibliography:references.bib
 
  
+
+
+
+* Aplicación
+
+#+begin_src R :exports none :results none
+  ## Aplicacion : capacidad predictiva -----------------------------------------
+#+end_src

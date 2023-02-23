@@ -76,12 +76,13 @@ g2 <- tibble(id = factor(1:10)) |>
 
 g1 + g2
 
+## Validación cruzada --------------------------------------------------------
+
 set.seed(1087)
 data_split <- rsample::initial_split(data, prop = .5)
 data_train <- training(data_split)
 data_test <- testing(data_split)
 
-## Validación cruzada -----------------------------------
 ajusta_modelo <- function(split){
     ## Separa en entrenamiento / validacion
     train <-  analysis(split)
@@ -123,6 +124,8 @@ g.cv <- train.kcv |>
 
 g.loo + g.cv
 
+## Tidy - Validación cruzada -------------------------------------------------
+
 library(tidymodels)
 
 evalua_ajuste <- function(modelo, datos){
@@ -160,35 +163,87 @@ train.loo.summary <- train.loo |>
          inf.error = train.error) |>
   select(-error.loo)
 
-g.kcv <-  test.kcv |>
-  group_by(degree) |>
-  summarise(train.error = mean(error),
-            test.error  = mean(mse),
-            inf.error = quantile(mse, 0.05),
-            sup.error = quantile(mse, 0.95)) |>
-  ggplot(aes(degree, test.error)) +
-  geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
-  geom_line() + geom_point() + 
-  geom_line(data = train.kcv.summary, aes(degree, train.error), lty = 2, color = "salmon") +
-  geom_ribbon(data = train.kcv.summary, aes(x = degree, y = train.error,
-                                            ymin = inf.error, ymax = sup.error),
-              alpha = .3, fill = "salmon") +
-  ggtitle("Validación cruzada K=10") +
-  coord_cartesian(ylim = c(18, 27) ) +
-  sin_lineas
+## Aplicacion : capacidad predictiva -----------------------------------------
 
-g.loo <- test.loo |>
-  group_by(degree) |>
-  summarise(train.error = mean(error),
-            test.error  = mean(mse),
-            inf.error = quantile(mse, 0.05),
-            sup.error = quantile(mse, 0.95)) |>
-  ggplot(aes(degree, test.error)) +
-  geom_ribbon(aes(ymin = inf.error, ymax = sup.error), alpha = .3) + 
-  geom_line() + geom_point() + 
-  geom_line(data = train.loo.summary, aes(degree, train.error), lty = 2, color = "salmon") +
-  ggtitle("Leave-one-out") +
-  coord_cartesian(ylim = c(18, 27) ) +
-  sin_lineas
+library(tidymodels)
 
-g.loo + g.kcv
+data(cells, package = "modeldata")
+cells
+
+cells |>
+  count(class) |>
+  mutate(prop = n/sum(n))
+
+set.seed(108)
+cell_split <- initial_split(cells |> select(-case), 
+                            strata = class)
+
+cell_train <- training(cell_split)
+cell_test  <- testing(cell_split)
+
+nrow(cell_train)
+nrow(cell_train)/nrow(cells)
+
+# training set proportions by class
+cell_train |> 
+  count(class) |> 
+  mutate(prop = n/sum(n))
+
+# test set proportions by class
+cell_test |> 
+  count(class) |> 
+  mutate(prop = n/sum(n))
+
+
+lr_spec <- logistic_reg() |>  
+  set_engine("glm") 
+
+
+augment(lr_fit, new_data = cell_train) |> 
+  accuracy(truth = class, .pred_class)
+
+augment(lr_fit, new_data = cell_test) |> 
+  accuracy(truth = class, .pred_class)
+
+augment(lr_fit, new_data = cell_train) |> 
+  roc_auc(truth = class, .estimate = .pred_PS)
+
+augment(lr_fit, new_data = cell_test) |> 
+  roc_auc(truth = class, .estimate = .pred_PS)
+
+## Evaluacion con CV ----------------------------------------------------------
+
+cell_folds <- vfold_cv(cell_train, v = 10)
+cell_folds
+
+lr_wf <- 
+  workflow() |> 
+  add_model(lr_spec) |> 
+  add_formula(class ~ .)
+
+lr_fit_cv <- lr_workflow |> fit_resamples(cell_folds)
+
+lr_fit_cv |> 
+  unnest(.metrics) |> 
+  group_by(.metric) |> 
+  summarise( .error = mean(.estimate))
+
+collect_metrics(lr_fit_cv)
+
+augment(lr_fit, new_data = cell_test) |> 
+  accuracy(truth = class, .pred_class)
+
+augment(lr_fit, new_data = cell_test) |> 
+  roc_auc(truth = class, .estimate = .pred_PS)
+
+## Despues --------------------------------------------------------------------
+
+
+lr_recipe <- recipe(class ~ ., data = cell_train) |> 
+  step_corr(all_numeric_predictors(), threshold = 0.5)
+
+lr_workflow <- workflow(lr_recipe, lr_spec)
+
+lr_fit <- lr_workflow |> 
+  fit(data = cell_train)
+
