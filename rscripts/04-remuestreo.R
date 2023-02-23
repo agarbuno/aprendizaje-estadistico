@@ -221,7 +221,8 @@ lr_wf <-
   add_model(lr_spec) |> 
   add_formula(class ~ .)
 
-lr_fit_cv <- lr_workflow |> fit_resamples(cell_folds)
+lr_fit_cv <- lr_workflow |> 
+  fit_resamples(cell_folds)
 
 lr_fit_cv |> 
   unnest(.metrics) |> 
@@ -246,4 +247,20 @@ lr_workflow <- workflow(lr_recipe, lr_spec)
 
 lr_fit <- lr_workflow |> 
   fit(data = cell_train)
+
+## Computo en paralelo -------------------------------------------------------
+
+# All operating systems
+library(doParallel)
+
+# Create a cluster object and then register: 
+cl <- makePSOCKcluster(4)
+registerDoParallel(cl)
+
+options <- control_resamples(verbose = TRUE)
+
+lr_fit_cv <- lr_workflow |> 
+  fit_resamples(cell_folds, control = options)
+
+stopCluster(cl)
 
