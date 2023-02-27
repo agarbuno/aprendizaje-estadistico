@@ -175,8 +175,9 @@ cells |>
   mutate(prop = n/sum(n))
 
 set.seed(108)
-cell_split <- initial_split(cells |> select(-case), 
-                            strata = class)
+cell_split <- cells |> 
+  select(-case)|> 
+  initial_split(strata = class)
 
 cell_train <- training(cell_split)
 cell_test  <- testing(cell_split)
@@ -198,6 +199,15 @@ cell_test |>
 lr_spec <- logistic_reg() |>  
   set_engine("glm") 
 
+lr_recipe <- recipe(class ~ ., 
+    data = cell_train) |> 
+    step_corr(all_numeric_predictors(),
+              threshold = .5)
+
+lr_workflow <- workflow(lr_recipe, lr_spec)
+
+lr_fit <- lr_workflow |>
+  fit(data = cell_train)
 
 augment(lr_fit, new_data = cell_train) |> 
   accuracy(truth = class, .pred_class)
@@ -213,13 +223,8 @@ augment(lr_fit, new_data = cell_test) |>
 
 ## Evaluacion con CV ----------------------------------------------------------
 
-cell_folds <- vfold_cv(cell_train, v = 10)
+cell_folds <- vfold_cv(cell_train, v = 3, repeats = 10)
 cell_folds
-
-lr_wf <- 
-  workflow() |> 
-  add_model(lr_spec) |> 
-  add_formula(class ~ .)
 
 system.time({
 lr_fit_cv <- lr_workflow |> 
@@ -239,15 +244,6 @@ augment(lr_fit, new_data = cell_test) |>
 augment(lr_fit, new_data = cell_test) |> 
   roc_auc(truth = class, .estimate = .pred_PS)
 
-## Despues --------------------------------------------------------------------
-
-lr_recipe <- recipe(class ~ ., data = cell_train) |> 
-  step_corr(all_numeric_predictors(), threshold = 0.5)
-
-lr_workflow <- workflow(lr_recipe, lr_spec)
-
-lr_fit <- lr_workflow |> 
-  fit(data = cell_train)
 
 ## Computo en paralelo -------------------------------------------------------
 
@@ -255,7 +251,7 @@ lr_fit <- lr_workflow |>
 library(doParallel)
 
 # Create a cluster object and then register: 
-cl <- makePSOCKcluster(2)
+cl <- makePSOCKcluster(4)
 registerDoParallel(cl)
 
 options <- control_resamples(verbose = TRUE)
@@ -264,6 +260,19 @@ system.time({
 lr_fit_cv <- lr_workflow |> 
   fit_resamples(cell_folds, control = options)
 })
+
+collect_metrics(lr_fit_cv)
+
+
+cell_boots <- bootstraps(cell_train,
+ strata = class, 100)
+
+system.time({
+lr_fit_cv <- lr_workflow |> 
+  fit_resamples(cell_boots, control = options)
+})
+
+collect_metrics(lr_fit_cv)
 
 stopCluster(cl)
 
