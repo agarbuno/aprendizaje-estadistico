@@ -103,7 +103,7 @@ Aproximamos $f(X)$ como una combinación lineal de las entradas.
   ## Datos de marketing ---------------------------------
   data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
   data |> colnames()
-  data |> head()
+  data |> print(n = 5)
 
 #+end_src
 

@@ -128,7 +128,7 @@ Los modelos que estudiaremos en esta sección no son tan computacionalmente inte
   library(ISLR)
   data <- Default
   data |> colnames()
-  data |> head()
+  data |> print(n = 5)
 
   g1 <- data |>
     ggplot(aes(balance, income)) +
@@ -698,7 +698,7 @@ Una vez que tenemos ajustadas nuestras $\hat \delta_k(x)$ podemos utilizarlas pa
   data <- Default
   data <- data |> as_tibble() |>
     mutate(default = ifelse(default == "Yes", "positive", "negative"))
-  data |> head()
+  data |> print(n = 5)
 #+end_src
 
 #+RESULTS:

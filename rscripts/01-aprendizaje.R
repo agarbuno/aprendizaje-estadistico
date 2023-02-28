@@ -29,7 +29,7 @@ theme_set(theme_grey(base_size = 18))
 
 data <- read_csv("https://www.statlearning.com/s/Advertising.csv", col_select = 2:5)
 data |> colnames()
-data |> head()
+data |> print(n = 5)
 
 g1 <- ggplot(data, aes(TV, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 
 g2 <- ggplot(data, aes(radio, sales)) + geom_point(color = 'red') + geom_smooth(method = "lm", se = FALSE) 

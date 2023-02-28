@@ -244,7 +244,6 @@ augment(lr_fit, new_data = cell_test) |>
 augment(lr_fit, new_data = cell_test) |> 
   roc_auc(truth = class, .estimate = .pred_PS)
 
-
 ## Computo en paralelo -------------------------------------------------------
 
 # All operating systems
@@ -275,4 +274,3 @@ lr_fit_cv <- lr_workflow |>
 collect_metrics(lr_fit_cv)
 
 stopCluster(cl)
-
