@@ -1428,10 +1428,10 @@
     },
     "modeldata": {
       "Package": "modeldata",
-      "Version": "1.0.1",
+      "Version": "1.1.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "98cac4808d592f43c9aaba293dfdf247",
+      "Hash": "df65cdee10e24635c6491ed5a98a31ef",
       "Requirements": [
         "MASS",
         "dplyr",
