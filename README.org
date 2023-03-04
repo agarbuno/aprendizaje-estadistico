@@ -272,32 +272,28 @@ tareas que tendrán mecanismos de calificación automatizada.
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
-* COMMENT Plan de trabajo [11/16][68%]                             :noexport:
+* COMMENT Plan de trabajo [7/16][43%]                              :noexport:
 :PROPERTIES:
 :UNNUMBERED: notoc
 :END:
 ** DONE Motivacion
-CLOSED: [2022-03-04 Fri 19:52]
+CLOSED: [2023-01-11 Wed 19:52]
 ** DONE Aprendizaje Estadistico
-CLOSED: [2022-03-04 Fri 19:52]
+CLOSED: [2023-01-19 Thu]
 ** DONE Regresion
-CLOSED: [2022-03-04 Fri 19:51]
+CLOSED: [2023-02-02 Thu]
 ** DONE Clasificacion 
-CLOSED: [2022-03-04 Fri 19:51]
+CLOSED: [2023-02-16 Thu]
 ** DONE Separación de muestras
-CLOSED: [2022-03-04 Fri 19:53]
+CLOSED: [2023-02-23 Thu]
 ** DONE Validación cruzada
-CLOSED: [2022-03-07 Mon 14:47]
-** DONE Bootstrap
-CLOSED: [2022-03-15 Tue 20:20]
+CLOSED: [2023-03-02 Thu]
+** TODO Primer Examen Parcial 
 ** DONE Regularizacion
-CLOSED: [2022-04-14 Thu 19:57]
-** DONE Modelos  no lineales (intro)
-CLOSED: [2022-04-14 Thu 19:57]
-** DONE Arboles de decisión
-CLOSED: [2022-04-27 Wed 14:58]
-** DONE Modelos de Ensamble (RF y Boosting)
-CLOSED: [2022-04-27 Wed 14:58]
+CLOSED: [2023-03-03 Fri 20:14]
+** TODO Modelos  no lineales (intro)
+** TODO Arboles de decisión
+** TODO Modelos de Ensamble (RF y Boosting)
 ** TODO Máquinas de Soporte Vectorial
 ** TODO Aprendizaje no supervisado
 ** TODO Modelos hiper-parametrizados
