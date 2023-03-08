@@ -20,7 +20,7 @@
 #+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 #+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
 #+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1{=}{{$\eq$}}1{-}{{$\dash$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1{-}{{$\dash$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
 #+LaTeX_HEADER: {}
 #+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
@@ -96,6 +96,10 @@
   - [[#comparación-ridge-v-lasso][Comparación: Ridge v. LASSO]]
   - [[#conclusiones][Conclusiones]]
     - [[#para-pensar][Para pensar:]]
+- [[#aplicación-rating-de-espisodios][Aplicación: Rating de espisodios]]
+  - [[#proceso-de-entrenamiento][Proceso de entrenamiento]]
+  - [[#validación-cruzada][Validación cruzada]]
+  - [[#selección-de-modelo][Selección de modelo]]
 - [[#métodos-de-reducción-de-dimensiones][Métodos de reducción de dimensiones]]
   - [[#regresión-con-reducción-de-dimensiones][Regresión con reducción de dimensiones]]
   - [[#otros-métodos-de-reducción-de-dimensiones][Otros métodos de reducción de dimensiones]]
@@ -954,6 +958,299 @@ En la práctica no hay una estrategia dominante. LASSO podría ser preferido cua
 :reveal_background: #00468b
 :END:
 ¿cómo escogerías entre Ridge o LASSO?
+
+* Aplicación: /Rating/ de espisodios
+
+Queremos predecir las calificaciones en ~IMDB~ de los episodios de /The
+Office/. Utilizaremos información que hay sobre el /rating/ y sobre los episodios
+(actores, directores, escritores y diálogo). Ejemplo tomado de [[https://juliasilge.com/blog/lasso-the-office/][aqui]].
+
+#+begin_src R :exports none :results none
+  ## Aplicación: The Office ----------------------------------------------------
+
+  ratings_raw <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-17/office_ratings.csv", show_col_types = FALSE)
+
+    remove_regex <- "[:punct:]|[:digit:]|parts |part |the |and"
+
+    office_ratings <- ratings_raw |>
+      transmute(
+        episode_name = str_to_lower(title),
+        episode_name = str_remove_all(episode_name, remove_regex),
+        episode_name = str_trim(episode_name),
+        imdb_rating
+      )
+
+    office_info <- schrute::theoffice |>
+      mutate(
+        season = as.numeric(season),
+        episode = as.numeric(episode),
+        episode_name = str_to_lower(episode_name),
+        episode_name = str_remove_all(episode_name, remove_regex),
+        episode_name = str_trim(episode_name)
+      ) |>
+      select(season, episode, episode_name, director, writer, character)
+#+end_src
+
+#+REVEAL: split
+Veamos la participación de cada personaje en los episodios
+#+begin_src R :exports results :results org
+  characters <- office_info %>%
+    count(episode_name, character) %>%
+    add_count(character, wt = n, name = "character_count") %>%
+    filter(character_count > 800) %>%
+    select(-character_count) %>%
+    pivot_wider(
+      names_from = character,
+      values_from = n,
+      values_fill = list(n = 0)
+    )
+
+  characters |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 185 × 16
+  episode_name   Andy Angela Darryl Dwight   Jim Kelly Kevin Michael Oscar   Pam
+  <chr>         <int>  <int>  <int>  <int> <int> <int> <int>   <int> <int> <int>
+1 a benihana c…    28     37      3     61    44     5    14     108     1    57
+2 aarm             44     39     30     87    89     0    30       0    28    34
+3 after hours      20     11     14     60    55     8     4       0    10    15
+4 alliance          0      7      0     47    49     0     3      68    14    22
+5 angry y          53      7      5     16    19    13     9       0     7    29
+# … with 180 more rows, and 5 more variables: Phyllis <int>, Ryan <int>,
+#   Toby <int>, Erin <int>, Jan <int>
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+También veamos al equipo creativo detrás de cada episodio.
+
+#+begin_src R :exports results :results org 
+  creators <- office_info %>%
+    distinct(episode_name, director, writer) %>%
+    pivot_longer(director:writer, names_to = "role", values_to = "person") %>%
+    separate_rows(person, sep = ";") %>%
+    add_count(person) %>%
+    filter(n > 10) %>%
+    distinct(episode_name, person) %>%
+    mutate(person_value = 1) %>%
+    pivot_wider(
+      names_from = person,
+      values_from = person_value,
+      values_fill = list(person_value = 0)
+    )
+
+  creators |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 135 × 14
+  episode_name  Ken Kw…¹ Greg …² B.J. …³ Paul …⁴ Mindy…⁵ Paul …⁶ Gene …⁷ Lee E…⁸
+  <chr>            <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>
+1 pilot                1       1       0       0       0       0       0       0
+2 diversity day        1       0       1       0       0       0       0       0
+3 health care          0       0       0       1       0       0       0       0
+4 basketball           0       1       0       0       0       0       0       0
+5 hot girl             0       0       0       0       1       0       0       0
+# … with 130 more rows, 5 more variables: `Jennifer Celotta` <dbl>,
+#   `Randall Einhorn` <dbl>, `Brent Forrester` <dbl>, `Jeffrey Blitz` <dbl>,
+#   `Justin Spitzer` <dbl>, and abbreviated variable names ¹​`Ken Kwapis`,
+#   ²​`Greg Daniels`, ³​`B.J. Novak`, ⁴​`Paul Lieberstein`, ⁵​`Mindy Kaling`,
+#   ⁶​`Paul Feig`, ⁷​`Gene Stupnitsky`, ⁸​`Lee Eisenberg`
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+Juntamos toda la información en un sólo conjunto de datos.
+
+#+begin_src R :exports results :results org 
+  office <- office_info %>%
+    distinct(season, episode, episode_name) %>%
+    inner_join(characters) %>%
+    inner_join(creators) %>%
+    inner_join(office_ratings %>%
+               select(episode_name, imdb_rating)) %>%
+    janitor::clean_names()
+
+  office |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Joining, by = "episode_name"
+Joining, by = "episode_name"
+Joining, by = "episode_name"
+# A tibble: 136 × 32
+  season episode episode_…¹  andy angela darryl dwight   jim kelly kevin michael
+   <dbl>   <dbl> <chr>      <int>  <int>  <int>  <int> <int> <int> <int>   <int>
+1      1       1 pilot          0      1      0     29    36     0     1      81
+2      1       2 diversity…     0      4      0     17    25     2     8      75
+3      1       3 health ca…     0      5      0     62    42     0     6      56
+4      1       5 basketball     0      3     15     25    21     0     1     104
+5      1       6 hot girl       0      3      0     28    55     0     5     106
+# … with 131 more rows, 21 more variables: oscar <int>, pam <int>,
+#   phyllis <int>, ryan <int>, toby <int>, erin <int>, jan <int>,
+#   ken_kwapis <dbl>, greg_daniels <dbl>, b_j_novak <dbl>,
+#   paul_lieberstein <dbl>, mindy_kaling <dbl>, paul_feig <dbl>,
+#   gene_stupnitsky <dbl>, lee_eisenberg <dbl>, jennifer_celotta <dbl>,
+#   randall_einhorn <dbl>, brent_forrester <dbl>, jeffrey_blitz <dbl>,
+#   justin_spitzer <dbl>, imdb_rating <dbl>, and abbreviated variable name …
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+Para el ajuste de un modelo hay que cuidar el proceso de exploración de datos (pueden ver el siguiente video [[https://www.youtube.com/watch?v=_IvAubTDQME][aqui]]).
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/the-office-eda.jpeg :exports results :results output graphics file
+  office %>%
+    ggplot(aes(episode, imdb_rating, fill = as.factor(episode))) +
+    geom_boxplot(show.legend = FALSE) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/the-office-eda.jpeg]]
+
+** Proceso de entrenamiento
+
+#+begin_src R :exports code :results none
+  office_split <- initial_split(office, strata = season)
+  office_train <- training(office_split)
+  office_test <- testing(office_split)
+#+end_src
+
+#+REVEAL: split
+Preparamos un procesamiento para el entrenamiento usual.
+
+#+begin_src R :exports code :results none 
+  office_rec <- recipe(imdb_rating ~ ., data = office_train) |>
+    update_role(episode_name, new_role = "ID") |>
+    step_zv(all_numeric_predictors()) |>
+    step_normalize(all_numeric_predictors())
+
+  office_prep <- office_rec |>
+    prep(strings_as_factors = FALSE)
+#+end_src
+
+** Validación cruzada
+
+#+begin_src R :exports code :results none 
+  set.seed(108727)
+  office_boot <- vfold_cv(office_train, v = 10, strata = season)
+#+end_src
+
+
+#+begin_src R :exports code :results none 
+  set.seed(2020)
+  wf <- workflow() |>
+    add_recipe(office_rec)
+
+  lasso_grid <- tune_grid(
+    wf |> add_model(tune_spec),
+    resamples = office_boot,
+    grid = lambda_grid,
+    control = control_grid(verbose = FALSE)
+  )
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results org 
+  lasso_grid |>
+    collect_metrics()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 100 × 7
+    penalty .metric .estimator  mean     n std_err .config              
+      <dbl> <chr>   <chr>      <dbl> <int>   <dbl> <chr>                
+ 1 1   e-10 rmse    standard   0.474    10  0.0367 Preprocessor1_Model01
+ 2 1   e-10 rsq     standard   0.275    10  0.0462 Preprocessor1_Model01
+ 3 1.60e-10 rmse    standard   0.474    10  0.0367 Preprocessor1_Model02
+ 4 1.60e-10 rsq     standard   0.275    10  0.0462 Preprocessor1_Model02
+ 5 2.56e-10 rmse    standard   0.474    10  0.0367 Preprocessor1_Model03
+ 6 2.56e-10 rsq     standard   0.275    10  0.0462 Preprocessor1_Model03
+ 7 4.09e-10 rmse    standard   0.474    10  0.0367 Preprocessor1_Model04
+ 8 4.09e-10 rsq     standard   0.275    10  0.0462 Preprocessor1_Model04
+ 9 6.55e-10 rmse    standard   0.474    10  0.0367 Preprocessor1_Model05
+10 6.55e-10 rsq     standard   0.275    10  0.0462 Preprocessor1_Model05
+# … with 90 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+HEADER: :width 1200 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/the-office-lasso.jpeg :exports results :results output graphics file
+  lasso_grid %>%
+    collect_metrics() %>%
+    ggplot(aes(penalty, mean, color = .metric)) +
+    geom_linerange(aes(
+      ymin = mean - std_err,
+      ymax = mean + std_err
+    ),
+    alpha = 0.5
+    ) +
+    geom_line(size = 1.5) + geom_point() + 
+    facet_wrap(~.metric, scales = "free", nrow = 2) +
+    scale_x_log10() +
+    theme(legend.position = "none") + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/the-office-lasso.jpeg]]
+
+
+** Selección de modelo
+
+#+begin_src R :exports code :results none 
+  lowest_rmse <- lasso_grid |>
+    select_best("rmse")
+
+  final_lasso <- finalize_workflow(
+    wf |> add_model(tune_spec),
+    lowest_rmse
+  )
+#+end_src
+
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/the-office-lasso-coefs.jpeg :exports results :results output graphics file
+  library(vip)
+
+  final_lasso %>%
+    fit(office_train) %>%
+    pull_workflow_fit() %>%
+    vi(lambda = lowest_rmse$penalty) %>%
+    mutate(
+      Importance = abs(Importance),
+      Variable = fct_reorder(Variable, Importance)
+    ) %>%
+    ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+    geom_col() +
+    scale_x_continuous(expand = c(0, 0)) +
+    labs(y = NULL) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/the-office-lasso-coefs.jpeg]]
+
+#+begin_src R :exports both :results org 
+  final_lasso |>
+    fit(office_train) |>
+    augment(new_data = office_test) |>
+    rmse(truth = imdb_rating, estimate = .pred)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 rmse    standard       0.482
+#+end_src
+
+
 
 * Métodos de reducción de dimensiones
 
