@@ -3,43 +3,59 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Arboles de decisión~
 #+STARTUP: showall
-:REVEAL_PROPERTIES:
-#+LANGUAGE: es
-#+OPTIONS: num:nil toc:nil timestamp:nil
-#+REVEAL_REVEAL_JS_VERSION: 4
-#+REVEAL_THEME: night
-#+REVEAL_SLIDE_NUMBER: t
-#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje Estadístico">
-#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
-#+REVEAL_EXTRA_CSS: ./mods.css
-#+REVEAL_PLUGINS: (notes)
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/07-arboles.pdf
 :END:
 #+PROPERTY: header-args:R :session arboles :exports both :results output org :tangle ../rscripts/07-arboles.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
 
 #+BEGIN_NOTES
-*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2022 | Arboles de decisión.\\
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Árboles de decisión.\\
 *Objetivo*: Después de haber estudiado los modelos basados en /splines/ es natural considerar modelos que puedan lidiar con varios atributos y que también ajusten modelos por regiones. En esta sección estudiaremos árboles de decisión como un modelo que logra ambos objetivos. \\
 *Lectura recomendada*: Capítulo 8 de citep:James2021. 
 #+END_NOTES
 
-
 #+begin_src R :exports none :results none
-  ## Setup --------------------------------------------
+  ## Setup ---------------------------------------------------------------------
   library(tidyverse)
   library(patchwork)
   library(scales)
+
   ## Cambia el default del tamaño de fuente 
   theme_set(theme_linedraw(base_size = 25))
 
   ## Cambia el número de decimales para mostrar
-  options(digits = 2)
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
 
+  ## Para el tema de ggplot
   sin_lineas <- theme(panel.grid.major = element_blank(),
                       panel.grid.minor = element_blank())
   color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
 
-  sin_lineas <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
   sin_leyenda <- theme(legend.position = "none")
   sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 #+end_src
@@ -72,9 +88,8 @@
   - [[#ejemplo][Ejemplo:]]
 - [[#árboles-de-clasificación][Árboles de clasificación]]
   - [[#métricas-de-ajuste-el-índice-de-gini-y-devianza][Métricas de ajuste: el índice de Gini y devianza]]
-  - [[#ejemplo-scooby-doo][Ejemplo: Scooby-Doo]]
+  - [[#aplicación-episodios-de-scooby-doo][Aplicación: Episodios de Scooby-Doo]]
 - [[#conclusiones][Conclusiones]]
-- [[#referencias][Referencias]]
 :END:
 
 * Introducción
@@ -102,18 +117,21 @@ carrera de cada jugador.
   hitters <- as_tibble(Hitters) |>
     select(Hits, Years, Salary) |>
     filter(complete.cases(Salary))
-  hitters |> head() |> as.data.frame()
+  hitters |> print(n = 5)
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-  Hits Years Salary
-1   81    14    475
-2  130     3    480
-3  141    11    500
-4   87     2     92
-5  169    11    750
-6   37     2     70
+# A tibble: 263 × 3
+   Hits Years Salary
+  <int> <int>  <dbl>
+1    81    14  475  
+2   130     3  480  
+3   141    11  500  
+4    87     2   91.5
+5   169    11  750  
+# … with 258 more rows
+# ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
 #+REVEAL: split
@@ -121,7 +139,7 @@ carrera de cada jugador.
 #+begin_src R :file images/baseball-dispersion.jpeg :exports results :results output graphics file
   hitters |>
     ggplot(aes(Years, Hits)) +
-    geom_point(aes(color = Salary)) +
+    geom_point(aes(color = Salary), size = 4) +
     ## scale_color_gradient2(midpoint = 536, low = "blue", mid = "white", high = "red") +
     scale_color_viridis_c(option = "plasma") +
     sin_leyenda + sin_lineas
@@ -179,7 +197,7 @@ conjunto de entrenamiento que se han decantado en cada nodo.
 #+begin_src R :file images/baseball-tree-dispersion.jpeg :exports results :results output graphics file
   hitters |>
     ggplot(aes(Years, Hits)) +
-    geom_point(aes(color = Salary)) +
+    geom_point(aes(color = Salary), size = 4) +
     scale_color_viridis_c(option = "plasma") +
     annotate("rect",
              xmin = -Inf, xmax = 4.5, ymin = -Inf, ymax = Inf,
@@ -578,7 +596,7 @@ El modelo ajustado es bastante complejo. Por ejemplo, podemos visualizar el árb
   \end{align}
   - La cual incide en decisiones similares al índice de Gini en la práctica. 
 
-** Ejemplo: /Scooby-Doo/
+** Aplicación: Episodios de /Scooby-Doo/
 
 Tomamos el [[https://juliasilge.com/blog/scooby-doo/][siguiente caso]] de Julia Silge para ejemplificar un problema de clasificación con árboles de decisión. El objetivo es predecir si al final del capítulo el monstruo era un monstruo real o era un disfraz. 
 
@@ -588,15 +606,16 @@ Tomamos el [[https://juliasilge.com/blog/scooby-doo/][siguiente caso]] de Julia 
 
   scooby_raw |>
     filter(monster_amount > 0) |>
-    count(monster_real) |>
-    as.data.frame()
+    count(monster_real) 
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-  monster_real   n
-1        FALSE 404
-2         TRUE 112
+# A tibble: 2 × 2
+  monster_real     n
+  <chr>        <int>
+1 FALSE          404
+2 TRUE           112
 #+end_src
 
 #+REVEAL: split
@@ -623,7 +642,6 @@ Utilizaremos el año en que salió el episodio y el /rating/ que tuvo ese episod
 
   set.seed(234)
   scooby_folds <- vfold_cv(scooby_train, strata = monster_real)
-  scooby_folds
 #+end_src
 
 #+REVEAL: split
@@ -643,18 +661,21 @@ Especificamos el modelo
 Especificamos la rejilla de búsqueda
 #+begin_src R :exports both :results org
   tree_grid <- grid_regular(cost_complexity(), tree_depth(), min_n(), levels = 4)
-  tree_grid |> head() |> as.data.frame()
+  tree_grid |> print(n = 5)
 #+end_src
 
 #+RESULTS:
 #+begin_src org
+# A tibble: 64 × 3
   cost_complexity tree_depth min_n
-1           1e-10          1     2
-2           1e-07          1     2
-3           1e-04          1     2
-4           1e-01          1     2
-5           1e-10          5     2
-6           1e-07          5     2
+            <dbl>      <int> <int>
+1    0.0000000001          1     2
+2    0.0000001             1     2
+3    0.0001                1     2
+4    0.1                   1     2
+5    0.0000000001          5     2
+# … with 59 more rows
+# ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
 #+REVEAL: split
@@ -721,7 +742,6 @@ Realizamos el ajuste en cada bloque con cada especificación del modelo.
 - Son sensibles al conjunto de datos que se utilizaron para entrenarlos. 
 
 
-* Referencias                                                         :latex:
 bibliographystyle:abbrvnat
 bibliography:references.bib
  
