@@ -74,6 +74,7 @@
 :END:
 :CONTENTS:
 - [[#introducción][Introducción]]
+  - [[#motivación][Motivación]]
   - [[#ejemplo-baseball][Ejemplo: Baseball]]
   - [[#terminología][Terminología]]
   - [[#interpretación-del-árbol][Interpretación del árbol]]
@@ -105,6 +106,124 @@ Los árboles de decisión se utilizan para tareas de ~regresión~ y ~clasificaci
 Son modelos sencillos que pueden interpretarse fácilmente, aunque pueden tener
 una capacidad predictiva limitada. Después de esta sección estudiaremos cómo se
 pueden utilizar como base para modelos mas complejos. 
+
+** Motivación
+
+¿Cómo identificarías un correo electrónico que debería de ser marcado como /spam/?
+
+#+BEGIN_NOTES
+Para resolver esta pregunta podrías pensar en identificar palabras clave en el mensaje o el remitente. Intuitivamente, esto tiene sentido. ¿Pero cómo construirías un modelo predictivo para esta tarea? Un modelo de regresión, como veremos mas adelante, tienes distintas limitantes para resolver la tarea. 
+#+END_NOTES
+
+#+begin_src R :exports code :results none
+  data(spam, package = "kernlab")
+  spam <- spam |> as_tibble() |> mutate(type = relevel(type, ref = "spam"))
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  spam |>
+    group_by(type) |>
+    tally()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 2 × 2
+  type        n
+  <fct>   <int>
+1 spam     1813
+2 nonspam  2788
+#+end_src
+
+\newpage
+#+REVEAL: split
+#+begin_src R :exports none :results none
+  set.seed(108727)
+  spam_split <- initial_split(spam, strata = type)
+  spam_train <- training(spam_split)
+  spam_test <- testing(spam_split)
+#+end_src
+
+#+begin_src R :exports code :results none
+  logistic_spec <- logistic_reg(penalty = .0003, mixture = 1) |>
+    set_engine("glmnet")
+
+  logistic_recipe <- recipe(type ~ ., spam_train)
+
+  logistic_wf <- workflow() |>
+    add_recipe(logistic_recipe) |>
+    add_model(logistic_spec)
+#+end_src
+
+#+begin_src R :exports both :results org 
+  fit(logistic_wf, spam_train) |>
+    augment(new_data = spam_test) |>
+    conf_mat(type, .pred_class)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+          Truth
+Prediction spam nonspam
+   spam     409      26
+   nonspam   45     671
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 500 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/spam-lasso-coefs.jpeg :exports results :results output graphics file
+  fit(logistic_wf, spam_train) |>
+  pull_workflow_fit() |>
+    vi(lambda = 0.0003) |>
+    mutate(
+      Importance = abs(Importance),
+      Variable = fct_reorder(Variable, Importance)
+    ) |> head(20) |> 
+    ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+    geom_col() +
+    scale_x_continuous(expand = c(0, 0)) +
+    labs(y = NULL) + sin_lineas
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+RESULTS:
+[[file:../images/spam-lasso-coefs.jpeg]]
+
+#+begin_src R :exports none :results none
+  tree_spec <- decision_tree(tree_depth = 2) |>
+    set_engine("rpart")
+
+  class_tree_spec <- tree_spec |>
+    set_mode("classification")
+
+  class_tree_fit <- class_tree_spec |>
+    fit(type ~ ., data = spam_train)
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/spam-arbol-decision.jpeg :exports results :results output graphics file
+  class_tree_fit$fit |>
+    rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2)
+#+end_src
+
+#+RESULTS:
+[[file:../images/spam-arbol-decision.jpeg]]
+
+#+begin_src R :exports both :results org 
+  class_tree_fit |>
+    augment(new_data = spam_test) |>
+    conf_mat(type, .pred_class)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+          Truth
+Prediction spam nonspam
+   spam     311      49
+   nonspam  143     648
+#+end_src
+
 
 ** Ejemplo: /Baseball/
 
