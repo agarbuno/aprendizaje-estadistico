@@ -33,6 +33,14 @@
       "Hash": "b7b812ae4484d4bbf0a0baac72e8fc01",
       "Requirements": []
     },
+    "Formula": {
+      "Package": "Formula",
+      "Version": "1.2-5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "7a29697b75e027767a53fde6c903eca7",
+      "Requirements": []
+    },
     "GGally": {
       "Package": "GGally",
       "Version": "2.1.2",
@@ -1117,6 +1125,16 @@
         "vctrs"
       ]
     },
+    "hexbin": {
+      "Package": "hexbin",
+      "Version": "1.28.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "76314b69dc54f8c14204063a2fd6d74a",
+      "Requirements": [
+        "lattice"
+      ]
+    },
     "highr": {
       "Package": "highr",
       "Version": "0.9",
@@ -1242,6 +1260,16 @@
         "rlang",
         "tibble",
         "tidyr"
+      ]
+    },
+    "inum": {
+      "Package": "inum",
+      "Version": "1.0-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "2a997a29758c334d27bc5faea4391b11",
+      "Requirements": [
+        "libcoin"
       ]
     },
     "ipred": {
@@ -1444,6 +1472,16 @@
       "Hash": "dcd40e09bb097115d584d525850ea124",
       "Requirements": [
         "Rcpp"
+      ]
+    },
+    "libcoin": {
+      "Package": "libcoin",
+      "Version": "1.0-9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "8400d6bc0318f0b9b082b0e75fa6dd90",
+      "Requirements": [
+        "mvtnorm"
       ]
     },
     "lifecycle": {
@@ -1780,6 +1818,40 @@
         "tidyr",
         "vctrs",
         "withr"
+      ]
+    },
+    "parttree": {
+      "Package": "parttree",
+      "Version": "0.0.1.9004",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "grantmcdermott",
+      "RemoteRepo": "parttree",
+      "RemoteRef": "main",
+      "RemoteSha": "d2b60ac06bc760751685a9e92ff590f731f6a0ed",
+      "Hash": "0490d6fa62f6618f63f4708263cdcbcb",
+      "Requirements": [
+        "data.table",
+        "ggplot2",
+        "partykit",
+        "rlang",
+        "rpart"
+      ]
+    },
+    "partykit": {
+      "Package": "partykit",
+      "Version": "1.2-17",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c2e6e45b41cbf1c6f490e820c405820e",
+      "Requirements": [
+        "Formula",
+        "inum",
+        "libcoin",
+        "mvtnorm",
+        "rpart",
+        "survival"
       ]
     },
     "patchwork": {
@@ -2216,6 +2288,16 @@
       "Repository": "CRAN",
       "Hash": "ea3ca1d9473daabb3cd0f1b4f974c1ed",
       "Requirements": []
+    },
+    "rpart.plot": {
+      "Package": "rpart.plot",
+      "Version": "3.1.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "3281d3200bbcff53781d7d40d78f3590",
+      "Requirements": [
+        "rpart"
+      ]
     },
     "rprojroot": {
       "Package": "rprojroot",
