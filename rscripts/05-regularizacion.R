@@ -379,16 +379,24 @@ office_prep <- office_rec |>
 set.seed(108727)
 office_boot <- vfold_cv(office_train, v = 10, strata = season)
 
+## All operating systems
+library(doParallel)
+
+## Create a cluster object and then register: 
+cl <- makePSOCKcluster(4)
+registerDoParallel(cl)
+
 set.seed(2020)
 wf <- workflow() |>
-  add_recipe(office_rec)
+  add_recipe(office_rec) |>
+  add_model(tune_spec)
 
-lasso_grid <- tune_grid(
-  wf |> add_model(tune_spec),
-  resamples = office_boot,
-  grid = lambda_grid,
-  control = control_grid(verbose = FALSE)
-)
+lasso_grid <- wf |>
+  tune_grid(
+    resamples = office_boot,
+    grid = lambda_grid,
+    control = control_grid(verbose = FALSE)
+  )
 
 lasso_grid |>
   collect_metrics()

@@ -20,7 +20,7 @@
 #+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 #+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
 #+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1{-}{{$\dash$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
 #+LaTeX_HEADER: {}
 #+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
@@ -959,6 +959,16 @@ En la práctica no hay una estrategia dominante. LASSO podría ser preferido cua
 :END:
 ¿cómo escogerías entre Ridge o LASSO?
 
+#+BEGIN_NOTES
+La penalización tipo LASSO es indiferente a la selección de variables dentro de un conjunto de variables altamente correlacionadas. Ridge, por su parte, tiende a agrupar los coeficientes en valores similares. La penalización de ~Elastic Net~ puede lograr un compromiso entre los puntos anteriores
+\begin{align}
+\alpha \|\beta\|_1 + (1 - \alpha) \|\beta\|_2^2\,.
+\end{align}
+El segundo término logra promediar los coeficientes de atributos altamente correlacionados, mientras que el primer término se encarga de acercarlos mas a cero (una solución /sparse/). 
+#+END_NOTES
+
+
+
 * Aplicación: /Rating/ de espisodios
 
 Queremos predecir las calificaciones en ~IMDB~ de los episodios de /The
@@ -1141,18 +1151,27 @@ Preparamos un procesamiento para el entrenamiento usual.
   office_boot <- vfold_cv(office_train, v = 10, strata = season)
 #+end_src
 
+#+begin_src R :exports none :results none
+  ## All operating systems
+  library(doParallel)
+
+  ## Create a cluster object and then register: 
+  cl <- makePSOCKcluster(4)
+  registerDoParallel(cl)
+#+end_src
 
 #+begin_src R :exports code :results none 
   set.seed(2020)
   wf <- workflow() |>
-    add_recipe(office_rec)
+    add_recipe(office_rec) |>
+    add_model(tune_spec)
 
-  lasso_grid <- tune_grid(
-    wf |> add_model(tune_spec),
-    resamples = office_boot,
-    grid = lambda_grid,
-    control = control_grid(verbose = FALSE)
-  )
+  lasso_grid <- wf |>
+    tune_grid(
+      resamples = office_boot,
+      grid = lambda_grid,
+      control = control_grid(verbose = FALSE)
+    )
 #+end_src
 
 #+REVEAL: split
@@ -1214,6 +1233,7 @@ Preparamos un procesamiento para el entrenamiento usual.
 #+end_src
 
 
+#+REVEAL: split
 #+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
 #+begin_src R :file images/the-office-lasso-coefs.jpeg :exports results :results output graphics file
   library(vip)
@@ -1235,6 +1255,7 @@ Preparamos un procesamiento para el entrenamiento usual.
 #+RESULTS:
 [[file:../images/the-office-lasso-coefs.jpeg]]
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   final_lasso |>
     fit(office_train) |>
