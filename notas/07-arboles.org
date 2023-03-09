@@ -713,7 +713,25 @@ El modelo ajustado es bastante complejo. Por ejemplo, podemos visualizar el árb
   \begin{align}
   D(m) = - \sum_{k = 1}^{K} \hat p_{mk} \log \hat p_{mk}\,.
   \end{align}
-  - La cual incide en decisiones similares al índice de Gini en la práctica. 
+- La cual incide en decisiones similares al índice de Gini en la práctica. 
+
+#+REVEAL: split
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/pureza-arboles-clasificacion.jpeg :exports results :results output graphics file
+
+  tibble(prob.pred = seq(0.001, 1, length.out = 1000)) |>
+    mutate(gini = 2 * prob.pred * (1 - prob.pred),
+           entropy = -prob.pred * log(prob.pred) - (1-prob.pred) * log(1 - prob.pred),
+           error.rate = ifelse(prob.pred <= .5, prob.pred, 1 - prob.pred)) |>
+   pivot_longer(2:4, names_to = ".metric", values_to = "impurity") |>
+   ggplot(aes(prob.pred, impurity, group = .metric)) +
+    geom_line(aes(colour = .metric), linewidth = 2) + sin_lineas
+
+#+end_src
+
+#+RESULTS:
+[[file:../images/pureza-arboles-clasificacion.jpeg]]
+
 
 ** Aplicación: Episodios de /Scooby-Doo/
 
