@@ -94,12 +94,12 @@
   - [[#regresión-lasso][Regresión LASSO]]
   - [[#lasso-datos-de-crédito][LASSO: datos de crédito]]
   - [[#comparación-ridge-v-lasso][Comparación: Ridge v. LASSO]]
-  - [[#conclusiones][Conclusiones]]
-    - [[#para-pensar][Para pensar:]]
 - [[#aplicación-rating-de-espisodios][Aplicación: Rating de espisodios]]
   - [[#proceso-de-entrenamiento][Proceso de entrenamiento]]
   - [[#validación-cruzada][Validación cruzada]]
   - [[#selección-de-modelo][Selección de modelo]]
+  - [[#conclusiones][Conclusiones]]
+    - [[#para-pensar][Para pensar:]]
 - [[#métodos-de-reducción-de-dimensiones][Métodos de reducción de dimensiones]]
   - [[#regresión-con-reducción-de-dimensiones][Regresión con reducción de dimensiones]]
   - [[#otros-métodos-de-reducción-de-dimensiones][Otros métodos de reducción de dimensiones]]
@@ -948,27 +948,6 @@ y el respectivo de LASSO
 #+attr_html: :width 700 :align center
 [[file:images/20220304-125828_screenshot.png]]
 
-
-** Conclusiones
-
-En la práctica no hay una estrategia dominante. LASSO podría ser preferido cuando el número de parámetros es pequeño. Pero eso implica conocer /a priori/ el número de predictores para usar en el modelo. 
-
-*** Para pensar:
-:PROPERTIES:
-:reveal_background: #00468b
-:END:
-¿cómo escogerías entre Ridge o LASSO?
-
-#+BEGIN_NOTES
-La penalización tipo LASSO es indiferente a la selección de variables dentro de un conjunto de variables altamente correlacionadas. Ridge, por su parte, tiende a agrupar los coeficientes en valores similares. La penalización de ~Elastic Net~ puede lograr un compromiso entre los puntos anteriores
-\begin{align}
-\alpha \|\beta\|_1 + (1 - \alpha) \|\beta\|_2^2\,.
-\end{align}
-El segundo término logra promediar los coeficientes de atributos altamente correlacionados, mientras que el primer término se encarga de acercarlos mas a cero (una solución /sparse/). 
-#+END_NOTES
-
-
-
 * Aplicación: /Rating/ de espisodios
 
 Queremos predecir las calificaciones en ~IMDB~ de los episodios de /The
@@ -1135,6 +1114,11 @@ Para el ajuste de un modelo hay que cuidar el proceso de exploración de datos (
 Preparamos un procesamiento para el entrenamiento usual.
 
 #+begin_src R :exports code :results none 
+  ## Con mixture = 1, pedimos lasso
+  tune_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
+    set_engine("glmnet") |>
+    set_mode("regression")
+
   office_rec <- recipe(imdb_rating ~ ., data = office_train) |>
     update_role(episode_name, new_role = "ID") |>
     step_zv(all_numeric_predictors()) |>
@@ -1271,6 +1255,63 @@ Preparamos un procesamiento para el entrenamiento usual.
 1 rmse    standard       0.482
 #+end_src
 
+
+** Conclusiones
+
+En la práctica no hay una estrategia dominante. LASSO podría ser preferido cuando el número de parámetros es pequeño. Pero eso implica conocer /a priori/ el número de predictores para usar en el modelo. 
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿cómo escogerías entre Ridge o LASSO?
+
+#+BEGIN_NOTES
+La penalización tipo LASSO es indiferente a la selección de variables dentro de un conjunto de variables altamente correlacionadas. Ridge, por su parte, tiende a agrupar los coeficientes en valores similares. La penalización de ~Elastic Net~ puede lograr un compromiso entre los puntos anteriores
+\begin{align}
+\lambda \left[ \alpha \|\beta\|_1 + (1 - \alpha) \|\beta\|_2^2 \right]\,.
+\end{align}
+El segundo término logra promediar los coeficientes de atributos altamente correlacionados, mientras que el primer término se encarga de acercarlos mas a cero (una solución /sparse/). 
+#+END_NOTES
+
+
+Extender la selección de modelos a una búsqueda de varios hiper-parámetros se
+puede realizar dentro de ~tidymodels~ especificando los parámetros que se deben de
+ajustar en la definición del modelo y creando la /malla/ adecuada de búsqueda. 
+
+#+begin_src R :exports code :results none :eval never 
+  tune_spec <- linear_reg(penalty = tune(), mixture = tune()) |> 
+    set_engine("glmnet") |>
+    set_mode("regression")
+#+end_src
+
+#+begin_src R :exports code :results none :eval never
+  hyper_params <- parameters(penalty(range = c(-5, 3)), mixture())
+  hparams_grid <- grid_regular(hyper_params, levels = 10)
+#+end_src
+
+Tenemos que asegurar que la especificación se actualiza para poder hacer la búsqueda.
+
+#+begin_src R :exports code :results none :eval never
+  set.seed(2020)
+  wf <- workflow() |>
+    add_recipe(office_rec) |>
+    add_model(tune_spec)
+
+  lasso_grid <- wf |>
+    tune_grid(
+      resamples = office_boot,
+      grid = hparams_grid,
+      control = control_grid(verbose = FALSE)
+    )
+#+end_src
+
+Existen otras estrategias de búsqueda utilizando un diseño aleatorio en el espacio de hiper-parámetros.
+
+#+begin_src R :exports code :results none :eval never
+  grid_max_entropy(hyper.params, size = 50)
+  grid_random(hyper.params, size = 50)
+#+end_src
 
 
 * Métodos de reducción de dimensiones

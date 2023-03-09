@@ -289,6 +289,11 @@ office_split <- initial_split(office, strata = season)
 office_train <- training(office_split)
 office_test <- testing(office_split)
 
+## Con mixture = 1, pedimos lasso
+tune_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
+  set_engine("glmnet") |>
+  set_mode("regression")
+
 office_rec <- recipe(imdb_rating ~ ., data = office_train) |>
   update_role(episode_name, new_role = "ID") |>
   step_zv(all_numeric_predictors()) |>
@@ -363,3 +368,25 @@ final_lasso |>
   fit(office_train) |>
   augment(new_data = office_test) |>
   rmse(truth = imdb_rating, estimate = .pred)
+
+tune_spec <- linear_reg(penalty = tune(), mixture = tune()) |> 
+  set_engine("glmnet") |>
+  set_mode("regression")
+
+hyper_params <- parameters(penalty(range = c(-5, 3)), mixture())
+hparams_grid <- grid_regular(hyper_params, levels = 10)
+
+set.seed(2020)
+wf <- workflow() |>
+  add_recipe(office_rec) |>
+  add_model(tune_spec)
+
+lasso_grid <- wf |>
+  tune_grid(
+    resamples = office_boot,
+    grid = hparams_grid,
+    control = control_grid(verbose = FALSE)
+  )
+
+grid_max_entropy(hyper.params, size = 50)
+grid_random(hyper.params, size = 50)

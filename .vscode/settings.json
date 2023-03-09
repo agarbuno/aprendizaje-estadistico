@@ -13,4 +13,8 @@
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.minimap.enabled": false,
     "r.plot.useHttpgd": true,
+    "editor.renderLineHighlight": "all",
+    "workbench.colorCustomizations": {
+        "editor.lineHighlightBackground": "#E8E8E8",
+    }
 }
