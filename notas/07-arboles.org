@@ -89,7 +89,9 @@
   - [[#ejemplo][Ejemplo:]]
 - [[#árboles-de-clasificación][Árboles de clasificación]]
   - [[#métricas-de-ajuste-el-índice-de-gini-y-devianza][Métricas de ajuste: el índice de Gini y devianza]]
+  - [[#detalles-sobre-selección-de-variables-y-puntos-de-corte][Detalles sobre selección de variables y puntos de corte]]
   - [[#aplicación-episodios-de-scooby-doo][Aplicación: Episodios de Scooby-Doo]]
+- [[#hiper-parámetros][Hiper-parámetros]]
 - [[#conclusiones][Conclusiones]]
 :END:
 
@@ -400,12 +402,12 @@ conjunto de entrenamiento que se han decantado en cada nodo.
   \begin{align}
   R_1(j,s) = \{X| X_j < s\}\,, \qquad   R_2(j,s) = \{X| X_j \geq s\}\,,
   \end{align}
-  que tengan la máxima reducción de ~RSS~.
+  que tengan la máxima reducción de ~RSS~ (en el caso de regresión).
 - Consideramos dentro de cada región otra decisión de selección de variable y
   decisión de corte para refinar el espacio de los atributos. 
-- El procedimiento continua hasta que se satisface un criterio de
-  terminación. Por ejemplo, que todas las regiones tengan a lo más 5
-  observaciones o se alcance una profundidad máxima del árbol. 
+- El procedimiento continua hasta que se satisface un ~criterio de
+  terminación~. Por ejemplo, que todas las regiones tengan a lo más 5
+  observaciones o se alcance una profundidad máxima del árbol.
 
 ** Predicciones
 
@@ -416,10 +418,10 @@ datos de entrenamiento en dicha región.
 
 #+REVEAL: split
 En general, las predicciones de un árbol de decisión se pueden escribir como una ecuación lineal de funciones indicadoras. Por ejemplo, consideremos los datos de los sueldos de los jugadores de /baseball/
-\begin{align}
-\hat{y}(x) & = \beta_1 I\{\mathsf{Years}(x) \leq 4.5\} + \beta_2 I\{ \mathsf{Years}(x) > 4.5 \,\&\, \mathsf{Hits}(x) \leq 118\} \\
-& + \beta_3 I\{ \mathsf{Years}(x) > 4.5 \,\&\, \mathsf{Hits}(x) >118\}\,.
-\end{align}
+\begin{align*}
+\hat{y}(x)  = &  \beta_1 I\{\mathsf{Years}(x) \leq 4.5\} + \beta_2 I\{ \mathsf{Years}(x) > 4.5 \,\&\, \mathsf{Hits}(x) \leq 118\} \\
+&+  \beta_3 I\{ \mathsf{Years}(x) > 4.5 \,\&\, \mathsf{Hits}(x) >118\}\,.
+\end{align*}
 
 
 #+BEGIN_NOTES
@@ -462,11 +464,17 @@ En la [[fig:partition-02]], dos representaciones gráficas del mismo árbol de d
 - El método de poda que se utiliza es por medio de una ~medida de complejidad~ (/cost complexity pruning/, /weakest link pruning/).
 - Consideramos una secuencia de árboles$^*$ indexados por un parámetro $\alpha>0$. Para cada valor de $\alpha$ tenemos un sub-árbol $T(\alpha) \subset T_0$ tal que
   \begin{align}
-  \sum_{m = 1}^{|T|} \sum_{i: x_i \in R_m}^{} (y_i - \hat y_{R_m})^2 + \alpha |T|\,,
+  R_\alpha(T) = \sum_{m = 1}^{|T|} \sum_{i: x_i \in R_m}^{} (y_i - \hat y_{R_m})^2 + \alpha |T|\,,
   \end{align}
   es lo mas pequeño posible.
-- En esta notación $|T|$ denota el número de nodos terminales (regiones) del árbol. 
+- En esta notación $|T|$ denota el número de nodos terminales (regiones) del árbol.
+- Nota que $T_0 = T(0)$. Es decir, el árbol con ninguna penalización $\left(\alpha = 0\right)$. 
 
+
+#+REVEAL: split
+- citet:Breiman1984 probó que para cualquier $\alpha$ existe un árbol único con el tamaño mas pequeño posible $T(\alpha)$ que minimiza $R_\alpha(T)$.
+- *Consecuencia*: no existen dos árboles de la misma profundidad que tengan el mismo valor de $R_\alpha(T)$. 
+  
 #+BEGIN_NOTES
 Utilizar un validación cruzada implicaría evaluar la capacidad predictiva de
 cada sub-árbol posible. Lo cual se traduce en un costo computacional alto. 
@@ -765,6 +773,27 @@ El modelo ajustado es bastante complejo. Por ejemplo, podemos visualizar el árb
 #+RESULTS:
 [[file:../images/pureza-arboles-clasificacion.jpeg]]
 
+** Detalles sobre selección de variables y puntos de corte
+
+Supongamos que tenemos región en el árbol $R$ y medimos su grado de impureza
+\begin{align}
+i(R) = \begin{cases}
+\sum_{k = 1}^{K} p_k(R) \left( 1 - p_k(R) \right) & \text{ índice de Gini } \\
+\sum_{k = 1}^{K} p_k(R) \log \left( 1 / p_k(R) \right) & \text{ entropía cruzada }
+\end{cases}\,,
+\end{align}
+donde $p_k(R)$ es la frecuencia relativa de observaciones de la clase $k$ que cae en la región $R$. 
+
+
+#+REVEAL: split
+Para un corte $\mathcal{S} = \{j , s\}$ consideramos la ~ganancia del corte~ como
+\begin{align}
+\Delta \mathcal{I} (\mathcal{S}, R) = p(R) i(R) - \left[ p(R_1) i(R_1) + p(R_2) i(R_2)\right]\,,
+\end{align}
+donde como antes $R_1(\mathcal{S}) = \{X | X_j < s\}$ y $R_2(\mathcal{S}) = \{X | X_j \geq s\}$ y buscamos
+\begin{align}
+\mathcal{S}^\star = \arg \max_{\mathcal{S}} \Delta \mathcal{I} (\mathcal{S}, R)\,.
+\end{align}
 
 ** Aplicación: Episodios de /Scooby-Doo/
 
@@ -900,6 +929,13 @@ Realizamos el ajuste en cada bloque con cada especificación del modelo.
 #+caption: Representación gráfica del árbol de decisión. 
 #+RESULTS:
 [[file:../images/scooby-clasificacion-arbol.jpeg]]
+
+* Hiper-parámetros
+
+Los valores que se determinan por el analista para la construcción de un árbol son:
+1. La profundidad máxima o máximo número de cortes.
+2. El número de observaciones mas pequeño que puede haber en cada nodo terminal.
+3. El costo asociado a complejidad $C_p = \alpha / R(T_0)$.
 
 
 * Conclusiones

@@ -9,7 +9,7 @@ theme_set(theme_linedraw(base_size = 25))
 ## Cambia el número de decimales para mostrar
 options(digits = 4)
 ## Problemas con mi consola en Emacs
-options(pillar.subtle = FALSE)
+options(pillar.subtle = FALSE, pillar.width = 75)
 options(rlang_backtrace_on_error = "none")
 options(crayon.enabled = FALSE)
 
@@ -25,6 +25,60 @@ sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 library(tidymodels)
 library(rpart.plot)
 library(vip)
+
+data(spam, package = "kernlab")
+spam <- spam |> as_tibble() |> mutate(type = relevel(type, ref = "spam"))
+spam |> print(n = 3, width = 75)
+
+spam |>
+  group_by(type) |>
+  tally()
+
+set.seed(108727)
+spam_split <- initial_split(spam, strata = type)
+spam_train <- training(spam_split)
+spam_test <- testing(spam_split)
+
+logistic_spec <- logistic_reg(penalty = .0003, mixture = 1) |>
+  set_engine("glmnet")
+
+logistic_recipe <- recipe(type ~ ., spam_train)
+
+logistic_wf <- workflow() |>
+  add_recipe(logistic_recipe) |>
+  add_model(logistic_spec)
+
+fit(logistic_wf, spam_train) |>
+  augment(new_data = spam_test) |>
+  conf_mat(type, .pred_class)
+
+fit(logistic_wf, spam_train) |>
+pull_workflow_fit() |>
+  vi(lambda = 0.0003) |>
+  mutate(
+    Importance = abs(Importance),
+    Variable = fct_reorder(Variable, Importance)
+  ) |> head(20) |> 
+  ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+  geom_col() +
+  scale_x_continuous(expand = c(0, 0)) +
+  labs(y = NULL) + sin_lineas
+
+tree_spec <- decision_tree(tree_depth = 2) |>
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec |>
+  set_mode("classification")
+
+class_tree_fit <- class_tree_spec |>
+  fit(type ~ ., data = spam_train)
+
+class_tree_fit$fit |>
+  rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2)
+
+class_tree_fit |>
+  augment(new_data = spam_test) |>
+  conf_mat(type, .pred_class)
 
 library(ISLR2)
 hitters <- as_tibble(Hitters) |>
@@ -199,6 +253,14 @@ wind_train |>
 final_fit |>
   extract_fit_engine() |>
   rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2)
+
+tibble(prob.pred = seq(0.001, 1, length.out = 1000)) |>
+  mutate(gini = 2 * prob.pred * (1 - prob.pred),
+         entropy = -prob.pred * log(prob.pred) - (1-prob.pred) * log(1 - prob.pred),
+         error.rate = ifelse(prob.pred <= .5, prob.pred, 1 - prob.pred)) |>
+ pivot_longer(2:4, names_to = ".metric", values_to = "impurity") |>
+ ggplot(aes(prob.pred, impurity, group = .metric)) +
+  geom_line(aes(colour = .metric), linewidth = 2) + sin_lineas
 
 ## Clasificacion: Scooby doo -------------------------
 scooby_raw <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-13/scoobydoo.csv", progress = FALSE, show_col_types = FALSE)
