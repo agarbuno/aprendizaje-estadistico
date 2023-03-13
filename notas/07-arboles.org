@@ -47,7 +47,7 @@
   ## Cambia el número de decimales para mostrar
   options(digits = 4)
   ## Problemas con mi consola en Emacs
-  options(pillar.subtle = FALSE)
+  options(pillar.subtle = FALSE, pillar.width = 75)
   options(rlang_backtrace_on_error = "none")
   options(crayon.enabled = FALSE)
 
@@ -112,14 +112,34 @@ pueden utilizar como base para modelos mas complejos.
 ¿Cómo identificarías un correo electrónico que debería de ser marcado como /spam/?
 
 #+BEGIN_NOTES
-Para resolver esta pregunta podrías pensar en identificar palabras clave en el mensaje o el remitente. Intuitivamente, esto tiene sentido. ¿Pero cómo construirías un modelo predictivo para esta tarea? Un modelo de regresión, como veremos mas adelante, tienes distintas limitantes para resolver la tarea. 
+Para resolver esta pregunta podrías pensar en identificar palabras clave en el mensaje o el remitente. Intuitivamente, esto tiene sentido. ¿Pero cómo construirías un modelo predictivo para esta tarea? Un modelo de regresión, como veremos mas adelante, tiene distintas limitantes para resolver la tarea. 
 #+END_NOTES
 
-#+begin_src R :exports code :results none
+#+begin_src R :exports both :results org
   data(spam, package = "kernlab")
   spam <- spam |> as_tibble() |> mutate(type = relevel(type, ref = "spam"))
+  spam |> print(n = 3, width = 75)
 #+end_src
 
+#+RESULTS:
+#+begin_src org
+# A tibble: 4,601 × 58
+   make address   all num3d   our  over remove internet order  mail receive
+  <dbl>   <dbl> <dbl> <dbl> <dbl> <dbl>  <dbl>    <dbl> <dbl> <dbl>   <dbl>
+1  0       0.64  0.64     0  0.32  0      0        0     0     0       0   
+2  0.21    0.28  0.5      0  0.14  0.28   0.21     0.07  0     0.94    0.21
+3  0.06    0     0.71     0  1.23  0.19   0.19     0.12  0.64  0.25    0.38
+# … with 4,598 more rows, and 47 more variables: will <dbl>, people <dbl>,
+#   report <dbl>, addresses <dbl>, free <dbl>, business <dbl>,
+#   email <dbl>, you <dbl>, credit <dbl>, your <dbl>, font <dbl>,
+#   num000 <dbl>, money <dbl>, hp <dbl>, hpl <dbl>, george <dbl>,
+#   num650 <dbl>, lab <dbl>, labs <dbl>, telnet <dbl>, num857 <dbl>,
+#   data <dbl>, num415 <dbl>, num85 <dbl>, technology <dbl>,
+#   num1999 <dbl>, parts <dbl>, pm <dbl>, direct <dbl>, cs <dbl>, …
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+\newpage
 #+REVEAL: split
 #+begin_src R :exports both :results org 
   spam |>
@@ -136,7 +156,6 @@ Para resolver esta pregunta podrías pensar en identificar palabras clave en el 
 2 nonspam  2788
 #+end_src
 
-\newpage
 #+REVEAL: split
 #+begin_src R :exports none :results none
   set.seed(108727)
@@ -223,6 +242,7 @@ Prediction spam nonspam
    spam     311      49
    nonspam  143     648
 #+end_src
+
 
 
 ** Ejemplo: /Baseball/
@@ -393,6 +413,19 @@ Las predicciones se realizan tomando el promedio de las respuestas en cada una
 de las regiones.  Por lo tanto, para predecir la respuesta en un punto tenemos
 que evaluar en dónde se encuentra dicho punto y luego tomar el promedio de los
 datos de entrenamiento en dicha región.
+
+#+REVEAL: split
+En general, las predicciones de un árbol de decisión se pueden escribir como una ecuación lineal de funciones indicadoras. Por ejemplo, consideremos los datos de los sueldos de los jugadores de /baseball/
+\begin{align}
+\hat{y}(x) & = \beta_1 I\{\mathsf{Years}(x) \leq 4.5\} + \beta_2 I\{ \mathsf{Years}(x) > 4.5 \,\&\, \mathsf{Hits}(x) \leq 118\} \\
+& + \beta_3 I\{ \mathsf{Years}(x) > 4.5 \,\&\, \mathsf{Hits}(x) >118\}\,.
+\end{align}
+
+
+#+BEGIN_NOTES
+Nota como tenemos una expresión del estilo $h_1(\mathsf{Years} ) + h_2(\mathsf{Years}, \mathsf{Hits})$ donde el segundo término modela la interacción de estas dos variables. Con árboles mas complejos, podemos expresar mas términos de interacción (de orden superior) haciendo cada vez más difícil la interpretación de estos términos.
+#+END_NOTES
+
 
 *** Para pensar:
 :PROPERTIES:
@@ -871,14 +904,17 @@ Realizamos el ajuste en cada bloque con cada especificación del modelo.
 
 * Conclusiones
 
-- Los árboles  de decisión son fáciles de interpretar y explicar.
+- Los árboles  de decisión son fáciles de interpretar y explicar (siempre y cuando sean pequeños). 
 - Algunos piensan que los árboles de decisión refleja el patrón de toma de decisiones de las personas.
-- Son fáciles de visualizar, incluso si hay muchos predictores.
+- Son fáciles de visualizar, incluso si hay muchos predictores (pueden servir para formar cúmulos).
 - Son difíciles de ajustar cuando las relaciones son lineales.
 - Las predicciones numéricas pueden ser poco precisas.
-- Son sensibles al conjunto de datos que se utilizaron para entrenarlos. 
+- Son sensibles al conjunto de datos que se utilizó para entrenar.
+- Hay un componente de selección de variables.
+- Son robustos a datos faltantes.
+- Se adecúan muy bien a atributos categóricos (siempre y cuando no haya muchas etiquetas).
 
-
+  
 bibliographystyle:abbrvnat
 bibliography:references.bib
  
