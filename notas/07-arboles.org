@@ -887,7 +887,7 @@ Realizamos el ajuste en cada bloque con cada especificación del modelo.
       monster_real ~ year_aired + imdb,
       resamples = scooby_folds,
       grid = tree_grid,
-      metrics = metric_set(accuracy, roc_auc, sensitivity, specificity)
+      metrics = metric_set(accuracy, recall, precision, roc_auc)
     )
 #+end_src
 
