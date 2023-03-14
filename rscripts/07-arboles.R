@@ -310,7 +310,7 @@ tree_rs <-
     monster_real ~ year_aired + imdb,
     resamples = scooby_folds,
     grid = tree_grid,
-    metrics = metric_set(accuracy, roc_auc, sensitivity, specificity)
+    metrics = metric_set(accuracy, recall, precision, roc_auc)
   )
 
 autoplot(tree_rs) + sin_lineas
