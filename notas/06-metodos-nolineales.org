@@ -3,28 +3,19 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Modelos aditivos~
 #+STARTUP: showall
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/06-modelos-nolineales.pdf
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
 :END:
 #+PROPERTY: header-args:R :session nolineal :exports both :results output org :tangle ../rscripts/06-metodos-nolineales.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
@@ -159,6 +150,7 @@ Datos demográficos y de ingreso para individuos que viven en región central de
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-polynomial.jpeg :exports results :results output graphics file
   g.reg <- data |>
@@ -242,7 +234,7 @@ considerar ~grupos de edad~: $[18, 35), [35, 50), [50, 65), [65, 100)$ .
 #+REVEAL: split
 Para lograr esto, generamos una nueva colección de predictores por medio de variables ~categóricas~ o /dummy/
 \begin{align}
-C_1(X) = I(X < 35), \quad C_2(X) = I(35 \leq X < 50), \quad \ldots, \quad C_4(X \geq 65)\,.
+C_1(X) = I(X < 35), \quad C_2(X) = I(35 \leq X < 50), \quad \ldots, \quad C_4(X \geq 65)\,,
 \end{align}
 con los que ajustaremos el modelo de regresión (clasificación) lineal
 \begin{align}
@@ -447,14 +439,12 @@ y_i = \beta_0 + \beta_1 b_1(x_i) + \cdots + \beta_{K+1} b_{K+1}(x_i) + \epsilon_
 ** /Splines/ cúbicos 
 
 Los /splines/ de grado 3 son funciones  continuas por segmentos. Se construyen a través de ~funciones base~
-\begin{subequations}
-\begin{align}
-b_1(x) &= x \,,\\
-b_2(x) &= x^2\,,\\
-b_3(x) &= x^3\,,\\
-b_{k+3 }(x) &= (x - \xi_k)_+^3, \qquad k = 1, \ldots, K\,,
-\end{align}
-\end{subequations}
+\begin{gather}
+b_1(x) = x \,,\\
+b_2(x) = x^2\,,\\
+b_3(x) = x^3\,,\\
+b_{k+3 }(x) = (x - \xi_k)_+^3, \qquad k = 1, \ldots, K\,,
+\end{gather}
 y una colección de ~nodos~ $\xi_k$, donde $(\cdot)_+^3$ denota la ~parte positiva~ de la función.
 
 *Nota* que en cada nodo la función construida tiene a lo más 2 derivadas continuas. 
@@ -587,7 +577,7 @@ Consideremos el problema de ~ajustar un función continua y diferenciable~ $g(\c
 
 El error de validación cruzada se puede calcular por medio de
 \begin{align}
-\mathsf{RSS}_{\mathsf{CV }}(\lambda) = \sum_{i =1}^{n} (y_i - \hat g_{\lambda}^{(-i)}(x_i))^2 = \sum_{i = 1}^{n} \left[ \frac{y_i - \hat g_\lambda(x_i)}{1 - \{S_\lambda\}_{ii}}\right]^2\,.
+\mathsf{RSS}_{\mathsf{CV }}(\lambda) = \sum_{i =1}^{n} \left(y_i - \hat g_{\lambda}^{(-i)}(x_i)\right)^2 = \sum_{i = 1}^{n} \left[ \frac{y_i - \hat g_\lambda(x_i)}{1 - \{S_\lambda\}_{ii}}\right]^2\,.
 \end{align}
 
 ** Ajuste de suavizador 
@@ -679,12 +669,10 @@ El problema de regresión que se resuelve es un problema puntual en cada $x_0$ q
 
 #+REVEAL: split
 La solución a este problema está dada por mínimos cuadrados ~ponderados~ donde en especifico tenemos la expresión
-\begin{subequations}
-\begin{align}
+\begin{align*}
 \hat f(x_0) &= b(x_0)^\top (B^\top W(x_0) B)^{-1} B^\top W(x_0) y \,,\\
 &= \sum_{i=1}^{N} c_i(x_0) y_i\,.
-\end{align}
-\end{subequations}
+\end{align*}
 
 #+BEGIN_NOTES
 El planteamiento y la solución de este problema de regresión se conoce como el suavizador de Watson-Nadaraya suavizado citep:Hastie2009c. Aunque parezca un problema con una vasta historia aún sigue siendo motivo de estudio. De hecho su aplicación se encuentra en el centro de los modelos del estado del arte en Procesamiento de Lenguaje Natural (NLP, por sus siglas en inglés) como BERT, GPT-3, etc. citep:Zhang2021c.
