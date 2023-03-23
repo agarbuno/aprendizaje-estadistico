@@ -1342,6 +1342,14 @@
       "Hash": "8b1bd0be62956f2a6b91ce84fac79a45",
       "Requirements": []
     },
+    "kernlab": {
+      "Package": "kernlab",
+      "Version": "0.9-32",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "d7d6a7cb690ac73eeced99e1ed9d6cdb",
+      "Requirements": []
+    },
     "kknn": {
       "Package": "kknn",
       "Version": "1.3.1",
