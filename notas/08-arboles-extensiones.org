@@ -1,0 +1,225 @@
+ #+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Extensiones de árboles~
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/08-arboles-extensiones.pdf
+:END:
+#+STARTUP: showall
+#+PROPERTY: header-args:R :session arboles-ext :exports both :results output org :tangle ../rscripts/08-arboles-extensiones.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Extensiones Arboles.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Referencia.
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Table of Contents                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#para-pensar][Para pensar:]]
+:END:
+
+* Introducción
+
+Los árboles de decisión por construcción son insensibles a:
+- Variables continuas con /outliers/.
+- Variables continuas con diferentes escalas.
+- Variables categóricas (no se necesitan transformar a /dummies/).
+
+El algoritmo de ajuste de un árbol de decisión, en regresión por ejemplo, busca
+minimizar la función de pérdida
+\begin{align}
+R_\alpha(T) = \sum_{m = 1}^{|T|} \sum_{i: x_i \in R_m}^{} (y_i - \hat{y}_{R_m})^2 + \alpha |T|\,,
+\end{align}
+donde $\hat{y}_{R_m} = \sum_{i : x_i \in R_m} y_i/n_m$ es el promedio de las
+respuestas en la región $m\text{-ésima}$, a tráves de ir buscando
+secuencialmente las regiones $R_m$ que logren la máxima disminución de
+$\mathsf{RSS}$.
+
+La búsqueda se puede lograr por medio de un algoritmo voraz (/greedy/) que escoge
+variables y puntos de corte.
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+En nuestra última discusión sobre árboles de decisión es que tienen un sesgo al
+utilizar variables categóricas con muchas etiquetas. ¿Por qué?
+
+** Motivación
+
+Consideremos el experimento siguiente. Tenemos una colección de 7 atributos y
+una respuesta.  Los datos son generados de manera aleatoria.
+
+#+begin_src R :exports none :results none
+  nexp <- 5000; nsamples <- 100;
+  generate_data <- function(nsamples = 100){
+    tibble(id = 1:nsamples) |>
+      mutate(  y = map_dbl(id, ~rnorm(1)),
+             ch2 = map_dbl(id, ~rchisq(1, 2)),
+             m2  = factor(map_dbl(id, ~sample(1:2, 1))),
+             m4  = factor(map_dbl(id, ~sample(1:4, 1))),
+             m10 = factor(map_dbl(id, ~sample(1:10, 1))),
+             m20 = factor(map_dbl(id, ~sample(1:20, 1))),
+             nor = map_dbl(id, ~rnorm(1)),
+             uni = map_dbl(id, ~runif(1))) |>
+      select(-id)
+  }
+#+end_src
+
+#+begin_src R :exports code :results org 
+  generate_data(nsamples = 100) |>
+    print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 100 × 8
+       y   ch2 m2    m4    m10   m20      nor    uni
+   <dbl> <dbl> <fct> <fct> <fct> <fct>  <dbl>  <dbl>
+1  2.27  0.100 1     2     1     19     0.196 0.681 
+2 -0.413 0.174 2     3     10    15    -0.942 0.103 
+3 -0.382 3.76  2     3     4     18     0.162 0.875 
+4  1.01  1.65  2     1     3     4     -0.124 0.0412
+5  1.72  2.31  1     1     7     14     1.84  0.340 
+# … with 95 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+begin_src R :exports none :results none
+  get_root <- function(tree_fit){
+    tree_rpart_obj <- extract_fit_engine(tree_fit)
+    tree_rpart_obj$frame$var[1]
+  }
+#+end_src
+
+#+REVEAL: split
+De manera artificial consideraremos que la respuesta $y$ está relacionada con
+los demás atributos (sabemos que no es cierto).
+
+#+begin_src R :exports code :results none
+  fit_tree <- function(engine){
+    data_train <- generate_data() 
+
+    tree_spec <- decision_tree(tree_depth = 2) |>
+      set_engine(engine) |>
+      set_mode("regression")
+
+    tree_spec |>
+      fit(y ~ ., data = data_train) 
+  }
+#+end_src
+
+#+begin_src R :exports none :results none :eval never
+  library(tidymodels)
+  library(bonsai)
+  nexp <- 1000
+  results <- tibble(id = 1:nexp) |>
+    mutate(engine = "rpart") |>
+    mutate(model  = map(engine, fit_tree),
+           root   = map(model, get_root)) |>
+    unnest(root)
+#+end_src
+
+\newpage
+#+REVEAL: split
+Repetimos este proceso (generar datos aleatorios y ajustar un árbol) un número
+determinado de veces y registramos cuántas veces cada atributo fue utilizado en
+el nodo raíz.
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/cart-bias-categories.jpeg :exports results :results output graphics file :eval never
+  results |> unnest(root) |>
+    mutate(root = factor(root)) |>
+    group_by(root) |>
+    summarise(counts = n(), .groups = "drop") |>
+    mutate(prop = counts/sum(counts)) |>           
+    ggplot(aes(root)) +
+    geom_bar(aes(y = prop), stat = "identity") + sin_lineas +
+      geom_hline(yintercept = 1/7, lty = 2) +
+    ylab("Proporción como nodo raíz") + xlab("")
+#+end_src
+
+#+RESULTS:
+[[file:../images/cart-bias-categories.jpeg]]
+
+#+REVEAL: split
+En contraste, con un modelo denominado ~conditional trees~ somos capaces de evitar ese sesgo. Incluso podemos evitar
+escoger variables de corte que no tienen asociación con la respuesta. 
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/partykit-nobias-category.jpeg :exports results :results output graphics file
+  library(vip)
+  set.seed(108727)
+  data_train <- generate_data() 
+
+  tree_spec <- decision_tree(tree_depth = 3) |>
+    set_engine("partykit") |>
+    set_mode("regression")
+
+  tree_fit <- tree_spec |>
+    fit(y ~ ., data = data_train)
+
+  extract_fit_engine(tree_fit) |> vip() +
+    sin_lineas +
+    ylim(c(0, 1)) +
+    geom_hline(yintercept = 0, lty = 2)
+#+end_src
+
+#+RESULTS:
+[[file:../images/partykit-nobias-category.jpeg]]
+
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
