@@ -32,7 +32,7 @@
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Extensiones Arboles.\\
 *Objetivo*: Que veremos.\\
-*Lectura recomendada*: Referencia.
+*Lectura recomendada*: Capítulo 3 de citep:Greenwell2022. 
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -68,6 +68,8 @@
 :CONTENTS:
 - [[#introducción][Introducción]]
   - [[#para-pensar][Para pensar:]]
+- [[#inferencia-condicional][Inferencia condicional]]
+  - [[#ejemplos-de-pruebas-de-hipótesis-de-independencia][Ejemplos de pruebas de hipótesis de independencia]]
 - [[#ejemplo-de-partykit][Ejemplo de partykit]]
 - [[#conclusiones][Conclusiones]]
 :END:
@@ -209,7 +211,136 @@ asociación con la respuesta.
 #+RESULTS:
 [[file:../images/biased-recursive-partitioning.jpeg]]
 
+* Inferencia condicional
+
+Recordemos que lo que necesitamos para construir un árbol de decisión es iterar:
+1. Seleccionar una variable;
+2. Seleccionar un punto de corte.
+
+#+REVEAL: split
+La variable se puede escoger primero por medio de comparaciones estadísticas entre un atributo $X_j$ y la respuesta $Y$:
+1. Hacer una prueba de $\chi^2$ si ambas son variables nominales.
+2. Hacer una prueba de correlación si ambas son continuas.
+
+El punto de corte se puede escoger con una métrica de impureza.
+
+#+REVEAL: split
+Consideremos una colección de datos $(x_i, y_i) \overset{\mathsf{iid}}{\sim} \mathbb{P}_{\mathcal{X},\mathcal{Y}}$ con $n = 1, \ldots, n$. Lo que queremos contrastar es
+\begin{align}
+H_0: \qquad \mathbb{P}({Y} | {X}) = \mathbb{P}({Y})\,.
+\end{align}
+La prueba adecuada se puede escoger de acuerdo a las características de $X$ y $Y$.
+
+En general podemos utilizar un mecanismo general por medio de un vector de estadísticas
+\begin{align}
+T = \mathsf{vec}\left( \sum_{i = 1}^{n}g(x_i) h(y_i)^\top \right) \in \mathbb{R}^{pq}\,,
+\end{align}
+donde el operador $\mathsf{vec}$ transforma matrices en vectores (por arreglo),
+$g: \mathcal{X} \rightarrow \mathbb{R}^p$ es una ~transformación de atributos~ y
+$h : \mathcal{Y} \rightarrow \mathbb{R}^q$ es un ~función de influencia~.
+
+
+#+REVEAL: split
+Cómo escogemos $g$ y $h$ es lo que nos permite realizar las pruebas de hipótesis
+adecuadas:
+- Pruebas de correlación;
+- Pruebas de muestras pareadas;
+- Pruebas de $K\text{-muestras}$ similares a pruebas $\mathsf{ANOVA}$;
+- Pruebas de independencia en tablas de contingencia.
+
+
+#+REVEAL: split
+Independientemente de la prueba, para poder utilizar este mecanismo debemos de
+saber la ~distribución de muestreo~ de $T$ bajo la hipótesis nula.
+
+La ventaja que tenemos es que la estructura del problema de contraste de
+hipótesis nos permite dejar fijos los atributos y realizar permutaciones $\sigma
+\in S$ sobre la respuesta. Es decir,
+\begin{align}
+\left((x_1,y_1), (x_2, y_2), \ldots, (x_n,y_n) \right) \mapsto \left((x_1, y_{\sigma(1)}),(x_2, y_{\sigma(2)}), \ldots, (x_n, y_{\sigma(n)})\right)\,,
+\end{align}
+
+#+REVEAL: split
+Denotemos por $\mu_h$ el valor esperado de la función de influencia condicional
+en la permutación $\sigma$ y por $\Sigma_h$ la matriz de varianzas-covarianzas
+asociada a ese valor esperado.
+
+#+REVEAL: split
+Esto nos permite calcular el valor esperado y matriz de varianzas covarianzas
+del estadístico $T$ condicional en la permutación $\sigma \in S$, los cuales
+denotamos $\mu$ y $\Sigma$ respectivamente.
+
+#+REVEAL: split
+Finalmente con esto podemos calcular un estadístico de prueba para $H_0$. Esto
+se puede lograr a través de una forma cuadrática o un estadístico de orden
+\begin{gather}
+c_{\mathsf{quad}} = (T - \mu)^\top \Sigma^{-1} (T - \mu) \,,\\
+c_{\mathsf{max}} = \max \left| \frac{T - \mu }{\mathsf{diag}(\Sigma)^{1/2}}\right|\,.
+\end{gather}
+
+#+REVEAL: split
+Lo ideal es poder tener conocimiento de la distribución de muestreo de
+$c_{\mathsf{quad}}$ y $c_{\mathsf{max}}$. Esto con la intención de poder
+construir valores $p$ para contrastar $H_0$. Por ejemplo, podemos calcular
+\begin{align}
+\mathbb{P}\left( c(T, \mu, \Sigma) \leq z | S \right)\,,
+\end{align}
+la cual se puede calcular como el número de permutaciones que tienen un
+estadístico menor que el nivel $z$ dividido por el número total de
+permutaciones.
+
+#+REVEAL: split
+Utilizar remuestreo (/bootstrap/) nos puede ayudar a calcular aproximaciones hasta un nivel de
+tolerancia dado (mas detalles de esto en mi curso de simulación (~EST-24107:
+Simulación~)).
+
+#+REVEAL: split
+O podemos argumentar por algún resultado asintótico para determinar distribuciones de muestreo que permitan un cálculo mas eficiente. Por ejemplo, en el caso $pq = 1$ podemos utilizar
+\begin{align}
+c_{\mathsf{quad}} \sim \chi^2_1\,, \qquad c_{\mathsf{max}} \sim N(0,1)\,.
+\end{align}
+
 ** Ejemplos de pruebas de hipótesis de independencia
+
+Bajo el caso de dos variables continuas podemos utilizar el mecanismo 
+
+#+begin_src R :exports none :results none 
+  library(ISLR2)
+  hitters <- as_tibble(Hitters) |>
+    select(Hits, Years, Salary) |>
+    filter(complete.cases(Salary))
+#+end_src
+
+#+begin_src R :exports both :results org 
+  library(coin)
+  independence_test(Salary ~ Years, data = hitters, teststat = "quadratic")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+	Asymptotic General Independence Test
+
+data:  Salary by Years
+chi-squared = 42, df = 1, p-value = 9e-11
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  fake_data <- generate_data()
+  independence_test(y ~ nor, data = fake_data, teststat = "quadratic")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+	Asymptotic General Independence Test
+
+data:  y by nor
+chi-squared = 0.3, df = 1, p-value = 0.6
+#+end_src
+
+
 
 * Ejemplo de partykit
 
@@ -218,7 +349,7 @@ asociación con la respuesta.
 El modelo de ~CTree~ es un modelo:
 1. que utiliza pruebas de hipótesis para determinar variables y puntos de corte;
 2. tiene un mecanismo de selección insesgado;
-3. no requiere mucho post-procesamiento (poda);
+3. no requiere mucho post-procesamiento (poda).
 
 
 #+REVEAL: split
