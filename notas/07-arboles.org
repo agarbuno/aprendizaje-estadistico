@@ -3,19 +3,28 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Arboles de decisión~
 #+STARTUP: showall
-:REVEAL_PROPERTIES:
-# Template uses org export with export option <R B>
-# Alternatives: use with citeproc
-#+LANGUAGE: es
-#+OPTIONS: num:nil toc:nil timestamp:nil
-#+REVEAL_REVEAL_JS_VERSION: 4
-#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-#+REVEAL_THEME: night
-#+REVEAL_SLIDE_NUMBER: t
-#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
-#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
-#+REVEAL_EXTRA_CSS: ./mods.css
-#+REVEAL_PLUGINS: (notes)
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/07-arboles.pdf
 :END:
 #+PROPERTY: header-args:R :session arboles :exports both :results output org :tangle ../rscripts/07-arboles.R :mkdirp yes :dir ../
 #+EXCLUDE_TAGS: toc latex
@@ -57,6 +66,7 @@
   library(tidymodels)
   library(rpart.plot)
   library(vip)
+  library(parttree)
 #+end_src
 
 * Contenido                                                             :toc:
@@ -216,7 +226,7 @@ Prediction spam nonspam
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/spam-arbol-decision.jpeg :exports results :results output graphics file
   class_tree_fit$fit |>
-    rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2)
+    rpart.plot(tweak = 2, gap = 0, shadow.col = "gray", branch.lty = 2, extra = 108)
 #+end_src
 
 #+RESULTS:
@@ -690,8 +700,6 @@ Podemos ajustar el mejor modelo a los datos de entrenamiento o pedirle que ajust
 Por supuesto, no podemos visualizar la respuesta como un modelo de $\mathbb{R}^p \mapsto \mathbb{R}$. Pero podemos escoger las variables mas informativas para la predicción (mas adelante discutimos esto):
 #+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/turbinas-arbol-prediccion.jpeg :exports results :results output graphics file
-  library(parttree)
-
   ex_fit <- fit(
     final_tree,
     turbine_capacity ~ rotor_diameter_m + commissioning_date,
@@ -790,10 +798,13 @@ donde como antes $R_1(\mathcal{S}) = \{X | X_j < s\}$ y $R_2(\mathcal{S}) = \{X 
 
 Tomamos el [[https://juliasilge.com/blog/scooby-doo/][siguiente caso]] de Julia Silge para ejemplificar un problema de clasificación con árboles de decisión. El objetivo es predecir si al final del capítulo el monstruo era un monstruo real o era un disfraz. 
 
-#+begin_src R :exports results :results org 
-  ## Clasificacion: Scooby doo -------------------------
-  scooby_raw <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-13/scoobydoo.csv", progress = FALSE, show_col_types = FALSE)
+#+begin_src R :exports none :results none
+  ## Clasificacion: Scooby doo -------------------------------------------------
+  tuesdata <- tidytuesdayR::tt_load('2021-07-13')
+  scooby_raw <- tuesdata$scoobydoo
+#+end_src
 
+#+begin_src R :exports results :results org 
   scooby_raw |>
     filter(monster_amount > 0) |>
     count(monster_real) 
@@ -850,7 +861,9 @@ Especificamos el modelo
 #+REVEAL: split
 Especificamos la rejilla de búsqueda
 #+begin_src R :exports both :results org
-  tree_grid <- grid_regular(cost_complexity(), tree_depth(), min_n(), levels = 4)
+  tree_grid <- grid_regular(cost_complexity(),
+                            tree_depth(),
+                            min_n(), levels = 4)
   tree_grid |> print(n = 5)
 #+end_src
 
@@ -915,7 +928,7 @@ Realizamos el ajuste en cada bloque con cada especificación del modelo.
 #+begin_src R :file images/scooby-clasificacion-arbol.jpeg :exports results :results output graphics file :eval never
   final_fit |>
     extract_fit_engine() |>
-    rpart.plot(tweak = 1.5, gap = 0, shadow.col = "gray", branch.lty = 2)
+    rpart.plot(tweak = 1.5, gap = 0, shadow.col = "gray", branch.lty = 2, extra = 108)
 #+end_src
 #+caption: Representación gráfica del árbol de decisión. 
 #+RESULTS:
