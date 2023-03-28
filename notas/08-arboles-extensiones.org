@@ -31,8 +31,8 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Extensiones Arboles.\\
-*Objetivo*: Que veremos.\\
-*Lectura recomendada*: Capítulo 3 de citep:Greenwell2022. 
+*Objetivo*: En esta sesión estudiaremos una extensión de los árboles de decisión como mecanismos iterativos de partición del espacio de atributos. Estudiaremos un método reciente, que resulta más robusto a selecciones de hiper-parámetros. Además conectaremos esto con una técnica estadística de mucha utilidad en la era del /Big Data/, pruebas de hipótesis múltiples..\\
+*Lectura recomendada*: Capítulo 3 de citep:Greenwell2022. Pruebas de hipótesis múltiples pueden ser consultadas en el libro de citet:Efron2016.
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -60,6 +60,11 @@
   sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 #+end_src
 
+#+begin_src R :exports none :results none
+  library(tidymodels)
+  library(bonsai)
+  library(vip)
+#+end_src
 
 * Table of Contents                                                             :toc:
 :PROPERTIES:
@@ -70,7 +75,7 @@
   - [[#para-pensar][Para pensar:]]
 - [[#inferencia-condicional][Inferencia condicional]]
   - [[#ejemplos-de-pruebas-de-hipótesis-de-independencia][Ejemplos de pruebas de hipótesis de independencia]]
-- [[#ejemplo-de-partykit][Ejemplo de partykit]]
+- [[#árboles-condicionales][Árboles condicionales]]
 - [[#conclusiones][Conclusiones]]
 :END:
 
@@ -122,10 +127,10 @@ una respuesta.  Los datos son generados de manera aleatoria.
   }
 #+end_src
 
-#+begin_src R :exports code :results org 
+#+begin_src R :exports both :results org 
   set.seed(108727)
   generate_data(nsamples = 100) |>
-      print(n = 5)
+      print(n = 3)
 #+end_src
 
 #+RESULTS:
@@ -142,13 +147,7 @@ una respuesta.  Los datos son generados de manera aleatoria.
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
-#+begin_src R :exports none :results none
-  get_root <- function(tree_fit){
-    tree_rpart_obj <- extract_fit_engine(tree_fit)
-    tree_rpart_obj$frame$var[1]
-  }
-#+end_src
-
+\newpage
 #+REVEAL: split
 De manera artificial consideraremos que la respuesta $y$ está relacionada con
 los demás atributos (sabemos que no es cierto).
@@ -171,9 +170,7 @@ los demás atributos (sabemos que no es cierto).
 #+end_src
 
 #+begin_src R :exports none :results none :eval never
-  library(tidymodels)
-  library(bonsai)
-  library(vip)
+  ## Cuidado! Tarda mucho en correr
   nexp <- 5000
   results <- tibble(id = 1:(2*nexp)) |>
     mutate(engine = rep(c("rpart", "partykit"), each = nexp)) |>
@@ -181,7 +178,6 @@ los demás atributos (sabemos que no es cierto).
 #+end_src
 
 
-\newpage
 #+REVEAL: split
 Repetimos este proceso (generar datos aleatorios y ajustar un árbol) un número
 determinado de veces y registramos cuántas veces cada atributo fue utilizado en
@@ -248,7 +244,6 @@ adecuadas:
 - Pruebas de $K\text{-muestras}$ similares a pruebas $\mathsf{ANOVA}$;
 - Pruebas de independencia en tablas de contingencia.
 
-
 #+REVEAL: split
 Independientemente de la prueba, para poder utilizar este mecanismo debemos de
 saber la ~distribución de muestreo~ de $T$ bajo la hipótesis nula.
@@ -287,7 +282,10 @@ construir valores $p$ para contrastar $H_0$. Por ejemplo, podemos calcular
 \end{align}
 la cual se puede calcular como el número de permutaciones que tienen un
 estadístico menor que el nivel $z$ dividido por el número total de
-permutaciones.
+permutaciones. Y evaluar si se satisface un umbral, definido por el analista, para controlar el nivel de significancia estadística con
+\begin{align}
+\alpha = \mathbb{P}\{\text{rechazar } H_0 \text{ cuando es verdadera} \}\,.
+\end{align}
 
 #+REVEAL: split
 Utilizar remuestreo (/bootstrap/) nos puede ayudar a calcular aproximaciones hasta un nivel de
@@ -297,12 +295,14 @@ Simulación~)).
 #+REVEAL: split
 O podemos argumentar por algún resultado asintótico para determinar distribuciones de muestreo que permitan un cálculo mas eficiente. Por ejemplo, en el caso $pq = 1$ podemos utilizar
 \begin{align}
-c_{\mathsf{quad}} \sim \chi^2_1\,, \qquad c_{\mathsf{max}} \sim N(0,1)\,.
+c_{\mathsf{quad}} \sim \chi^2_1\,, \qquad c_{\mathsf{max}} \sim \mathsf{N}(0,1)\,.
 \end{align}
 
 ** Ejemplos de pruebas de hipótesis de independencia
 
-Bajo el caso de dos variables continuas podemos utilizar el mecanismo 
+Bajo el caso de dos variables continuas podemos utilizar el mecanismo de
+inferencia condicional para probar independencia estadística. Por ejemplo,
+regresemos a nuestro ejemplo de jugadores de /baseball/.
 
 #+begin_src R :exports none :results none 
   library(ISLR2)
@@ -326,6 +326,7 @@ chi-squared = 42, df = 1, p-value = 9e-11
 #+end_src
 
 #+REVEAL: split
+Incluso también podríamos aplicar lo mismo para nuestro conjunto de datos ficticio. 
 #+begin_src R :exports both :results org 
   fake_data <- generate_data()
   independence_test(y ~ nor, data = fake_data, teststat = "quadratic")
@@ -340,16 +341,137 @@ data:  y by nor
 chi-squared = 0.3, df = 1, p-value = 0.6
 #+end_src
 
+#+REVEAL: split
+Por supuesto, también podríamos hacer una comparación para atributos
+categóricos. Por ejemplo, regresando a nuestro ejemplo de /Scooby Doo/. El que el
+monstruo del capítulo sea real o no, ¿tiene relación con que /Scooby/ haya sido
+capturado en el episodio?
+
+#+begin_src R :exports none :results none
+  ## Clasificacion: Scooby doo -------------------------------------------------
+  tuesdata <- tidytuesdayR::tt_load('2021-07-13')
+  scooby_raw <- tuesdata$scoobydoo
+#+end_src
+
+#+begin_src R :exports none :results none
+  set.seed(123)
+  scooby_data <- scooby_raw |>
+    mutate(
+      imdb = parse_number(imdb),
+      year_aired = lubridate::year(date_aired)
+    ) |>
+    filter(monster_amount > 0, !is.na(imdb)) |>
+    mutate(
+      monster_real = case_when(
+        monster_real == "FALSE" ~ "fake",
+        TRUE ~ "real"
+      ),
+      caught_scooby = case_when(
+        caught_scooby == "FALSE" ~ "not caught",
+        TRUE ~ "caught"
+      ),
+      monster_real = factor(monster_real),
+      caught_scooby = factor(caught_scooby)
+    ) |>
+    filter(complete.cases(monster_real, caught_scooby))
+#+end_src
+
+#+begin_src R :exports both :results org
+  independence_test(monster_real ~ caught_scooby,
+                    data = scooby_data, teststat = "quadratic")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+	Asymptotic General Independence Test
+
+data:  monster_real by caught_scooby (caught, not caught)
+chi-squared = 13, df = 1, p-value = 3e-04
+#+end_src
 
 
-* Ejemplo de partykit
+#+REVEAL: split
+Adicionalmente, podríamos contrastar con una aproximación por remuestreo a la
+distribución de permutaciones:
+#+begin_src R :exports both :results org
+    independence_test(monster_real ~ caught_scooby,
+                      data = scooby_data, teststat = "quadratic",
+                      distribution = approximate(nresample = 10000))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+
+	Approximative General Independence Test
+
+data:  monster_real by caught_scooby (caught, not caught)
+chi-squared = 13, p-value = 4e-04
+#+end_src
+
+* Árboles condicionales
+
+El objetivo es: construir árboles de decisión con una estrategia de particionado
+recursivo sin sesgo basada inferencia condicional.
+
+#+REVEAL: split
+En cada paso de selección de variables lo que hacemos es realizar una prueba de hipótesis por cada atributo. Es decir,
+buscamos
+\begin{align}
+H_0^j : \qquad \mathbb{P}(Y | X_j ) = \mathbb{P}(Y)\,, \qquad j = 1, \ldots, m\,.
+\end{align}
+Dado que cada estadístico asociado $c(T^j, \mu^j, \Sigma^j)$ puede tener un
+escala muy distinta necesitamos estandarizar todos a la misma. Es por esto, que
+contrastar los valores $p$ asociados a cada prueba nos ayudan a tener control
+sobre la escala de las comparaciones.
+
+#+REVEAL: split
+Adicionalmente, por diseño de las pruebas de hipótesis podríamos aceptar algunos
+falsos positivos. Esto puede ocurrir con una tasa de $\alpha$ (el nivel de
+tolerancia de error de las pruebas). Así que lo que buscamos es buscar que la colección
+de pruebas que realicemos tenga una tasa de error controlada
+\begin{align}
+\mathsf{FWER} \leq \alpha\,.
+\end{align}
+
+#+REVEAL: split
+Esto lo podemos lograr, por ejemplo, con la corrección de Bonferroni, al
+considerar cada umbral como $\alpha/m$.
+
+#+REVEAL: split
+El argumento es
+\begin{align}
+\mathsf{FWER} &= \mathbb{P}\{ \text{reject any true } H_0^j \} \\
+&= \mathbb{P}\left\lbrace \cup_{j \in I_0} \text{reject } H_0^j \text{ when it's true}\right\rbrace\\
+&= \mathbb{P}\left\lbrace \cup_{j \in I_0} \left( p_j \leq \frac{\alpha}{m} \right)\right\rbrace\\
+&\leq \sum_{j = 1}^{m} \mathbb{P}\left(   p_j \leq \frac{\alpha}{m} \right) = \alpha\,,
+\end{align}
+donde $I_0$ denota el conjunto de hipótesis nulas verdaderas.
+
+#+BEGIN_NOTES
+Decimos que la variable aleatoria $X$ es una variable aleatoria  ~super-uniforme~ cuando domina estocásticamente una variable aleatoria uniforme. Es decir, cuando
+\begin{align}
+\mathbb{P}\{X \leq u\} \leq u \quad \text{ para toda } u \in [0,1]\,.
+\end{align}
+#+END_NOTES
+
+
+#+REVEAL: split
+Con la tasa de error controlada, y una vez seleccionada la variable para
+realizar el corte entonces procedemos a proponer puntos de corte para dicho
+atributo. El cual nos lleva a contrastar hipótesis para las distribuciones condicionales
+\begin{align}
+\{ y_i | x_{ij} < s\} \qquad \text{ y } \qquad  \{ y_i | x_{ij} \geq s\}\,.
+\end{align}
+
 
 * Conclusiones
 
-El modelo de ~CTree~ es un modelo:
+El modelo de ~CTree~ (disponible a través de ~partykit~) es un modelo:
 1. que utiliza pruebas de hipótesis para determinar variables y puntos de corte;
 2. tiene un mecanismo de selección insesgado;
 3. no requiere mucho post-procesamiento (poda).
+4. el nivel $\alpha$ es un hiper-parámetro para estos modelos.
 
 
 #+REVEAL: split
