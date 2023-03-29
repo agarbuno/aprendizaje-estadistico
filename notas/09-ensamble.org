@@ -394,7 +394,8 @@ donde:
 
 * Aplicación: Predicción de árboles con bosques aleatorios 
 
-#+begin_src R :exports both :results org 
+#+begin_src R :exports none :results none 
+  ## Aplicación: Arboles en San Francisco --------------------------------------
   sf_trees <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-28/sf_trees.csv", show_col_types = FALSE, progress = FALSE)
 #+end_src
 
@@ -412,7 +413,6 @@ donde:
     na.omit() |>
     mutate_if(is.character, factor)
 #+end_src
-
 
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/arboles-localizacion.jpeg :exports results :results output graphics file
@@ -460,17 +460,18 @@ trees_df |>
     step_dummy(all_nominal(), -all_outcomes()) |>
     step_date(date, features = c("year")) |>
     step_rm(date)
-    ## step_downsample(legal_status)
 #+end_src
 
 #+begin_src R :exports none :results none
+
+  
   tune_spec <- rand_forest(
-    mtry = tune(),
-    trees = 1000,
-    min_n = tune()
-  ) |>
-  set_mode("classification") |>
-  set_engine("ranger", importance = "permutation")
+      mtry = tune(),
+      trees = 1000,
+      min_n = tune()
+    ) |>
+    set_mode("classification") |>
+    set_engine("ranger", importance = "permutation")
 #+end_src
 
 #+begin_src R :exports none :results none
@@ -589,6 +590,9 @@ Main Arguments:
   trees = 1000
   min_n = 2
 
+Engine-Specific Arguments:
+  importance = permutation
+
 Computational engine: ranger
 #+end_src
 
@@ -611,8 +615,8 @@ Computational engine: ranger
 # A tibble: 2 × 4
   .metric  .estimator .estimate .config             
   <chr>    <chr>          <dbl> <chr>               
-1 accuracy binary         0.860 Preprocessor1_Model1
-2 roc_auc  binary         0.918 Preprocessor1_Model1
+1 accuracy binary         0.861 Preprocessor1_Model1
+2 roc_auc  binary         0.919 Preprocessor1_Model1
 #+end_src
 
 
@@ -638,8 +642,8 @@ Computational engine: ranger
 #+begin_src org
                 Truth
 Prediction       DPW Maintained Other
-  DPW Maintained          14803  1885
-  Other                    1033  3141
+  DPW Maintained          14819  1874
+  Other                    1017  3152
 #+end_src
 
 #+begin_src R :exports results :results org 
@@ -653,7 +657,7 @@ Prediction       DPW Maintained Other
 # A tibble: 1 × 3
   .metric .estimator .estimate
   <chr>   <chr>          <dbl>
-1 recall  binary         0.935
+1 recall  binary         0.936
 #+end_src
 
 
