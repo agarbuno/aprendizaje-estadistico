@@ -89,109 +89,10 @@ boot.fit |>
   sin_lineas +
   xlab("Edad") + ylab("Ingreso") + ggtitle("df = 15")
 
-sf_trees <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-28/sf_trees.csv", show_col_types = FALSE, progress = FALSE)
-
-trees_df <- sf_trees |>
-  mutate(
-    legal_status = case_when(
-      legal_status == "DPW Maintained" ~ legal_status,
-      TRUE ~ "Other"
-    ),
-    plot_size = parse_number(plot_size)
-  ) |>
-  select(-address)|>
-  na.omit() |>
-  mutate_if(is.character, factor)
-
-trees_df |>
-  ggplot(aes(longitude, latitude, color = legal_status)) +
-  geom_point(size = 0.5, alpha = 0.4) +
-  labs(color = NULL) +
-sin_lineas + coord_equal()
-
-trees_df |>
-  count(legal_status, caretaker) |>
-  add_count(caretaker, wt = n, name = "caretaker_count") |>
-  filter(caretaker_count > 50) |>
-  group_by(legal_status) |>
-  mutate(percent_legal = n / sum(n)) |>
-  ggplot(aes(percent_legal, caretaker, fill = legal_status)) +
-  geom_col(position = "dodge") +
-  labs(
-    fill = NULL,
-    x = "% of trees in each category"
-  ) + sin_lineas
-
-set.seed(108727)
-trees_split <- initial_split(trees_df, strata = legal_status, prop = 1/8)
-trees_train <- training(trees_split)
-trees_test <- testing(trees_split)
-
-tree_rec <- recipe(legal_status ~ ., data = trees_train) |>
-  update_role(tree_id, new_role = "ID") |>
-  step_other(species, caretaker, threshold = 0.01) |>
-  step_other(site_info, threshold = 0.005) |>
-  step_dummy(all_nominal(), -all_outcomes()) |>
-  step_date(date, features = c("year")) |>
-  step_rm(date)
-  ## step_downsample(legal_status)
-
-tune_spec <- rand_forest(
-  mtry = tune(),
-  trees = 1000,
-  min_n = tune()
-) |>
-set_mode("classification") |>
-set_engine("ranger", importance = "permutation")
-
-tune_wf <- workflow() |>
-  add_recipe(tree_rec) |>
-  add_model(tune_spec)
-
-set.seed(108727)
-trees_folds <- vfold_cv(trees_train, 5)
-
-tree_grid <- grid_random(mtry(c(1,30)),
+tree_grid <- grid_random(mtry(c(1,35)),
                          min_n(),
                          size = 20)
 tree_grid |> print(n = 5)
-
-doParallel::registerDoParallel()
-
-set.seed(108727)
-tune_res <- tune_grid(
-  tune_wf,
-  grid = tree_grid, 
-  resamples = trees_folds,
-  control = control_grid(parallel_over = "resamples")
-)
-
-tune_res |>
-  collect_metrics() |>
-  filter(.metric == "roc_auc") |>
-  select(mean, min_n, mtry) |>
-  pivot_longer(min_n:mtry,
-               values_to = "value",
-               names_to = "parameter"
-               ) |>
-  ggplot(aes(value, mean, color = parameter)) +
-  geom_point(show.legend = FALSE) +
-  facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "AUC") + sin_lineas
-
-rf_grid <- grid_regular(
-  mtry(range = c(10, 30)),
-  min_n(range = c(2, 8)),
-  levels = 5
-)
-
-set.seed(108727)
-regular_res <- tune_grid(
-  tune_wf,
-  resamples = trees_folds,
-  grid = rf_grid,
-  control = control_grid(parallel_over = "resamples")
-)
 
 regular_res |>
   collect_metrics() |>
@@ -202,35 +103,97 @@ regular_res |>
   geom_point() +
   labs(y = "AUC") + sin_lineas
 
-best_auc <- select_best(regular_res, "roc_auc")
-
-final_rf <- finalize_model(
-  tune_spec,
-  best_auc
-)
-
-final_rf
-
-final_wf <- workflow() |>
-  add_recipe(tree_rec) |>
-  add_model(final_rf)
-
-final_res <- final_wf |>
-  last_fit(trees_split)
-
-final_res |>
-  collect_metrics()
-
 library(vip)
 
 final_res |>
   extract_fit_engine() |>
   vip() + sin_lineas
 
-final_res |>
-  collect_predictions() |>
-  conf_mat(legal_status, .pred_class)
+## Aplicacion: Precios de IKEA ---------------------------------------------
+ikea <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-03/ikea.csv")
 
-final_res |>
-  collect_predictions() |>
-  recall(legal_status, .pred_class)
+ikea |>
+  select(`...1`, price, depth:width) |>
+  pivot_longer(depth:width, names_to = "dim") |>
+  ggplot(aes(value, price, color = dim)) +
+  geom_point(alpha = 0.4, show.legend = FALSE) +
+  scale_y_log10() +
+  facet_wrap(~dim, scales = "free_x") +
+  labs(x = NULL) + sin_lineas
+
+ikea_df <- ikea |>
+  select(price, name, category, depth, height, width) |>
+  mutate(price = log10(price)) |>
+  mutate_if(is.character, factor)
+
+ikea_df |> print(n = 5)
+
+set.seed(123)
+ikea_split <- initial_split(ikea_df, strata = price)
+ikea_train <- training(ikea_split)
+ikea_test <- testing(ikea_split)
+
+set.seed(234)
+ikea_folds <- vfold_cv(ikea_train, strata = price)
+
+library(textrecipes)
+ranger_recipe <-
+  recipe(formula = price ~ ., data = ikea_train) |>
+  step_other(name, category, threshold = 0.01) |>
+  step_clean_levels(name, category) |>
+  step_impute_knn(depth, height, width)
+
+ranger_spec <-
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |>
+  set_mode("regression") |>
+  set_engine("ranger")
+
+ranger_workflow <-
+  workflow() |>
+  add_recipe(ranger_recipe) |>
+  add_model(ranger_spec)
+
+set.seed(8577)
+## Create a cluster object and then register: 
+cl <- makePSOCKcluster(6)
+doParallel::registerDoParallel(cl)
+
+ranger_tune <-
+  tune_grid(ranger_workflow,
+            resamples = ikea_folds,
+            grid = 11,
+            control = control_grid(parallel_over = "resamples", verbose = TRUE)              
+            )
+
+show_best(ranger_tune, metric = "rmse")
+
+show_best(ranger_tune, metric = "rsq")
+
+final_rf <- ranger_workflow |>
+  finalize_workflow(select_best(ranger_tune))
+
+final_rf
+
+ikea_fit <- last_fit(final_rf, ikea_split)
+ikea_fit
+
+collect_metrics(ikea_fit)
+
+collect_predictions(ikea_fit) |>
+  ggplot(aes(price, .pred)) +
+  geom_abline(lty = 2, color = "gray50") +
+  geom_point(alpha = 0.5, color = "midnightblue") +
+  coord_fixed() + sin_lineas
+
+library(vip)
+
+imp_spec <- ranger_spec |>
+  finalize_model(select_best(ranger_tune)) |>
+  set_engine("ranger", importance = "permutation")
+
+workflow() |>
+  add_recipe(ranger_recipe) |>
+  add_model(imp_spec) |>
+  fit(ikea_train) |>
+  pull_workflow_fit() |>
+  vip(aesthetics = list(alpha = 0.8, fill = "midnightblue")) + sin_lineas

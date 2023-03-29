@@ -26,8 +26,8 @@
 #+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
 #+EXPORT_FILE_NAME: ../docs/09-ensamble.pdf
 :END:
-#+PROPERTY: header-args:R :session ensamble :exports both :results output org :tangle ../rscripts/09-ensamble.R :mkdirp yes :dir ../
-#+EXCLUDE_TAGS: toc latex
+#+PROPERTY: header-args:R :session ensamble :exports both :results output org :tangle ../rscripts/09-ensamble.R :mkdirp yes :dir ../ :eval never
+#+EXCLUDE_TAGS: toc latex noexport
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Modelos en ensamble.\\
@@ -87,7 +87,7 @@
   - [[#motivación][Motivación]]
   - [[#sobre-ajuste][Sobre-ajuste]]
   - [[#análisis-de-ajuste][Análisis de ajuste]]
-- [[#aplicación-predicción-de-árboles-con-bosques-aleatorios][Aplicación: Predicción de árboles con bosques aleatorios]]
+- [[#aplicación-predicción-de-precios-ikea][Aplicación: Predicción de precios IKEA]]
 - [[#conclusiones][Conclusiones]]
 :END:
 
@@ -392,15 +392,15 @@ donde:
   \end{align}
 
 
-* Aplicación: Predicción de árboles con bosques aleatorios 
+* Aplicación: Predicción de árboles con bosques aleatorios         :noexport:
 
-#+begin_src R :exports none :results none 
+#+begin_src R :exports none :results none  :tangle no
   ## Aplicación: Arboles en San Francisco --------------------------------------
   sf_trees <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-28/sf_trees.csv", show_col_types = FALSE, progress = FALSE)
 #+end_src
 
 
-#+begin_src R :exports none :results none
+#+begin_src R :exports none :results none :tangle no
   trees_df <- sf_trees |>
     mutate(
       legal_status = case_when(
@@ -415,7 +415,7 @@ donde:
 #+end_src
 
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
-#+begin_src R :file images/arboles-localizacion.jpeg :exports results :results output graphics file
+#+begin_src R :file images/arboles-localizacion.jpeg :exports results :results output graphics file :tangle no
   trees_df |>
     ggplot(aes(longitude, latitude, color = legal_status)) +
     geom_point(size = 0.5, alpha = 0.4) +
@@ -427,7 +427,7 @@ donde:
 [[file:../images/arboles-localizacion.jpeg]]
 
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
-#+begin_src R :file images/arboles-cuidadores.jpeg :exports results :results output graphics file
+#+begin_src R :file images/arboles-cuidadores.jpeg :exports results :results output graphics file :tangle no
 trees_df |>
   count(legal_status, caretaker) |>
   add_count(caretaker, wt = n, name = "caretaker_count") |>
@@ -445,14 +445,14 @@ trees_df |>
 #+RESULTS:
 [[file:../images/arboles-cuidadores.jpeg]]
 
-#+begin_src R :exports none :results none
+#+begin_src R :exports none :results none :tangle no
   set.seed(108727)
-  trees_split <- initial_split(trees_df, strata = legal_status, prop = 1/8)
+  trees_split <- initial_split(trees_df, strata = legal_status, prop = 1/2)
   trees_train <- training(trees_split)
   trees_test <- testing(trees_split)
 #+end_src
 
-#+begin_src R :exports none :results none
+#+begin_src R :exports none :results none :tangle no
   tree_rec <- recipe(legal_status ~ ., data = trees_train) |>
     update_role(tree_id, new_role = "ID") |>
     step_other(species, caretaker, threshold = 0.01) |>
@@ -462,31 +462,29 @@ trees_df |>
     step_rm(date)
 #+end_src
 
-#+begin_src R :exports none :results none
-
-  
+#+begin_src R :exports none :results none :tangle no
   tune_spec <- rand_forest(
-      mtry = tune(),
-      trees = 1000,
-      min_n = tune()
-    ) |>
+    mtry = tune(),
+    trees = 1000,
+    min_n = tune()
+  ) |>
     set_mode("classification") |>
     set_engine("ranger", importance = "permutation")
 #+end_src
 
-#+begin_src R :exports none :results none
+#+begin_src R :exports none :results none :tangle no
   tune_wf <- workflow() |>
     add_recipe(tree_rec) |>
     add_model(tune_spec)
 #+end_src
 
-#+begin_src R :exports none :results none
+#+begin_src R :exports none :results none :tangle no
   set.seed(108727)
-  trees_folds <- vfold_cv(trees_train, 5)
+  trees_folds <- vfold_cv(trees_train, 10)
 #+end_src
 
 #+begin_src R :exports code :results org 
-  tree_grid <- grid_random(mtry(c(1,30)),
+  tree_grid <- grid_random(mtry(c(1,35)),
                            min_n(),
                            size = 20)
   tree_grid |> print(n = 5)
@@ -497,16 +495,16 @@ trees_df |>
 # A tibble: 20 × 2
    mtry min_n
   <int> <int>
-1    24    16
-2    27    25
-3     1    36
-4     7    24
-5    13    12
+1    29     2
+2    25     6
+3     9    27
+4    16    10
+5    26    22
 # … with 15 more rows
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
-#+begin_src R :exports none :results none
+#+begin_src R :exports none :results none :tangle no
   doParallel::registerDoParallel()
 
   set.seed(108727)
@@ -514,12 +512,12 @@ trees_df |>
     tune_wf,
     grid = tree_grid, 
     resamples = trees_folds,
-    control = control_grid(parallel_over = "resamples")
+    control = control_grid(parallel_over = "resamples", verbose = TRUE)
   )
 #+end_src
 
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
-#+begin_src R :file images/arboles-resultados-vc-bosques.jpeg :exports results :results output graphics file
+#+begin_src R :file images/arboles-resultados-vc-bosques.jpeg :exports results :results output graphics file :tangle no
   tune_res |>
     collect_metrics() |>
     filter(.metric == "roc_auc") |>
@@ -537,7 +535,7 @@ trees_df |>
 #+RESULTS:
 [[file:../images/arboles-resultados-vc-bosques.jpeg]]
 
-#+begin_src R :exports code :results none
+#+begin_src R :exports code :results none :tangle no
   rf_grid <- grid_regular(
     mtry(range = c(10, 30)),
     min_n(range = c(2, 8)),
@@ -545,7 +543,7 @@ trees_df |>
   )
 #+end_src
 
-#+begin_src R :exports code :results none 
+#+begin_src R :exports code :results none  :tangle no
   set.seed(108727)
   regular_res <- tune_grid(
     tune_wf,
@@ -570,7 +568,7 @@ trees_df |>
 #+RESULTS:
 [[file:../images/arboles-vc-zoom-bosques.jpeg]]
 
-#+begin_src R :exports both :results org
+#+begin_src R :exports both :results org :tangle no
   best_auc <- select_best(regular_res, "roc_auc")
 
   final_rf <- finalize_model(
@@ -596,7 +594,7 @@ Engine-Specific Arguments:
 Computational engine: ranger
 #+end_src
 
-#+begin_src R :exports code :results org 
+#+begin_src R :exports code :results org  :tangle no
 
   final_wf <- workflow() |>
     add_recipe(tree_rec) |>
@@ -632,7 +630,7 @@ Computational engine: ranger
 #+RESULTS:
 [[file:../images/arboles-bosque-importancia.jpeg]]
 
-#+begin_src R :exports results :results org 
+#+begin_src R :exports results :results org :tangle no
   final_res |>
     collect_predictions() |>
     conf_mat(legal_status, .pred_class)
@@ -646,7 +644,7 @@ Prediction       DPW Maintained Other
   Other                    1017  3152
 #+end_src
 
-#+begin_src R :exports results :results org 
+#+begin_src R :exports results :results org :tangle no
   final_res |>
     collect_predictions() |>
     recall(legal_status, .pred_class)
@@ -660,6 +658,219 @@ Prediction       DPW Maintained Other
 1 recall  binary         0.936
 #+end_src
 
+
+
+* Aplicación: Predicción de precios IKEA
+
+#+begin_src R :exports none :results none
+  ## Aplicacion: Precios de IKEA ---------------------------------------------
+  ikea <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-03/ikea.csv")
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/ikea-precios-exploratorio.jpeg  :exports results :results output graphics file
+  ikea |>
+    select(`...1`, price, depth:width) |>
+    pivot_longer(depth:width, names_to = "dim") |>
+    ggplot(aes(value, price, color = dim)) +
+    geom_point(alpha = 0.4, show.legend = FALSE) +
+    scale_y_log10() +
+    facet_wrap(~dim, scales = "free_x") +
+    labs(x = NULL) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/ikea-precios-exploratorio.jpeg]]
+
+#+begin_src R :exports both :results org 
+  ikea_df <- ikea |>
+    select(price, name, category, depth, height, width) |>
+    mutate(price = log10(price)) |>
+    mutate_if(is.character, factor)
+
+  ikea_df |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 3,694 × 6
+  price name                  category      depth height width
+  <dbl> <fct>                 <fct>         <dbl>  <dbl> <dbl>
+1  2.42 FREKVENS              Bar furniture    NA     99    51
+2  3.00 NORDVIKEN             Bar furniture    NA    105    80
+3  3.32 NORDVIKEN / NORDVIKEN Bar furniture    NA     NA    NA
+4  1.84 STIG                  Bar furniture    50    100    60
+5  2.35 NORBERG               Bar furniture    60     43    74
+# … with 3,689 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+begin_src R :exports code :results none 
+  set.seed(123)
+  ikea_split <- initial_split(ikea_df, strata = price)
+  ikea_train <- training(ikea_split)
+  ikea_test <- testing(ikea_split)
+
+  set.seed(234)
+  ikea_folds <- vfold_cv(ikea_train, strata = price)
+
+#+end_src
+
+
+#+begin_src R :exports code :results none 
+  library(textrecipes)
+  ranger_recipe <-
+    recipe(formula = price ~ ., data = ikea_train) |>
+    step_other(name, category, threshold = 0.01) |>
+    step_clean_levels(name, category) |>
+    step_impute_knn(depth, height, width)
+
+  ranger_spec <-
+    rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |>
+    set_mode("regression") |>
+    set_engine("ranger")
+
+  ranger_workflow <-
+    workflow() |>
+    add_recipe(ranger_recipe) |>
+    add_model(ranger_spec)
+
+  set.seed(8577)
+  ## Create a cluster object and then register: 
+  cl <- makePSOCKcluster(6)
+  doParallel::registerDoParallel(cl)
+
+  ranger_tune <-
+    tune_grid(ranger_workflow,
+              resamples = ikea_folds,
+              grid = 11,
+              control = control_grid(parallel_over = "resamples", verbose = TRUE)              
+              )
+#+end_src
+
+#+begin_src R :exports both :results org 
+  show_best(ranger_tune, metric = "rmse")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 5 × 8
+   mtry min_n .metric .estimator  mean     n std_err .config              
+  <int> <int> <chr>   <chr>      <dbl> <int>   <dbl> <chr>                
+1     2     4 rmse    standard   0.323    10 0.00602 Preprocessor1_Model10
+2     5     6 rmse    standard   0.331    10 0.00562 Preprocessor1_Model06
+3     4    10 rmse    standard   0.332    10 0.00570 Preprocessor1_Model05
+4     3    18 rmse    standard   0.339    10 0.00569 Preprocessor1_Model01
+5     2    21 rmse    standard   0.343    10 0.00561 Preprocessor1_Model08
+#+end_src
+
+#+begin_src R :exports both :results org 
+  show_best(ranger_tune, metric = "rsq")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 5 × 8
+   mtry min_n .metric .estimator  mean     n std_err .config              
+  <int> <int> <chr>   <chr>      <dbl> <int>   <dbl> <chr>                
+1     2     4 rsq     standard   0.752    10  0.0106 Preprocessor1_Model10
+2     5     6 rsq     standard   0.740    10  0.0100 Preprocessor1_Model06
+3     4    10 rsq     standard   0.738    10  0.0101 Preprocessor1_Model05
+4     3    18 rsq     standard   0.728    10  0.0104 Preprocessor1_Model01
+5     2    21 rsq     standard   0.723    10  0.0107 Preprocessor1_Model08
+#+end_src
+
+#+begin_src R :exports both :results org 
+  final_rf <- ranger_workflow |>
+    finalize_workflow(select_best(ranger_tune))
+
+  final_rf
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Warning message:
+No value of `metric` was given; metric 'rmse' will be used.
+== Workflow ==================================================================
+Preprocessor: Recipe
+Model: rand_forest()
+
+-- Preprocessor --------------------------------------------------------------
+3 Recipe Steps
+
+• step_other()
+• step_clean_levels()
+• step_impute_knn()
+
+-- Model ---------------------------------------------------------------------
+Random Forest Model Specification (regression)
+
+Main Arguments:
+  mtry = 2
+  trees = 1000
+  min_n = 4
+
+Computational engine: ranger
+#+end_src
+
+#+begin_src R :exports both :results org 
+  ikea_fit <- last_fit(final_rf, ikea_split)
+  ikea_fit
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# Resampling results
+# Manual resampling 
+# A tibble: 1 × 6
+  splits             id               .metrics .notes   .predictions .workflow 
+  <list>             <chr>            <list>   <list>   <list>       <list>    
+1 <split [2770/924]> train/test split <tibble> <tibble> <tibble>     <workflow>
+#+end_src
+
+#+begin_src R :exports both :results org 
+  collect_metrics(ikea_fit)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 2 × 4
+  .metric .estimator .estimate .config             
+  <chr>   <chr>          <dbl> <chr>               
+1 rmse    standard       0.318 Preprocessor1_Model1
+2 rsq     standard       0.752 Preprocessor1_Model1
+#+end_src
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/ikea-predicciones-arboles.jpeg :exports results :results output graphics file
+  collect_predictions(ikea_fit) |>
+    ggplot(aes(price, .pred)) +
+    geom_abline(lty = 2, color = "gray50") +
+    geom_point(alpha = 0.5, color = "midnightblue") +
+    coord_fixed() + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/ikea-predicciones-arboles.jpeg]]
+
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/ikea-vup-bosque.jpeg :exports results :results output graphics file
+  library(vip)
+
+  imp_spec <- ranger_spec |>
+    finalize_model(select_best(ranger_tune)) |>
+    set_engine("ranger", importance = "permutation")
+
+  workflow() |>
+    add_recipe(ranger_recipe) |>
+    add_model(imp_spec) |>
+    fit(ikea_train) |>
+    pull_workflow_fit() |>
+    vip(aesthetics = list(alpha = 0.8, fill = "midnightblue")) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/ikea-vup-bosque.jpeg]]
 
 * Conclusiones
 
