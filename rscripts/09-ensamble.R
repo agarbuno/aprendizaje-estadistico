@@ -97,7 +97,7 @@ astronauts <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytu
 
 astronauts |>
   count(in_orbit, sort = TRUE) |>
-  print(n = 5)
+  print(n = 3)
 
 astronauts |>
   mutate(
@@ -132,6 +132,8 @@ astronauts_df <- astronauts |>
 astronauts_df |>
   print(n = 5, width = 75)
 
+### Preprocesamiento -------------------------------------------------------
+
 set.seed(123)
 astro_split <- initial_split(astronauts_df, strata = hours_mission)
 astro_train <- training(astro_split)
@@ -147,6 +149,8 @@ astro_wf <- workflow() |>
   add_recipe(astro_recipe)
 
 astro_wf
+
+### Ajuste de modelo ---------------------------------------------------------
 
 library(baguette)
 
@@ -236,6 +240,8 @@ ikea_df <- ikea |>
 
 ikea_df |> print(n = 5)
 
+### Preporocesamiento --------------------------------------------------------
+
 set.seed(123)
 ikea_split <- initial_split(ikea_df, strata = price)
 ikea_train <- training(ikea_split)
@@ -250,6 +256,8 @@ ranger_recipe <-
   step_other(name, category, threshold = 0.01) |>
   step_clean_levels(name, category) |>
   step_impute_knn(depth, height, width)
+
+### Especificación modelo ----------------------------------------------------
 
 ranger_spec <-
   rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |>
@@ -307,6 +315,8 @@ workflow() |>
   pull_workflow_fit() |>
   vip(aesthetics = list(alpha = 0.8, fill = "midnightblue")) + sin_lineas
 
+### Postprocesamiento --------------------------------------------------------
+
 ranger_prep <- prep(ranger_recipe, training = ikea_train)
 rf_model <- randomForest::randomForest(
                             price ~., bake(ranger_prep, ikea_train),
@@ -350,6 +360,8 @@ trees_test  <- predictions$individual |>
   mutate(price = ikea_test$price)
 
 trees_train <- trees_test
+
+### Quema de bosque ----------------------------------------------------------
 
 lasso_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
   set_engine("glmnet") |>

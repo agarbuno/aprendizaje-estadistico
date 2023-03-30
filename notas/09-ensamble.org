@@ -408,7 +408,7 @@ Cargamos la información y exploramos cuál es la nave (/¿spacecraft?/) que mas
 #+begin_src R :exports both :results org 
   astronauts |>
     count(in_orbit, sort = TRUE) |>
-    print(n = 5)
+    print(n = 3)
 #+end_src
 
 #+RESULTS:
@@ -419,9 +419,7 @@ Cargamos la información y exploramos cuál es la nave (/¿spacecraft?/) que mas
 1 ISS        174
 2 Mir         71
 3 Salyut 6    24
-4 Salyut 7    24
-5 STS-42       8
-# … with 284 more rows
+# … with 286 more rows
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
@@ -466,6 +464,7 @@ Podemos explorar cómo ha cambiado la duración de las misiones a lo largo del t
     select(c(-mission_title, -name))
 #+end_src
 
+#+REVEAL: split
 *Objetivo*: predecir la duración de una misión espacial en función de algunas características de la misión. 
 
 #+begin_src R :exports results :results org 
@@ -488,6 +487,10 @@ Podemos explorar cómo ha cambiado la duración de las misiones a lo largo del t
 #+end_src
 
 ** Proceso de modelado
+
+#+begin_src R :exports none :results none
+  ### Preprocesamiento -------------------------------------------------------
+#+end_src
 
 #+begin_src R :exports code :results none
   set.seed(123)
@@ -529,6 +532,11 @@ Model: None
 ** Ajuste de /bagging/ con árboles de clasificación 
 
 Especificamos el modelo que utilizaremos
+
+#+begin_src R :exports none :results none
+  ### Ajuste de modelo ---------------------------------------------------------
+#+end_src
+
 
 #+begin_src R :exports both :results org 
   library(baguette)
@@ -1082,6 +1090,10 @@ Los datos que tenemos disponibles son los siguientes.
 
 ** Preparación de datos
 
+#+begin_src R :exports none :results none
+  ### Preporocesamiento --------------------------------------------------------
+#+end_src
+
 #+begin_src R :exports code :results none 
   set.seed(123)
   ikea_split <- initial_split(ikea_df, strata = price)
@@ -1103,6 +1115,11 @@ Los datos que tenemos disponibles son los siguientes.
 #+end_src
 
 ** Especificación del modelo
+
+#+begin_src R :exports none :results none
+  ### Especificación modelo ----------------------------------------------------
+#+end_src
+
 
 #+begin_src R :exports code :results none 
   ranger_spec <-
@@ -1243,7 +1260,7 @@ La función de ~last_fit~ nos permite ajustar el modelo con todo el conjunto de 
 [[file:../images/ikea-predicciones-arboles.jpeg]]
 
 #+REVEAL: split
-Utilizando la librería de ~vip~ podemos explorar cuáles son las variables mas importantes del modelo.
+Utilizando la librería de ~vip~ podemos explorar cuáles son las variables mas importantes (mas delante hablaremos de esto) del modelo.
 
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/ikea-vup-bosque.jpeg :exports results :results output graphics file
@@ -1267,6 +1284,11 @@ Utilizando la librería de ~vip~ podemos explorar cuáles son las variables mas 
 ** Post-procesando el bosque
 
 Lo que queremos es explorar los gráficos de desempeño conforme el tamaño del bosque aumenta. Pero la librería de ~tidymodels~  no nos permite acceso a estos elementos. Lo tenemos que tratar de manera especializada.
+
+#+begin_src R :exports none :results none
+  ### Postprocesamiento --------------------------------------------------------
+#+end_src
+
 
 #+begin_src R :exports code :results none
   ranger_prep <- prep(ranger_recipe, training = ikea_train)
@@ -1337,6 +1359,10 @@ Lo que queremos es explorar los gráficos de desempeño conforme el tamaño del 
 ** Post-procesamiento predictivo
 
 ¿Y si queremos encontrar un subconjunto de árboles del bosque para mejorar las predicciones en conjuntos de datos nuevos? ¿Qué estrategia hemos visto que nos puede ayudar con este objetivo?
+
+#+begin_src R :exports none :results none
+  ### Quema de bosque ---------------------------------------------------------- 
+#+end_src
 
 #+REVEAL: split
 #+begin_src R :exports code :results none
