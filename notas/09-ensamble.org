@@ -31,8 +31,13 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Modelos en ensamble.\\
-*Objetivo*:  En esta sección estudiaremos una forma de incorporar varios modelos para crear un modelo predictivo mas fuerte que un modelo individual. La estrategia está basada en una técnica de remuestreo que ya hemos estudiado previamente.\\
-*Lectura recomendada*: Sección 8.2 de citep:James2021. Capítulo 15 de citep:Hastie2009c. 
+*Objetivo*: En esta sección estudiaremos una forma de incorporar varios modelos
+ para crear un modelo predictivo mas fuerte que un modelo individual. La
+ estrategia está basada en una técnica de remuestreo que ya hemos estudiado
+ previamente.\\
+*Lectura recomendada*: Sección 8.2 de citet:James2021. Capítulo 15 de
+ citet:Hastie2009c. Capítulo 5 (/bagging/) y 7 (/random forest/) de
+ citet:Greenwell2022.
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -42,7 +47,7 @@
   library(scales)
 
   ## Cambia el default del tamaño de fuente 
-  theme_set(theme_linedraw(base_size = 25))
+  theme_set(theme_linedraw(base_size = 20))
 
   ## Cambia el número de decimales para mostrar
   options(digits = 4)
@@ -73,6 +78,7 @@
 :CONTENTS:
 - [[#introducción][Introducción]]
 - [[#remuestreo-o-bootstrap][Remuestreo o bootstrap]]
+  - [[#importante][Importante:]]
   - [[#para-pensar][Para pensar:]]
 - [[#bootstrapped-aggregation-bagging][Bootstrapped aggregation: Bagging]]
   - [[#en-problemas-de-clasificación][En problemas de clasificación]]
@@ -83,11 +89,15 @@
     - [[#bagging-y-clasificadores][Bagging y clasificadores:]]
     - [[#bagging-y-la-sabiduría-de-las-masas][Bagging y la sabiduría de las masas:]]
   - [[#observaciones][Observaciones]]
+- [[#aplicación-misiones-de-astronautas][Aplicación: Misiones de astronautas]]
+  - [[#proceso-de-modelado][Proceso de modelado]]
+  - [[#ajuste-de-bagging-con-árboles-de-clasificación][Ajuste de bagging con árboles de clasificación]]
 - [[#bosques-aleatorios][Bosques aleatorios]]
   - [[#motivación][Motivación]]
   - [[#sobre-ajuste][Sobre-ajuste]]
   - [[#análisis-de-ajuste][Análisis de ajuste]]
 - [[#aplicación-predicción-de-precios-ikea][Aplicación: Predicción de precios IKEA]]
+  - [[#post-procesando-el-bosque][Post-procesando el bosque]]
 - [[#conclusiones][Conclusiones]]
 :END:
 
@@ -103,15 +113,32 @@ Anteriormente, vimos los modelos predictivos basados en ~árboles de decisión~ 
 [[file:images/20220413-152721_screenshot.png]]
 
 
+#+REVEAL: split
+De igual manera se han publicado algunos reportes donde se confirma que en particular para ~datos tabulares~ modelos de ensamble basados en árboles tienen mejor capacidad predictiva.
+
+#+DOWNLOADED: screenshot @ 2023-03-29 21:22:28
+#+attr_html: :width 1200 :align center
+[[file:images/20230329-212228_screenshot.png]]
+#+DOWNLOADED: screenshot @ 2023-03-29 21:21:02
+#+attr_html: :width 1200 :align center
+[[file:images/20230329-212102_screenshot.png]]
+
+
 * Remuestreo o /bootstrap/
 
-Utilizar técnicas de remuestreo nos permite cuantificar la variabilidad de un estimador estadístico sin necesidad de invocar un régimen asintótico para el procedimiento. Asimismo, nos permite controlar, hasta cierto punto, la variabilidad de nuestros estimadores.
+Utilizar técnicas de remuestreo nos permite cuantificar la variabilidad de un estimador estadístico sin necesidad de invocar un régimen asintótico para el procedimiento. Asimismo, nos permite controlar, hasta cierto punto, la variabilidad de nuestros estimadores.$^\dagger$
+
+
+$^\dagger$: Mas información de esto en el curso de ~EST-24107: Simulación~.
 
 #+REVEAL: split
-Por ejemplo, consideremos la situación en donde tenemos una muestra de $n$ observaciones $Z_1, \ldots, Z_n$ las cuales tienen una varianza $\sigma^2$. Es fácil demostrar que la varianza de la media $\bar Z_n$ tiene una varianza $\sigma^2/n$.
+Por ejemplo, consideremos la situación en donde tenemos una muestra de $n$ observaciones $Z_1, \ldots, Z_n$ las cuales provienen de una distribución con varianza $\sigma^2$. Es fácil demostrar que la varianza de la media $\bar Z_n$ tiene una varianza $\sigma^2/n$.
 
-#+REVEAL: split
-Esto quiere decir, que podemos promediar para reducir la varianza estimada.
+*** Importante:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Esto quiere decir, que podemos 1) generar muestras, 2) promediar y, entonces, reducimos la varianza estimada!
 
 *** Para pensar:
 :PROPERTIES:
@@ -126,19 +153,24 @@ Podemos utilizar la muestra $z_1, \ldots, z_n \overset{\mathsf{iid}}{\sim} \pi$ 
 \pi[X  \leq x] \approx {\hat \pi}_n[X  \leq x] = \frac1n \sum_{i = 1}^{n} I_{[z_i  \leq x]}\,.
 \end{align}
 
+Con mi muestra, entonces, podemos calcular algún estimador de un característica poblacional de interés
+\begin{align}
+\hat \theta_n = t(z_1, \ldots, z_n)\,.
+\end{align}
+
 #+REVEAL: split
 Con este procedimiento podemos generar $B$ conjuntos de datos
 \begin{align}
 z_1^{(b)}, \ldots, z_n^{(b)} \overset{\mathsf{iid}}{\sim} \hat \pi_n\,, \qquad b = 1, \ldots, B\,,
 \end{align}
-para obtener estimadores $\hat \theta^{(b)}_n = t(z_1^{(b)}, \ldots, z_n^{(b)})$ y, a través de un promedio, obtener un estimador
+para obtener una colección de estimadores $\hat \theta^{(b)}_n = t(z_1^{(b)}, \ldots, z_n^{(b)})$ y, a través de un promedio, obtener un estimador
 \begin{align}
 \bar \theta_{B,n}^{(\mathsf{bag})} = \frac1B \sum_{b= 1}^{B} \hat \theta^{(b)}_n \,,
 \end{align}
 con varianza que se reduce a una tasa $1/B$.
 
 #+BEGIN_NOTES
-El muestreo $z_1^{(b)}, \ldots, z_n^{(b)} \overset{\mathsf{iid}}{\sim} \hat \pi_n$ implica tomar muestras *con* reemplazo del conjunto de datos observado. Nota que las remuestras son del mismo tamaño que la muestra original. Es decir, cada remuestra $b$ tiene $n$ observaciones. Como el procedimiento es con reemplazo, esto puede ocasionar que pueda haber algunas observaciones que repitan en la remuestra.  
+El muestreo $z_1^{(b)}, \ldots, z_n^{(b)} \overset{\mathsf{iid}}{\sim} \hat \pi_n$ implica tomar muestras *con* reemplazo del conjunto de datos observado. Nota que las remuestras son del mismo tamaño que la muestra original. Es decir, cada remuestra $b$ tiene $n$ observaciones. Como el procedimiento es con reemplazo, esto puede ocasionar que pueda haber algunas observaciones que se repitan en la remuestra.  
 #+END_NOTES
 
 
@@ -147,10 +179,10 @@ El muestreo $z_1^{(b)}, \ldots, z_n^{(b)} \overset{\mathsf{iid}}{\sim} \hat \pi_
 La estrategia de remuestreo nos puede ayudar a cuantificar la estabilidad de
 ciertos estimadores. Por ejemplo, consideremos los datos que teníamos sobre el
 ingreso para un conjunto de 150 observaciones. El interés es construir un
-suavizador que relacione ~Edad~ con ~Ingreso~. Utilizaremos un suavizador de /splines/
-con 15 grados de libertad, ver [[fig:splines-smooth]].
+suavizador que relacione ~Edad~ con ~Ingreso~.
 
 #+begin_src R :exports none :results none 
+  ## Ejemplo suavizadores ------------------------------------------------------
   library(ISLR)
   set.seed(108727)
   ## Cargamos datos
@@ -160,7 +192,26 @@ con 15 grados de libertad, ver [[fig:splines-smooth]].
     sample_frac(.05)
 #+end_src
 
+#+begin_src R :exports results :results org 
+  data |> print(n = 3)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 150 × 5
+   year   age  wage education       hi.income
+  <int> <dbl> <dbl> <fct>               <dbl>
+1  2003    53  81.6 4. College Grad         0
+2  2008    50  82.7 4. College Grad         0
+3  2006    35 155.  4. College Grad         0
+# … with 147 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+
 #+REVEAL: split
+Utilizaremos un suavizador de /splines/ con 15 grados de libertad, ver
+[[fig:splines-smooth]].
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/splines-bootstrap.jpeg :exports results :results output graphics file
   library(ggformula)
@@ -185,7 +236,6 @@ con 15 grados de libertad, ver [[fig:splines-smooth]].
 
 #+REVEAL: split
 A través de remuestreo podemos cuantificar la estabilidad de dicha estimación, ver [[fig:splines-boot]].
-
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-splines-bootstrap.jpeg :exports results :results output graphics file
   library("rsample")
@@ -219,9 +269,7 @@ A través de remuestreo podemos cuantificar la estabilidad de dicha estimación,
 [[file:../images/wage-splines-bootstrap.jpeg]]
 
 #+REVEAL: split
-
 La estabilidad también la podemos graficar por medio de intervalos de confianza. Ver [[fig:splines-boot-int]].
-
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/wage-splines-bootstrap-intervals.jpeg :exports results :results output graphics file
   boot.fit <- tibble(id = 1:100) |>
@@ -250,14 +298,28 @@ La estabilidad también la podemos graficar por medio de intervalos de confianza
 
 * /Bootstrapped aggregation: Bagging/
 
-En el contexto de modelado predictivo nos interesa ~estimar la relación~ que existe entre atributos $x$ y la respuesta  $y$ por medio de una $f: \mathcal{X} \mapsto \mathcal{Y}$. Dicho estimador, lo denotamos por $\hat f_n$ haciendo énfasis en que ha sido construido con una muestra de tamaño $n$ al minimizar una función de pérdida adecuada.
+En el contexto de modelado predictivo nos interesa ~estimar la relación~ que
+existe entre atributos $x$ y una respuesta de interés $y$ por medio de una
+función $f: \mathcal{X} \mapsto \mathcal{Y}$. Dicho estimador, lo denotamos por
+$\hat f_n$ haciendo énfasis en que ha sido construido con una muestra de tamaño
+$n$. Recordemos que este estimador en el contexto de modelado predictivo es
+resultado de un problema de optimización con una función de pérdida adecuada.
 
 #+REVEAL: split
-Si utilizamos /bootstrap/, para cada uno de los $B$ conjuntos de entrenamiento estimamos $\hat f_n^{(b)}$ para poder hacer predicciones por medio de
+Si utilizamos /bootstrap/, para cada uno de los $B$ conjuntos de entrenamiento
+estimamos $\hat f_n^{(b)}$ con $b = 1, \ldots, B$ para poder hacer predicciones
+por medio de
 \begin{align}
 \hat f^{(\mathsf{bag})}_{B,n} (x) = \frac1B \sum_{b = 1}^{B} \hat f_n^{(b)} (x) \,,
 \end{align}
 esto lo llamamos ~bootstrap aggregation~ o ~bagging~. 
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-03-29 11:04:04
+#+attr_html: :width 1200 :align center
+#+caption: Ilustración esquemática de /bagging/ por medio de árboles de decisión. Tomada de citep:Greenwell2022.
+[[file:images/20230329-110404_screenshot.png]]
+
 
 ** En problemas de clasificación
 
@@ -280,8 +342,8 @@ $B$ predictores.
 - El estimador $\hat f^{(\mathsf{bag})}_{B,n}$ es un estimador Monte Carlo. ¿De qué?
 - El estimador $\hat f^{(\mathsf{bag})}_{B,n} \rightarrow \hat f_n$ con $B\rightarrow \infty$ en cada uno de los puntos a evaluar $x$.
 - Cuando los atributos están altamente correlacionados los árboles de decisión
-  pueden presentar varianza alta.  En esta situación ~bagging~ puede suavizar la
-  varianza y reducir el error de generalización.
+  pueden presentar varianza alta.  =Ventaja:= en esta situación ~bagging~ puede
+  suavizar la varianza y reducir el error de generalización.
 
 ** /Bagging/, regresión y ~MSE~
 
@@ -295,7 +357,7 @@ $B$ predictores.
 
 ** /Bagging/ y clasificación
 
-- En problemas de clasificación, no tenemos descomposición aditiva de sesgo y varianza.
+- En problemas de clasificación, no tenemos descomposición aditiva de sesgo y varianza. A menos que $\ldots$
 - El uso de ~bagging~ puede hacer de un mal clasificador, algo todavía peor. Consideremos el
   caso siguiente.
 
@@ -335,6 +397,322 @@ El resultado anterior se conoce como ~Sabiduría de las masas~ en donde se asume
 - Utilizar ~bagging~ en un problema de clasificación con árboles no es un 
   procedimiento que utilice árboles independientes. Por lo tanto no hay garantía
   de que el consenso mejore el error de clasificación.
+- En general para ~bagging~ estamos dispuestos a usar modelos de ~alta varianza~
+  puesto que el remuestreo se encarga de ayudarnos a contenerla.
+
+
+* Aplicación: Misiones de astronautas
+
+Ejemplo tomado de: [[https://juliasilge.com/blog/astronaut-missions-bagging/][Bagging with tidymodels and #TidyTuesday astronaut missions]].
+Cargamos la información y exploramos cuál es la nave (¿ /spacecraft/ ?) que mas se utiliza en misiones espaciales.
+
+#+begin_src R :exports none :results none
+  ## Aplicación: Misiones de astronautas ---------------------------------------
+  astronauts <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-14/astronauts.csv")
+#+end_src
+
+#+begin_src R :exports both :results org 
+  astronauts |>
+    count(in_orbit, sort = TRUE) |>
+    print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 289 × 2
+  in_orbit     n
+  <chr>    <int>
+1 ISS        174
+2 Mir         71
+3 Salyut 6    24
+4 Salyut 7    24
+5 STS-42       8
+# … with 284 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+Podemos explorar cómo ha cambiado la duración de las misiones a lo largo del tiempo.
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/astronautas-misiones.jpeg :exports results :results output graphics file
+  astronauts |>
+    mutate(
+      year_of_mission = 10 * (year_of_mission %/% 10),
+      year_of_mission = factor(year_of_mission)
+    ) |>
+    ggplot(aes(year_of_mission, hours_mission,
+               fill = year_of_mission, color = year_of_mission
+               )) +
+    geom_boxplot(alpha = 0.2, size = 1.5, show.legend = FALSE) +
+    scale_y_log10() + sin_lineas + 
+    labs(x = NULL, y = "Duration of mission in hours")
+#+end_src
+
+#+RESULTS:
+[[file:../images/astronautas-misiones.jpeg]]
+
+#+begin_src R :exports none :results none
+  astronauts_df <- astronauts |>
+    select(
+      name, mission_title, hours_mission,
+      military_civilian, occupation, year_of_mission, in_orbit
+    ) |>
+    mutate(
+      in_orbit = case_when(
+        str_detect(in_orbit, "^Salyut") ~ "Salyut",
+        str_detect(in_orbit, "^STS") ~ "STS",
+        TRUE ~ in_orbit
+      ),
+      occupation = str_to_lower(occupation)
+    ) |>
+    filter(hours_mission > 0) |>
+    mutate(hours_mission = log(hours_mission)) |>
+    na.omit() |>
+    select(c(-mission_title, -name))
+#+end_src
+
+*Objetivo*: predecir la duración de una misión espacial en función de algunas características de la misión. 
+
+#+begin_src R :exports results :results org 
+  astronauts_df |>
+    print(n = 5, width = 75)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1,270 × 5
+  hours_mission military_civilian occupation year_of_mission in_orbit      
+          <dbl> <chr>             <chr>                <dbl> <chr>         
+1         0.571 military          pilot                 1961 Vostok 2      
+2         3.22  military          pilot                 1961 Vostok 2      
+3         1.61  military          pilot                 1962 MA-6          
+4         5.36  military          psp                   1998 STS           
+5         1.61  military          pilot                 1962 Mercury-Atlas…
+# … with 1,265 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+** Proceso de modelado
+
+#+begin_src R :exports code :results none
+  set.seed(123)
+  astro_split <- initial_split(astronauts_df, strata = hours_mission)
+  astro_train <- training(astro_split)
+  astro_test <- testing(astro_split)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  astro_recipe <- recipe(hours_mission ~ ., data = astro_train) |>
+    step_other(occupation, in_orbit,
+               threshold = 0.005, other = "Other"
+               ) |>
+    step_dummy(all_nominal_predictors())
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  astro_wf <- workflow() |>
+    add_recipe(astro_recipe)
+
+  astro_wf
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+══ Workflow ════════════════════════════════════════════════════════════════════════
+Preprocessor: Recipe
+Model: None
+
+── Preprocessor ────────────────────────────────────────────────────────────────────
+2 Recipe Steps
+
+• step_other()
+• step_dummy()
+#+end_src
+
+** Ajuste de /bagging/ con árboles de clasificación 
+
+Especificamos el modelo que utilizaremos
+
+#+begin_src R :exports both :results org 
+  library(baguette)
+
+  tree_spec <- bag_tree() |>
+    set_engine("rpart", times = 100) |>
+    set_mode("regression")
+
+  tree_spec
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Bagged Decision Tree Model Specification (regression)
+
+Main Arguments:
+  cost_complexity = 0
+  min_n = 2
+
+Engine-Specific Arguments:
+  times = 100
+
+Computational engine: rpart
+#+end_src
+
+#+REVEAL: split
+
+Ajustamos el modelo a nuestros de datos de entrenamiento.
+
+#+begin_src R :exports both :results org 
+  tree_rs <- astro_wf |>
+    add_model(tree_spec) |>
+    fit(astro_train)
+
+  tree_rs
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  == Workflow [trained] =====================================================
+  Preprocessor: Recipe
+  Model: bag_tree()
+
+  -- Preprocessor -----------------------------------------------------------
+  2 Recipe Steps
+
+  - step_other()
+  - step_dummy()
+
+  -- Model-------------------------------------------------------------------
+  Bagged CART (regression with 100 members)
+
+  Variable importance scores include:
+
+  # A tibble: 13 × 4
+  term                             value std.error  used
+  <chr>                            <dbl>     <dbl> <int>
+  1 year_of_mission                  872.      12.0    100
+  2 in_orbit_Other                   592.      27.9    100
+  3 in_orbit_STS                     339.      13.3    100
+  4 occupation_flight.engineer       233.      13.5    100
+  5 in_orbit_Mir                     133.       9.35   100
+  6 occupation_pilot                 130.       9.02   100
+  7 in_orbit_Salyut                  103.       4.64   100
+  8 occupation_msp                    99.4      4.63   100
+  9 occupation_other..space.tourist.  44.2      2.24   100
+  10 military_civilian_military        39.6      1.96   100
+  11 occupation_psp                    22.3      2.57   100
+  12 in_orbit_Mir.EP                   18.8      1.57    95
+  13 occupation_Other                  17.5      1.17    88
+#+end_src
+
+#+REVEAL: split
+Realizamos predicciones en nuestro conjunto de prueba para poder reportar capacidad predictiva. 
+
+#+begin_src R :exports both :results org 
+  test_rs <- astro_test |>
+    bind_cols(predict(tree_rs, astro_test)) |>
+    rename(.pred_tree = .pred)
+
+  test_rs |> print(n = 5, width = 73)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 318 × 6
+  hours_mission military_civilian occupation year_of_mi…¹ in_or…² .pred…³
+          <dbl> <chr>             <chr>             <dbl> <chr>     <dbl>
+1          3.22 military          pilot              1961 Vostok…    1.76
+2          1.61 military          pilot              1962 MA-6       3.19
+3          5.36 military          psp                1998 STS        5.62
+4          6.05 military          pilot              1970 Soyuz 9    5.34
+5          5.93 military          commander          1974 Soyuz …    6.08
+# … with 313 more rows, and abbreviated variable names ¹​year_of_mission,
+#   ²​in_orbit, ³​.pred_tree
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+Por ejemplo, podemos reportar un conjunto de métricas
+
+#+begin_src R :exports both :results org 
+  test_rs |>
+    metrics(hours_mission, .pred_tree)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 3 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 rmse    standard       0.682
+2 rsq     standard       0.756
+3 mae     standard       0.360
+#+end_src
+
+#+REVEAL: split
+Podemos jugar con el modelo para tratar de entender la respuesta del modelo a situaciones de interés. 
+
+#+begin_src R :exports both :results org 
+  new_astronauts <- crossing(
+    in_orbit = fct_inorder(c("ISS", "STS", "Mir", "Other")),
+    military_civilian = "civilian",
+    occupation = "Other",
+    year_of_mission = seq(1960, 2020, by = 10)
+  ) |>
+    filter(
+      !(in_orbit == "ISS" & year_of_mission < 2000),
+      !(in_orbit == "Mir" & year_of_mission < 1990),
+      !(in_orbit == "STS" & year_of_mission > 2010),
+      !(in_orbit == "STS" & year_of_mission < 1980)
+    )
+
+  new_astronauts
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 18 × 4
+   in_orbit military_civilian occupation year_of_mission
+   <fct>    <chr>             <chr>                <dbl>
+ 1 ISS      civilian          Other                 2000
+ 2 ISS      civilian          Other                 2010
+ 3 ISS      civilian          Other                 2020
+ 4 STS      civilian          Other                 1980
+ 5 STS      civilian          Other                 1990
+ 6 STS      civilian          Other                 2000
+ 7 STS      civilian          Other                 2010
+ 8 Mir      civilian          Other                 1990
+ 9 Mir      civilian          Other                 2000
+10 Mir      civilian          Other                 2010
+11 Mir      civilian          Other                 2020
+12 Other    civilian          Other                 1960
+13 Other    civilian          Other                 1970
+14 Other    civilian          Other                 1980
+15 Other    civilian          Other                 1990
+16 Other    civilian          Other                 2000
+17 Other    civilian          Other                 2010
+18 Other    civilian          Other                 2020
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/astronautas-fake-data.jpeg :exports results :results output graphics file
+  new_astronauts |>
+    bind_cols(predict(tree_rs, new_astronauts)) |>
+    ggplot(aes(year_of_mission, .pred, color = in_orbit)) +
+    geom_line(size = 1.5, alpha = 0.7) +
+    geom_point(size = 2) +
+    labs(
+      x = NULL, y = "Duration of mission in hours",
+      color = NULL, title = "How did the duration of astronauts' missions change over time?",
+      subtitle = "Predicted using bagged decision tree model"
+    ) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/astronautas-fake-data.jpeg]]
 
 * Bosques aleatorios
 
@@ -346,7 +724,7 @@ Usualmente consideramos $m\approx \sqrt{p}$. Esto permite restringir el espacio 
 
 ** Motivación
 
-Si consideramos la situación donde tenemos $B$ variables $\mathsf{iid}$ cada una con varianza $\sigma^2$  entonces el promedio tendrá varianza igual $\sigma^2/B$. Si las variables son sólo $\mathsf{id}$ con correlación positiva $\rho$ , entonces el promedio tendrá varianza igual a
+Si consideramos la situación donde tenemos $B$ variables $\mathsf{iid}$ cada una con varianza $\sigma^2$  entonces el promedio tendrá varianza igual $\sigma^2/B$. Si las variables son sólo $\mathsf{id}$ (números aleatorios de la misma población) con correlación positiva $\rho$ , entonces el promedio tendrá varianza igual a
 \begin{align}
 \rho \sigma^2  + \frac{1 - \rho}{B} \sigma^2\,.
 \end{align}
@@ -390,7 +768,6 @@ donde:
   \begin{align}
   \sigma^2(x) = \mathbb{V}\left(T\left(x; \Theta(\mathcal{D}_n)\right)\right)\,.
   \end{align}
-
 
 * Aplicación: Predicción de árboles con bosques aleatorios         :noexport:
 
@@ -662,6 +1039,8 @@ Prediction       DPW Maintained Other
 
 * Aplicación: Predicción de precios IKEA
 
+Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random forests for #TidyTuesday IKEA prices]]. 
+
 #+begin_src R :exports none :results none
   ## Aplicacion: Precios de IKEA ---------------------------------------------
   ikea <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-03/ikea.csv")
@@ -791,18 +1170,18 @@ Prediction       DPW Maintained Other
 #+begin_src org
 Warning message:
 No value of `metric` was given; metric 'rmse' will be used.
-== Workflow ==================================================================
+== Workflow ===============================================================
 Preprocessor: Recipe
 Model: rand_forest()
 
--- Preprocessor --------------------------------------------------------------
+-- Preprocessor -----------------------------------------------------------
 3 Recipe Steps
 
-• step_other()
-• step_clean_levels()
-• step_impute_knn()
+- step_other()
+- step_clean_levels()
+- step_impute_knn()
 
--- Model ---------------------------------------------------------------------
+-- Model ------------------------------------------------------------------
 Random Forest Model Specification (regression)
 
 Main Arguments:
@@ -872,6 +1251,234 @@ Computational engine: ranger
 #+RESULTS:
 [[file:../images/ikea-vup-bosque.jpeg]]
 
+** Post-procesando el bosque
+
+#+begin_src R :exports code :results none
+  ranger_prep <- prep(ranger_recipe, training = ikea_train)
+  rf_model <- randomForest::randomForest(
+                              price ~., bake(ranger_prep, ikea_train),
+                              mtry = 2, ntree = 1000, nodesize = 4)
+#+end_src
+
+#+begin_src R :exports code :results none
+  collect_forest_predictions <- function(model, data){
+    predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
+    predictions$individual |>
+      as_tibble() |>
+      mutate(observation = 1:nrow(data),
+             truth = data$price) |>
+      pivot_longer(cols = 1:1000,
+                   values_to = ".prediction", names_to = ".tree") |>
+      group_by(observation) |>
+      mutate(.estimate = cummean(.prediction)) |>
+      ungroup() |> select(c(-.prediction)) |>
+      nest(data = c(observation, truth, .estimate)) |>
+      mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) }))
+  }
+#+end_src
+
+#+begin_src R :exports code :results none
+  predictions_train <- collect_forest_predictions(rf_model, ikea_train)
+  predictions_test  <- collect_forest_predictions(rf_model, ikea_test)
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/ikea-bosque-complejidad.jpeg :exports results :results output graphics file
+  predictions_train |> unnest(results) |>
+    mutate(.tree_id = 1:1000,
+           .train = .estimate,
+           .test  = unnest(predictions_test, results)$.estimate) |>
+    select(c(.tree_id, .train, .test)) |>
+    pivot_longer(cols = 2:3, names_to = "data", values_to = ".error") |>
+    ggplot(aes(.tree_id, .error, .group = data, color = data)) +
+    geom_line() + sin_lineas + scale_x_log10()
+#+end_src
+#+caption: Error predictivo utilizando bosque aleatorio.
+#+RESULTS:
+[[file:../images/ikea-bosque-complejidad.jpeg]]
+
+#+begin_src R :exports none :results none
+  predictions <- predict(rf_model, bake(ranger_prep, ikea_train), predict.all = TRUE)
+  trees_train  <- predictions$individual |>
+    as_tibble() |>
+    mutate(price = ikea_train$price)
+#+end_src
+
+#+begin_src R :exports none :results none
+  predictions <- predict(rf_model, bake(ranger_prep, ikea_test), predict.all = TRUE)
+  trees_test  <- predictions$individual |>
+    as_tibble() |>
+    mutate(price = ikea_test$price)
+#+end_src
+
+#+begin_src R :exports none :results none
+  trees_train <- trees_test
+#+end_src
+
+#+begin_src R :exports code :results none
+  lasso_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
+    set_engine("glmnet") |>
+    set_mode("regression")
+#+end_src
+
+#+begin_src R :exports code :results none 
+  lasso_rec <- recipe(price ~ ., data = trees_train)
+#+end_src
+
+#+begin_src R :exports code :results none 
+  set.seed(108727)
+  forest_boot <- vfold_cv(trees_train, v = 10)
+#+end_src
+
+#+begin_src R :exports code :results none
+  lasso_wf <- workflow() |>
+    add_recipe(lasso_rec) |> 
+    add_model(lasso_spec)
+
+  lasso_grid <- lasso_wf |>
+    tune_grid(
+      resamples = forest_boot,
+      grid = 50,
+      control = control_grid(verbose = FALSE)
+    )
+#+end_src
+
+#+begin_src R :exports both :results org 
+  lasso_grid |>
+    collect_metrics()
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 100 × 7
+    penalty .metric .estimator  mean     n std_err .config              
+      <dbl> <chr>   <chr>      <dbl> <int>   <dbl> <chr>                
+ 1 1.26e-10 rmse    standard   0.307    10 0.0132  Preprocessor1_Model01
+ 2 1.26e-10 rsq     standard   0.770    10 0.00920 Preprocessor1_Model01
+ 3 1.90e-10 rmse    standard   0.307    10 0.0132  Preprocessor1_Model02
+ 4 1.90e-10 rsq     standard   0.770    10 0.00920 Preprocessor1_Model02
+ 5 3.28e-10 rmse    standard   0.307    10 0.0132  Preprocessor1_Model03
+ 6 3.28e-10 rsq     standard   0.770    10 0.00920 Preprocessor1_Model03
+ 7 4.34e-10 rmse    standard   0.307    10 0.0132  Preprocessor1_Model04
+ 8 4.34e-10 rsq     standard   0.770    10 0.00920 Preprocessor1_Model04
+ 9 6.71e-10 rmse    standard   0.307    10 0.0132  Preprocessor1_Model05
+10 6.71e-10 rsq     standard   0.770    10 0.00920 Preprocessor1_Model05
+# … with 90 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+begin_src R :exports code :results none 
+  lowest_rmse <- lasso_grid |>
+    select_best("rmse")
+
+  final_lasso <- finalize_workflow(
+    lasso_wf,
+    lowest_rmse
+  )
+#+end_src
+
+#+HEADER: :width 700 :height 900 :R-dev-args bg="transparent"
+#+begin_src R :file images/forest-lasso-deforest.jpeg :exports results :results output graphics file :eval never :tangle np
+  library(vip)
+
+  final_lasso |>
+    fit(trees_train) |>
+    pull_workflow_fit() |>
+    vi(lambda = lowest_rmse$penalty) |>
+    mutate(
+      Importance = abs(Importance),
+      Variable = fct_reorder(Variable, Importance)
+    ) |>
+    head(100) |>
+    ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+    geom_col() +
+    scale_x_continuous(expand = c(0, 0)) +
+    labs(y = NULL) + sin_lineas
+#+end_src
+
+#+begin_src R :exports both :results org 
+  active_trees <- final_lasso |>
+    fit(trees_train) |>
+    broom::tidy() |>
+    filter(estimate != 0) |>
+    mutate(.tree = term, beta = estimate) |>
+    select(c(.tree, beta)) 
+
+  active_trees |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 118 × 2
+  .tree          beta
+  <chr>         <dbl>
+1 (Intercept) -0.0396
+2 V17          0.0195
+3 V18          0.0463
+4 V30          0.0121
+5 V34          0.0176
+# … with 113 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+begin_src R :exports none :results none
+  collect_dforest_predictions <- function(model, data, active_trees){
+    intercept <- active_trees$beta[1]
+
+    predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
+    predictions$individual |>
+      as_tibble() |>
+      mutate(observation = 1:nrow(data),
+             truth = data$price) |>
+      pivot_longer(cols = 1:1000,
+                   values_to = ".prediction", names_to = ".tree") |>
+      right_join(active_trees |> filter(.tree != "(Intercept)"), by = ".tree") |>
+      filter(complete.cases(beta)) |>
+      group_by(observation) |>
+      arrange(desc(abs(beta))) |>
+      mutate(.estimate = intercept + cumsum(beta * .prediction)) |>
+      ungroup() |> select(c(-.prediction, -beta)) |>
+      nest(data = c(observation, truth, .estimate)) |>
+      mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) }))
+  }
+#+end_src
+
+#+begin_src R :exports code :results none
+  dpredictions_train <- collect_dforest_predictions(rf_model, ikea_train, active_trees)
+  dpredictions_test  <- collect_dforest_predictions(rf_model, ikea_test, active_trees)
+#+end_src
+
+#+begin_src R :exports none :results none
+  original_results <- predictions_train |> unnest(results) |>
+    mutate(.tree_id = 1:1000,
+           .train = .estimate,
+           .test  = unnest(predictions_test, results)$.estimate) |>
+    select(c(.tree_id, .train, .test)) |>
+    pivot_longer(cols = 2:3, names_to = "data", values_to = ".error") 
+#+end_src
+
+#+begin_src R :exports none :results none
+  deforest_results <- dpredictions_train |>
+    unnest(results) |>
+    mutate(.tree_id = 1:n(),
+           .dtrain = .estimate,
+           .dtest  = unnest(dpredictions_test, results)$.estimate) |>
+    select(c(.tree_id, .dtrain, .dtest)) |>
+    pivot_longer(cols = 2:3, names_to = "data", values_to = ".error") 
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/ikea-bosque-lasso-complejidad.jpeg :exports results :results output graphics file
+  original_results |>
+    rbind(deforest_results) |>
+    ggplot(aes(.tree_id, .error, .group = data, color = data)) +
+    geom_line() + sin_lineas +
+    coord_cartesian(ylim = c(0.22, 1)) + scale_x_log10()
+#+end_src
+
+#+RESULTS:
+[[file:../images/ikea-bosque-lasso-complejidad.jpeg]]
+
 * Conclusiones
 
 - Los bosques aleatorios son uno de los métodos más generales de predicción.
@@ -879,7 +1486,6 @@ Computational engine: ranger
 - Heredan ventajas de los árboles. Por ejemplo, las predicciones siempre se encuentran en el rango de las observaciones.
 - Pueden ser lentos en predicción.
 - Tienen capacidad de extrapolación limitada. 
-
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
