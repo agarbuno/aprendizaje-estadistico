@@ -97,7 +97,10 @@
   - [[#sobre-ajuste][Sobre-ajuste]]
   - [[#análisis-de-ajuste][Análisis de ajuste]]
 - [[#aplicación-predicción-de-precios-ikea][Aplicación: Predicción de precios IKEA]]
+  - [[#preparación-de-datos][Preparación de datos]]
+  - [[#especificación-del-modelo][Especificación del modelo]]
   - [[#post-procesando-el-bosque][Post-procesando el bosque]]
+  - [[#post-procesamiento-predictivo][Post-procesamiento predictivo]]
 - [[#conclusiones][Conclusiones]]
 :END:
 
@@ -404,7 +407,7 @@ El resultado anterior se conoce como ~Sabiduría de las masas~ en donde se asume
 * Aplicación: Misiones de astronautas
 
 Ejemplo tomado de: [[https://juliasilge.com/blog/astronaut-missions-bagging/][Bagging with tidymodels and #TidyTuesday astronaut missions]].
-Cargamos la información y exploramos cuál es la nave (¿ /spacecraft/ ?) que mas se utiliza en misiones espaciales.
+Cargamos la información y exploramos cuál es la nave (/¿spacecraft?/) que mas se utiliza en misiones espaciales.
 
 #+begin_src R :exports none :results none
   ## Aplicación: Misiones de astronautas ---------------------------------------
@@ -1039,7 +1042,7 @@ Prediction       DPW Maintained Other
 
 * Aplicación: Predicción de precios IKEA
 
-Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random forests for #TidyTuesday IKEA prices]]. 
+Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random forests for #TidyTuesday IKEA prices]].
 
 #+begin_src R :exports none :results none
   ## Aplicacion: Precios de IKEA ---------------------------------------------
@@ -1057,10 +1060,12 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
     facet_wrap(~dim, scales = "free_x") +
     labs(x = NULL) + sin_lineas
 #+end_src
-
+#+caption: Relación del precio con las dimensiones del producto.
 #+RESULTS:
 [[file:../images/ikea-precios-exploratorio.jpeg]]
 
+#+REVEAL: split
+Los datos que tenemos disponibles son los siguientes. 
 #+begin_src R :exports both :results org 
   ikea_df <- ikea |>
     select(price, name, category, depth, height, width) |>
@@ -1084,6 +1089,8 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
+** Preparación de datos
+
 #+begin_src R :exports code :results none 
   set.seed(123)
   ikea_split <- initial_split(ikea_df, strata = price)
@@ -1092,10 +1099,9 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
 
   set.seed(234)
   ikea_folds <- vfold_cv(ikea_train, strata = price)
-
 #+end_src
 
-
+#+REVEAL: split
 #+begin_src R :exports code :results none 
   library(textrecipes)
   ranger_recipe <-
@@ -1103,7 +1109,11 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
     step_other(name, category, threshold = 0.01) |>
     step_clean_levels(name, category) |>
     step_impute_knn(depth, height, width)
+#+end_src
 
+** Especificación del modelo
+
+#+begin_src R :exports code :results none 
   ranger_spec <-
     rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |>
     set_mode("regression") |>
@@ -1113,7 +1123,10 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
     workflow() |>
     add_recipe(ranger_recipe) |>
     add_model(ranger_spec)
+#+end_src
 
+#+REVEAL: split
+#+begin_src R :exports code :results none 
   set.seed(8577)
   ## Create a cluster object and then register: 
   cl <- makePSOCKcluster(6)
@@ -1123,10 +1136,12 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
     tune_grid(ranger_workflow,
               resamples = ikea_folds,
               grid = 11,
-              control = control_grid(parallel_over = "resamples", verbose = TRUE)              
-              )
+              control =
+                control_grid(parallel_over = "resamples",
+                             verbose = TRUE))
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   show_best(ranger_tune, metric = "rmse")
 #+end_src
@@ -1143,6 +1158,7 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
 5     2    21 rmse    standard   0.343    10 0.00561 Preprocessor1_Model08
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   show_best(ranger_tune, metric = "rsq")
 #+end_src
@@ -1159,6 +1175,7 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
 5     2    21 rsq     standard   0.723    10  0.0107 Preprocessor1_Model08
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   final_rf <- ranger_workflow |>
     finalize_workflow(select_best(ranger_tune))
@@ -1168,8 +1185,6 @@ Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random fore
 
 #+RESULTS:
 #+begin_src org
-Warning message:
-No value of `metric` was given; metric 'rmse' will be used.
 == Workflow ===============================================================
 Preprocessor: Recipe
 Model: rand_forest()
@@ -1192,6 +1207,8 @@ Main Arguments:
 Computational engine: ranger
 #+end_src
 
+#+REVEAL: split
+La función de ~last_fit~ nos permite ajustar el modelo con todo el conjunto de entrenamiento y evaluar métricas de desempeño en el conjunto de prueba. 
 #+begin_src R :exports both :results org 
   ikea_fit <- last_fit(final_rf, ikea_split)
   ikea_fit
@@ -1207,6 +1224,7 @@ Computational engine: ranger
 1 <split [2770/924]> train/test split <tibble> <tibble> <tibble>     <workflow>
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   collect_metrics(ikea_fit)
 #+end_src
@@ -1220,6 +1238,7 @@ Computational engine: ranger
 2 rsq     standard       0.752 Preprocessor1_Model1
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/ikea-predicciones-arboles.jpeg :exports results :results output graphics file
   collect_predictions(ikea_fit) |>
@@ -1228,9 +1247,12 @@ Computational engine: ranger
     geom_point(alpha = 0.5, color = "midnightblue") +
     coord_fixed() + sin_lineas
 #+end_src
-
+#+caption: Diagrama de dispersión entre predicciones y datos reales en el conjunto de prueba. 
 #+RESULTS:
 [[file:../images/ikea-predicciones-arboles.jpeg]]
+
+#+REVEAL: split
+Utilizando la librería de ~vip~ podemos explorar cuáles son las variables mas importantes del modelo.
 
 #+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/ikea-vup-bosque.jpeg :exports results :results output graphics file
@@ -1253,6 +1275,8 @@ Computational engine: ranger
 
 ** Post-procesando el bosque
 
+Lo que queremos es explorar los gráficos de desempeño conforme el tamaño del bosque aumenta. Pero la librería de ~tidymodels~  no nos permite acceso a estos elementos. Lo tenemos que tratar de manera especializada.
+
 #+begin_src R :exports code :results none
   ranger_prep <- prep(ranger_recipe, training = ikea_train)
   rf_model <- randomForest::randomForest(
@@ -1260,6 +1284,9 @@ Computational engine: ranger
                               mtry = 2, ntree = 1000, nodesize = 4)
 #+end_src
 
+¿Por qué necesitamos la receta de preparación de datos? 
+
+#+REVEAL: split
 #+begin_src R :exports code :results none
   collect_forest_predictions <- function(model, data){
     predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
@@ -1282,6 +1309,7 @@ Computational engine: ranger
   predictions_test  <- collect_forest_predictions(rf_model, ikea_test)
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/ikea-bosque-complejidad.jpeg :exports results :results output graphics file
   predictions_train |> unnest(results) |>
@@ -1315,6 +1343,11 @@ Computational engine: ranger
   trees_train <- trees_test
 #+end_src
 
+** Post-procesamiento predictivo
+
+¿Y si queremos encontrar un subconjunto de árboles del bosque para mejorar las predicciones en conjuntos de datos nuevos? ¿Qué estrategia hemos visto que nos puede ayudar con este objetivo?
+
+#+REVEAL: split
 #+begin_src R :exports code :results none
   lasso_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
     set_engine("glmnet") |>
@@ -1330,6 +1363,7 @@ Computational engine: ranger
   forest_boot <- vfold_cv(trees_train, v = 10)
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports code :results none
   lasso_wf <- workflow() |>
     add_recipe(lasso_rec) |> 
@@ -1343,6 +1377,7 @@ Computational engine: ranger
     )
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   lasso_grid |>
     collect_metrics()
@@ -1367,6 +1402,7 @@ Computational engine: ranger
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports code :results none 
   lowest_rmse <- lasso_grid |>
     select_best("rmse")
@@ -1377,6 +1413,7 @@ Computational engine: ranger
   )
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 700 :height 900 :R-dev-args bg="transparent"
 #+begin_src R :file images/forest-lasso-deforest.jpeg :exports results :results output graphics file :eval never :tangle no
   library(vip)
@@ -1467,6 +1504,7 @@ Computational engine: ranger
     pivot_longer(cols = 2:3, names_to = "data", values_to = ".error") 
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/ikea-bosque-lasso-complejidad.jpeg :exports results :results output graphics file
   original_results |>

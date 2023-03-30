@@ -270,8 +270,9 @@ ranger_tune <-
   tune_grid(ranger_workflow,
             resamples = ikea_folds,
             grid = 11,
-            control = control_grid(parallel_over = "resamples", verbose = TRUE)              
-            )
+            control =
+              control_grid(parallel_over = "resamples",
+                           verbose = TRUE))
 
 show_best(ranger_tune, metric = "rmse")
 
