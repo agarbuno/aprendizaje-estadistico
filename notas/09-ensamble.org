@@ -1378,7 +1378,7 @@ Computational engine: ranger
 #+end_src
 
 #+HEADER: :width 700 :height 900 :R-dev-args bg="transparent"
-#+begin_src R :file images/forest-lasso-deforest.jpeg :exports results :results output graphics file :eval never :tangle np
+#+begin_src R :file images/forest-lasso-deforest.jpeg :exports results :results output graphics file :eval never :tangle no
   library(vip)
 
   final_lasso |>

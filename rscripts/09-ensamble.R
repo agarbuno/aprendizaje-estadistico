@@ -4,7 +4,7 @@ library(patchwork)
 library(scales)
 
 ## Cambia el default del tamaño de fuente 
-theme_set(theme_linedraw(base_size = 25))
+theme_set(theme_linedraw(base_size = 20))
 
 ## Cambia el número de decimales para mostrar
 options(digits = 4)
@@ -23,6 +23,7 @@ sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 
 library(tidymodels)
 
+## Ejemplo suavizadores ------------------------------------------------------
 library(ISLR)
 set.seed(108727)
 ## Cargamos datos
@@ -30,6 +31,8 @@ data <- tibble(Wage) |> select(year, age, wage, education) |>
   mutate(hi.income = ifelse(wage > 250, 1, 0),
          age = as.numeric(age)) |>
   sample_frac(.05)
+
+data |> print(n = 3)
 
 library(ggformula)
 g1.ssplines <- data |>
@@ -88,6 +91,111 @@ boot.fit |>
   geom_point(data = data, aes(age, wage), color = "gray") +
   sin_lineas +
   xlab("Edad") + ylab("Ingreso") + ggtitle("df = 15")
+
+## Aplicación: Misiones de astronautas ---------------------------------------
+astronauts <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-14/astronauts.csv")
+
+astronauts |>
+  count(in_orbit, sort = TRUE) |>
+  print(n = 5)
+
+astronauts |>
+  mutate(
+    year_of_mission = 10 * (year_of_mission %/% 10),
+    year_of_mission = factor(year_of_mission)
+  ) |>
+  ggplot(aes(year_of_mission, hours_mission,
+             fill = year_of_mission, color = year_of_mission
+             )) +
+  geom_boxplot(alpha = 0.2, size = 1.5, show.legend = FALSE) +
+  scale_y_log10() + sin_lineas + 
+  labs(x = NULL, y = "Duration of mission in hours")
+
+astronauts_df <- astronauts |>
+  select(
+    name, mission_title, hours_mission,
+    military_civilian, occupation, year_of_mission, in_orbit
+  ) |>
+  mutate(
+    in_orbit = case_when(
+      str_detect(in_orbit, "^Salyut") ~ "Salyut",
+      str_detect(in_orbit, "^STS") ~ "STS",
+      TRUE ~ in_orbit
+    ),
+    occupation = str_to_lower(occupation)
+  ) |>
+  filter(hours_mission > 0) |>
+  mutate(hours_mission = log(hours_mission)) |>
+  na.omit() |>
+  select(c(-mission_title, -name))
+
+astronauts_df |>
+  print(n = 5, width = 75)
+
+set.seed(123)
+astro_split <- initial_split(astronauts_df, strata = hours_mission)
+astro_train <- training(astro_split)
+astro_test <- testing(astro_split)
+
+astro_recipe <- recipe(hours_mission ~ ., data = astro_train) |>
+  step_other(occupation, in_orbit,
+             threshold = 0.005, other = "Other"
+             ) |>
+  step_dummy(all_nominal_predictors())
+
+astro_wf <- workflow() |>
+  add_recipe(astro_recipe)
+
+astro_wf
+
+library(baguette)
+
+tree_spec <- bag_tree() |>
+  set_engine("rpart", times = 100) |>
+  set_mode("regression")
+
+tree_spec
+
+tree_rs <- astro_wf |>
+  add_model(tree_spec) |>
+  fit(astro_train)
+
+tree_rs
+
+test_rs <- astro_test |>
+  bind_cols(predict(tree_rs, astro_test)) |>
+  rename(.pred_tree = .pred)
+
+test_rs |> print(n = 5, width = 73)
+
+test_rs |>
+  metrics(hours_mission, .pred_tree)
+
+new_astronauts <- crossing(
+  in_orbit = fct_inorder(c("ISS", "STS", "Mir", "Other")),
+  military_civilian = "civilian",
+  occupation = "Other",
+  year_of_mission = seq(1960, 2020, by = 10)
+) |>
+  filter(
+    !(in_orbit == "ISS" & year_of_mission < 2000),
+    !(in_orbit == "Mir" & year_of_mission < 1990),
+    !(in_orbit == "STS" & year_of_mission > 2010),
+    !(in_orbit == "STS" & year_of_mission < 1980)
+  )
+
+new_astronauts
+
+new_astronauts |>
+  bind_cols(predict(tree_rs, new_astronauts)) |>
+  ggplot(aes(year_of_mission, .pred, color = in_orbit)) +
+  geom_line(size = 1.5, alpha = 0.7) +
+  geom_point(size = 2) +
+  labs(
+    x = NULL, y = "Duration of mission in hours",
+    color = NULL, title = "How did the duration of astronauts' missions change over time?",
+    subtitle = "Predicted using bagged decision tree model"
+  ) + sin_lineas
 
 tree_grid <- grid_random(mtry(c(1,35)),
                          min_n(),
@@ -197,3 +305,131 @@ workflow() |>
   fit(ikea_train) |>
   pull_workflow_fit() |>
   vip(aesthetics = list(alpha = 0.8, fill = "midnightblue")) + sin_lineas
+
+ranger_prep <- prep(ranger_recipe, training = ikea_train)
+rf_model <- randomForest::randomForest(
+                            price ~., bake(ranger_prep, ikea_train),
+                            mtry = 2, ntree = 1000, nodesize = 4)
+
+collect_forest_predictions <- function(model, data){
+  predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
+  predictions$individual |>
+    as_tibble() |>
+    mutate(observation = 1:nrow(data),
+           truth = data$price) |>
+    pivot_longer(cols = 1:1000,
+                 values_to = ".prediction", names_to = ".tree") |>
+    group_by(observation) |>
+    mutate(.estimate = cummean(.prediction)) |>
+    ungroup() |> select(c(-.prediction)) |>
+    nest(data = c(observation, truth, .estimate)) |>
+    mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) }))
+}
+
+predictions_train <- collect_forest_predictions(rf_model, ikea_train)
+predictions_test  <- collect_forest_predictions(rf_model, ikea_test)
+
+predictions_train |> unnest(results) |>
+  mutate(.tree_id = 1:1000,
+         .train = .estimate,
+         .test  = unnest(predictions_test, results)$.estimate) |>
+  select(c(.tree_id, .train, .test)) |>
+  pivot_longer(cols = 2:3, names_to = "data", values_to = ".error") |>
+  ggplot(aes(.tree_id, .error, .group = data, color = data)) +
+  geom_line() + sin_lineas + scale_x_log10()
+
+predictions <- predict(rf_model, bake(ranger_prep, ikea_train), predict.all = TRUE)
+trees_train  <- predictions$individual |>
+  as_tibble() |>
+  mutate(price = ikea_train$price)
+
+predictions <- predict(rf_model, bake(ranger_prep, ikea_test), predict.all = TRUE)
+trees_test  <- predictions$individual |>
+  as_tibble() |>
+  mutate(price = ikea_test$price)
+
+trees_train <- trees_test
+
+lasso_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
+  set_engine("glmnet") |>
+  set_mode("regression")
+
+lasso_rec <- recipe(price ~ ., data = trees_train)
+
+set.seed(108727)
+forest_boot <- vfold_cv(trees_train, v = 10)
+
+lasso_wf <- workflow() |>
+  add_recipe(lasso_rec) |> 
+  add_model(lasso_spec)
+
+lasso_grid <- lasso_wf |>
+  tune_grid(
+    resamples = forest_boot,
+    grid = 50,
+    control = control_grid(verbose = FALSE)
+  )
+
+lasso_grid |>
+  collect_metrics()
+
+lowest_rmse <- lasso_grid |>
+  select_best("rmse")
+
+final_lasso <- finalize_workflow(
+  lasso_wf,
+  lowest_rmse
+)
+
+active_trees <- final_lasso |>
+  fit(trees_train) |>
+  broom::tidy() |>
+  filter(estimate != 0) |>
+  mutate(.tree = term, beta = estimate) |>
+  select(c(.tree, beta)) 
+
+active_trees |> print(n = 5)
+
+collect_dforest_predictions <- function(model, data, active_trees){
+  intercept <- active_trees$beta[1]
+
+  predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
+  predictions$individual |>
+    as_tibble() |>
+    mutate(observation = 1:nrow(data),
+           truth = data$price) |>
+    pivot_longer(cols = 1:1000,
+                 values_to = ".prediction", names_to = ".tree") |>
+    right_join(active_trees |> filter(.tree != "(Intercept)"), by = ".tree") |>
+    filter(complete.cases(beta)) |>
+    group_by(observation) |>
+    arrange(desc(abs(beta))) |>
+    mutate(.estimate = intercept + cumsum(beta * .prediction)) |>
+    ungroup() |> select(c(-.prediction, -beta)) |>
+    nest(data = c(observation, truth, .estimate)) |>
+    mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) }))
+}
+
+dpredictions_train <- collect_dforest_predictions(rf_model, ikea_train, active_trees)
+dpredictions_test  <- collect_dforest_predictions(rf_model, ikea_test, active_trees)
+
+original_results <- predictions_train |> unnest(results) |>
+  mutate(.tree_id = 1:1000,
+         .train = .estimate,
+         .test  = unnest(predictions_test, results)$.estimate) |>
+  select(c(.tree_id, .train, .test)) |>
+  pivot_longer(cols = 2:3, names_to = "data", values_to = ".error")
+
+deforest_results <- dpredictions_train |>
+  unnest(results) |>
+  mutate(.tree_id = 1:n(),
+         .dtrain = .estimate,
+         .dtest  = unnest(dpredictions_test, results)$.estimate) |>
+  select(c(.tree_id, .dtrain, .dtest)) |>
+  pivot_longer(cols = 2:3, names_to = "data", values_to = ".error")
+
+original_results |>
+  rbind(deforest_results) |>
+  ggplot(aes(.tree_id, .error, .group = data, color = data)) +
+  geom_line() + sin_lineas +
+  coord_cartesian(ylim = c(0.22, 1)) + scale_x_log10()
