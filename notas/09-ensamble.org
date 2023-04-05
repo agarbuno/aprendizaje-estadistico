@@ -1544,5 +1544,3 @@ Lo que queremos es explorar los gráficos de desempeño conforme el tamaño del 
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
-
-
