@@ -76,6 +76,7 @@
   - [[#entrenamiento-del-modelo][Entrenamiento del modelo]]
   - [[#resultados][Resultados]]
   - [[#modelo-entrenado][Modelo entrenado]]
+  - [[#post-procesamiento][Post-procesamiento]]
 - [[#procesamiento-en-paralelo][Procesamiento en paralelo]]
 - [[#modelos-de-ensamble-epilogo][Modelos de ensamble (epilogo)]]
   - [[#importancia-de-variables][Importancia de variables]]
@@ -768,6 +769,44 @@ There were 30 warnings (use warnings() to see them)
 #+caption: Diagnóstico ROC para conjunto de prueba. 
 #+RESULTS:
 [[file:../images/vball-roc-plot.jpeg]]
+
+** Post-procesamiento 
+
+#+begin_src R :exports code :results none 
+  extract_boosted_prediction <- function(dt){
+    final_res |>
+      extract_fit_parsnip() |>
+      multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                    trees = seq(1,1000, by = 5)) |>
+      mutate(truth = dt$win,
+             id = 1:n()) |>
+      unnest(.pred) |>
+      group_by(trees) |>
+      nest(data = c(.pred_class, truth, id)) |>
+      mutate(results = map(data, function(x) {accuracy(x, .pred_class, truth)})) |>
+      ungroup()
+  }
+#+end_src
+
+#+begin_src R :exports code :results none
+  preds_train <- extract_boosted_prediction(vb_train) |> mutate(type = "train")
+  preds_test <- extract_boosted_prediction(vb_test) |> mutate(type = "test")
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vball-boosted-trees.jpeg :exports results :results output graphics file
+  preds_train |> select(-data) |>
+    unnest(results) |>
+    rbind(preds_test |> select(-data) |>
+          unnest(results)) |>
+    mutate(.estimate = 1 - .estimate) |>
+    ggplot(aes(trees, .estimate, group = type, color = type)) +
+    geom_line() + sin_lineas +
+    ylab("error rate")
+#+end_src
+
+#+RESULTS:
+[[file:../images/vball-boosted-trees.jpeg]]
 
 * Procesamiento en paralelo
 
