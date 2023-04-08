@@ -78,6 +78,7 @@
   - [[#modelo-entrenado][Modelo entrenado]]
   - [[#post-procesamiento][Post-procesamiento]]
 - [[#procesamiento-en-paralelo][Procesamiento en paralelo]]
+- [[#anova-perfil-rápido-de-desempeño][ANOVA: Perfil rápido de desempeño]]
 - [[#modelos-de-ensamble-epilogo][Modelos de ensamble (epilogo)]]
   - [[#importancia-de-variables][Importancia de variables]]
 :END:
@@ -566,7 +567,7 @@ Computational engine: xgboost
 #+begin_src R :exports code :results none
   all_cores <- parallel::detectCores(logical = TRUE) - 1
   library(doParallel)
-  cl <- makePSOCKcluster(6)
+  cl <- makePSOCKcluster(all_cores)
   registerDoParallel(cl)
 #+end_src
 
@@ -875,6 +876,133 @@ En este escenario el pre-procesamiento se repite distintas veces. Tantas como n�
 #+REVEAL: split
 En la práctica entre mas /cores/ tengamos disponibles mejores serán los retornos
 en eficiencia computacional (escenarios típicos de cómputo remoto).
+
+* ANOVA: Perfil rápido de desempeño
+
+#+begin_src R :exports both :results org 
+  library(finetune)
+  system.time(
+    xgb_res <- tune_race_anova(
+      xgb_wf,
+      resamples = vb_folds,
+      grid = xgb_grid,
+      control = control_race(
+        alpha = .05,
+        verbose_elim = TRUE, 
+        save_pred = TRUE,
+        parallel = "everything"))
+  )
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+ℹ Racing will maximize the roc_auc metric.
+ℹ Resamples are analyzed in a random order.
+ℹ Fold10: 25 eliminated;  5 candidates remain.
+ℹ Fold02:  2 eliminated;  3 candidates remain.
+ℹ Fold06:  0 eliminated;  3 candidates remain.
+ℹ Fold04:  0 eliminated;  3 candidates remain.
+ℹ Fold03:  0 eliminated;  3 candidates remain.
+ℹ Fold07:  0 eliminated;  3 candidates remain.
+ℹ Fold08:  0 eliminated;  3 candidates remain.
+   user  system elapsed 
+  7.832   0.766 517.435
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-tune-race.jpeg :exports results :results output graphics file
+  plot_race(xgb_res) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/vb-tune-race.jpeg]]
+
+#+begin_src R :exports none :results none
+  extract_race_step <- function(xgb_race, ind = 3, alpha = 0.05){
+    xgb_race |>
+      select(id, .order, .metrics) %>%
+      unnest(cols = .metrics) %>%
+      filter(.metric == "roc_auc") |>
+      filter(.order <= ind) %>%
+      group_by(.config) %>%
+      summarize(
+        mean = mean(.estimate, na.rm = TRUE),
+        err  = sd(.estimate, na.rm = TRUE),
+        n = sum(!is.na(.estimate)),
+        .groups = "drop"
+      ) %>%
+      mutate(stage = ind) %>%
+      ungroup() %>%
+      filter(n == ind) |>
+      arrange(desc(mean)) |>
+      mutate(.inf = mean - qnorm(1-alpha/2) * err,
+             .sup = mean + qnorm(1-alpha/2) * err,
+             .order = 1:n()) 
+  }
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing.jpeg :exports results :results output graphics file
+  race_initial <- extract_race_step(xgb_res)
+  race_initial |>
+    ggplot(aes(.order, mean)) +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con tres evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing.jpeg]]
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing-04.jpeg :exports results :results output graphics file
+  extract_race_step(xgb_res, ind = 4) %>%
+    ggplot(aes(.order, mean)) +
+    geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+    geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con cuatro evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing-04.jpeg]]
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing-05.jpeg :exports results :results output graphics file
+  extract_race_step(xgb_res, ind = 5) |>
+    ggplot(aes(.order, mean)) +
+    geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+    geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con cinco evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing-05.jpeg]]
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing-10.jpeg :exports results :results output graphics file
+  extract_race_step(xgb_res, ind = 10) |>
+    ggplot(aes(.order, mean)) +
+    geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+    geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con diez evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing-10.jpeg]]
 
 * Modelos de ensamble (epilogo)
 

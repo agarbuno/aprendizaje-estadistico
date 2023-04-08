@@ -889,6 +889,28 @@
       "Hash": "77bd60a6157420d4ffa93b27cf6a58b8",
       "Requirements": []
     },
+    "finetune": {
+      "Package": "finetune",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1599b352193d7c4ff35fb7d823a36b39",
+      "Requirements": [
+        "cli",
+        "dials",
+        "dplyr",
+        "ggplot2",
+        "parsnip",
+        "purrr",
+        "rlang",
+        "tibble",
+        "tidyr",
+        "tidyselect",
+        "tune",
+        "vctrs",
+        "workflows"
+      ]
+    },
     "fontawesome": {
       "Package": "fontawesome",
       "Version": "0.5.0",

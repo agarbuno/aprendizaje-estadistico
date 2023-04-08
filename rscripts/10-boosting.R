@@ -183,3 +183,105 @@ final_res |>
     size = 1.2
   ) + sin_lineas +
   coord_equal()
+
+extract_boosted_prediction <- function(dt){
+  final_res |>
+    extract_fit_parsnip() |>
+    multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                  trees = seq(1,1000, by = 5)) |>
+    mutate(truth = dt$win,
+           id = 1:n()) |>
+    unnest(.pred) |>
+    group_by(trees) |>
+    nest(data = c(.pred_class, truth, id)) |>
+    mutate(results = map(data, function(x) {accuracy(x, .pred_class, truth)})) |>
+    ungroup()
+}
+
+preds_train <- extract_boosted_prediction(vb_train) |> mutate(type = "train")
+preds_test <- extract_boosted_prediction(vb_test) |> mutate(type = "test")
+
+preds_train |> select(-data) |>
+  unnest(results) |>
+  rbind(preds_test |> select(-data) |>
+        unnest(results)) |>
+  mutate(.estimate = 1 - .estimate) |>
+  ggplot(aes(trees, .estimate, group = type, color = type)) +
+  geom_line() + sin_lineas +
+  ylab("error rate")
+
+library(finetune)
+system.time(
+  xgb_res <- tune_race_anova(
+    xgb_wf,
+    resamples = vb_folds,
+    grid = xgb_grid,
+    control = control_race(
+      alpha = .05,
+      verbose_elim = TRUE, 
+      save_pred = TRUE,
+      parallel = "everything"))
+)
+
+plot_race(xgb_res) + sin_lineas
+
+extract_race_step <- function(xgb_race, ind = 3, alpha = 0.05){
+  xgb_race |>
+    select(id, .order, .metrics) %>%
+    unnest(cols = .metrics) %>%
+    filter(.metric == "roc_auc") |>
+    filter(.order <= ind) %>%
+    group_by(.config) %>%
+    summarize(
+      mean = mean(.estimate, na.rm = TRUE),
+      err  = sd(.estimate, na.rm = TRUE),
+      n = sum(!is.na(.estimate)),
+      .groups = "drop"
+    ) %>%
+    mutate(stage = ind) %>%
+    ungroup() %>%
+    filter(n == ind) |>
+    arrange(desc(mean)) |>
+    mutate(.inf = mean - qnorm(1-alpha/2) * err,
+           .sup = mean + qnorm(1-alpha/2) * err,
+           .order = 1:n()) 
+}
+
+race_initial <- extract_race_step(xgb_res)
+race_initial |>
+  ggplot(aes(.order, mean)) +
+  geom_linerange(aes(ymin = .inf, max = .sup)) +
+  geom_point() + sin_lineas +
+  xlab("Configuración de modelo") +
+  ylab("Métrica de desempeño") + 
+  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+
+extract_race_step(xgb_res, ind = 4) %>%
+  ggplot(aes(.order, mean)) +
+  geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+  geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+  geom_linerange(aes(ymin = .inf, max = .sup)) +
+  geom_point() + sin_lineas +
+  xlab("Configuración de modelo") +
+  ylab("Métrica de desempeño") + 
+  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+
+extract_race_step(xgb_res, ind = 5) |>
+  ggplot(aes(.order, mean)) +
+  geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+  geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+  geom_linerange(aes(ymin = .inf, max = .sup)) +
+  geom_point() + sin_lineas +
+  xlab("Configuración de modelo") +
+  ylab("Métrica de desempeño") + 
+  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+
+extract_race_step(xgb_res, ind = 10) |>
+  ggplot(aes(.order, mean)) +
+  geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+  geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+  geom_linerange(aes(ymin = .inf, max = .sup)) +
+  geom_point() + sin_lineas +
+  xlab("Configuración de modelo") +
+  ylab("Métrica de desempeño") + 
+  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
