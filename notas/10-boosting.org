@@ -566,7 +566,7 @@ Computational engine: xgboost
 #+begin_src R :exports code :results none
   all_cores <- parallel::detectCores(logical = TRUE) - 1
   library(doParallel)
-  cl <- makePSOCKcluster(all_cores)
+  cl <- makePSOCKcluster(6)
   registerDoParallel(cl)
 #+end_src
 
@@ -810,7 +810,71 @@ There were 30 warnings (use warnings() to see them)
 
 * Procesamiento en paralelo
 
+Hemos utilizado procesamiento en paralelo para poder eficientar el cómputo
+necesario para el ajuste y comparación de modelos por medio de validación
+cruzada.
 
+#+REVEAL: split
+Hemos considerado dos esquemas de procesamiento en paralelo. Un método utiliza un ciclo usando los bloques de validación cruzada (o remuestras) y el otro utiliza las configuraciones distintas que se están considerando.
+
+El esquema es el siguiente
+#+begin_src R :exports code :results none :eval never :tangle no 
+  for (rs in resamples) {
+    ## Create analysis and assessment sets
+    ## Preprocess data (e.g. formula or recipe)
+    for (mod in configurations) {
+      ## Fit model {mod} to the {rs} analysis set
+      ## Predict the {rs} assessment set
+    }
+  }
+#+end_src
+
+#+REVEAL: split
+El /default/ utiliza el ciclo externo y es lo mas conveniente cuando el
+pre-procesamiento es computacionalmente costoso.
+
+Las desventajas son:
+1. Tiene una limitante si el pre-procesamiento no es costoso.
+2. Tiene un límite por el número de remuestras que utilizamos.
+
+
+#+REVEAL: split
+Consideremos la situación donde usamos validación cruzada con 5 bloques y
+estamos comparando 7 configuraciones distintas. En este escenario contamos con 5
+/cores/ para el procesamiento.
+
+#+DOWNLOADED: screenshot @ 2023-04-07 21:48:53
+#+attr_latex: :width .65\linewidth
+#+caption: Imagen tomada de [[cite:&Kuhn2022]].
+#+attr_html: :width 1200 :align center
+[[file:images/20230407-214853_screenshot.png]]
+
+
+#+REVEAL: split
+Por otro lado, podemos considerar todas las combinaciones posibles entre bloques e hiper-parámetros.
+Algo que esquemáticamente podemos representar como:
+#+begin_src R :exports code :results none :eval never :tangle no
+  all_tasks <- crossing(resamples, configurations)
+
+  for (iter in all_tasks) {                           
+    ## Create analysis and assessment sets for {iter}
+    ## Preprocess data (e.g. formula or recipe)
+    ## Fit model {iter} to the {iter} analysis set
+    ## Predict the {iter} assessment set
+  }
+#+end_src
+
+#+REVEAL: split
+En este escenario el pre-procesamiento se repite distintas veces. Tantas como número de bloques y combinaciones únicas de hiper-parametros tengamos. El esquema se ve de esta manera si contamos con 10 /cores/
+
+#+DOWNLOADED: screenshot @ 2023-04-07 21:54:07
+#+caption: Imagen tomada de [[cite:&Kuhn2022]].
+#+attr_html: :width 1200 :align center
+[[file:images/20230407-215407_screenshot.png]]
+
+#+REVEAL: split
+En la práctica entre mas /cores/ tengamos disponibles mejores serán los retornos
+en eficiencia computacional (escenarios típicos de cómputo remoto).
 
 * Modelos de ensamble (epilogo)
 
