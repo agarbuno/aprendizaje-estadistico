@@ -194,7 +194,8 @@ extract_boosted_prediction <- function(dt){
     unnest(.pred) |>
     group_by(trees) |>
     nest(data = c(.pred_class, truth, id)) |>
-    mutate(results = map(data, function(x) {accuracy(x, .pred_class, truth)})) |>
+    mutate(results = map(data, function(x) {
+      accuracy(x, .pred_class, truth)})) |>
     ungroup()
 }
 
@@ -209,6 +210,29 @@ preds_train |> select(-data) |>
   ggplot(aes(trees, .estimate, group = type, color = type)) +
   geom_line() + sin_lineas +
   ylab("error rate")
+
+extract_boosted_roc <- function(dt){
+  final_res |>
+    extract_fit_parsnip() |>
+    multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                  trees = seq(1,1000, by = 1),
+                  type  = "prob") |>
+    mutate(truth = dt$win,
+           id = 1:n()) |>
+    unnest(.pred) |>
+    group_by(trees) |>
+    nest(data = c(.pred_lose, .pred_win, truth, id)) |>
+    mutate(results = map(data, function(x) {
+      roc_curve(x, truth, .pred_win)})) |>
+    ungroup()
+}
+
+roc_test <- extract_boosted_roc(vb_test) |> mutate(type = "test")
+
+roc_test |>
+  unnest(results) |>
+  ggplot(aes( 1 - specificity, sensitivity, group = trees, color = trees)) +
+  geom_line() + sin_lineas
 
 library(finetune)
 system.time(

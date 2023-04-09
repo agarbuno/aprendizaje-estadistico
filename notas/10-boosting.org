@@ -206,10 +206,10 @@ Si nos fijamos en uno de los términos y escribimos
 \ell(y_i, f_{m-1}(x_i) + z_i)\,,
 \end{align}
 entonces sabemos que tenemos que modificar de acuerdo a
+al negativo del gradiente 
 \begin{align}
-z_i = - \lambda \cdot \frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) + z \right) \big|_{z = 0}\,,
+z_i = -\frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) + z \right) \big|_{z = 0}\,.
 \end{align}
-donde tomamos una ~longitud de paso~ ($\lambda$) para estabilizar el proceso de optimización.
 
 #+REVEAL: split
 La restricción que tenemos es que $z_i = T(x_i)$ para toda observación. De hecho, lo mejor que podríamos tener es que
@@ -417,8 +417,8 @@ Separemos por equipos que ganan sus partidos y los que no.
     facet_wrap(~stat, scales = "free_y", nrow = 2) +
     labs(y = NULL, color = NULL, fill = NULL) + sin_lineas
 #+end_src
-
-#+RESULTS:
+#+caption: Análisis exploratorio inicial. 
+#+results:
 [[file:../images/vball-eda.jpeg]]
 
 ** Construcción del modelo
@@ -500,11 +500,11 @@ espacio/ (/space filling/) y es uno de los que ya están codificados en ~tidymod
 #+RESULTS:
 #+begin_src org
 # A tibble: 30 × 4
-  tree_depth min_n  mtry    learn_rate
-       <int> <int> <int>         <dbl>
-1         13    29     8 0.00000543   
-2          2    11     9 0.00000000312
-3          8    35    10 0.0000174    
+  tree_depth min_n  mtry learn_rate
+       <int> <int> <int>      <dbl>
+1          2    20     6   1.21e- 8
+2          6    22     7   1.86e-10
+3          5    30     6   7.34e- 3
 # … with 27 more rows
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
@@ -609,8 +609,8 @@ There were 30 warnings (use warnings() to see them)
 
 #+RESULTS:
 #+begin_src org
-    user   system  elapsed 
-   1.128    0.374 1144.103
+   user  system elapsed 
+  1.439   0.755 820.734
 #+end_src
 
 #+begin_src R :exports none :results none
@@ -642,11 +642,11 @@ There were 30 warnings (use warnings() to see them)
 # A tibble: 60 × 10
    mtry min_n tree_depth learn_r…¹ .metric .esti…²  mean     n std_err
   <int> <int>      <int>     <dbl> <chr>   <chr>   <dbl> <int>   <dbl>
-1     2     8          8  1.17e-10 accura… binary  0.614    10 0.00216
-2     2     8          8  1.17e-10 roc_auc binary  0.794    10 0.00252
-3    10    13          5  8.28e- 4 accura… binary  0.795    10 0.00227
-4    10    13          5  8.28e- 4 roc_auc binary  0.890    10 0.00223
-5     1    32          6  3.68e- 6 accura… binary  0.797    10 0.00280
+1     6    20          2  1.21e- 8 accura… binary  0.735    10 0.00289
+2     6    20          2  1.21e- 8 roc_auc binary  0.835    10 0.00218
+3     7    22          6  1.86e-10 accura… binary  0.738    10 0.00194
+4     7    22          6  1.86e-10 roc_auc binary  0.856    10 0.00279
+5     6    30          5  7.34e- 3 accura… binary  0.836    10 0.00229
 # … with 55 more rows, 1 more variable: .config <chr>, and
 #   abbreviated variable names ¹​learn_rate, ²​.estimator
 # ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
@@ -681,11 +681,11 @@ There were 30 warnings (use warnings() to see them)
 # A tibble: 5 × 10
    mtry min_n tree_depth learn_r…¹ .metric .esti…²  mean     n std_err
   <int> <int>      <int>     <dbl> <chr>   <chr>   <dbl> <int>   <dbl>
-1     4     3          7   0.0259  roc_auc binary  0.926    10 0.00190
-2     2    36         11   0.00763 roc_auc binary  0.926    10 0.00214
-3     7    22         14   0.0180  roc_auc binary  0.925    10 0.00195
-4    11    34          6   0.00540 roc_auc binary  0.923    10 0.00213
-5     5    11          7   0.0739  roc_auc binary  0.922    10 0.00199
+1     2     8          7   0.0129  roc_auc binary  0.927    10 0.00211
+2     8    13         14   0.00515 roc_auc binary  0.925    10 0.00209
+3     6    30          5   0.00734 roc_auc binary  0.924    10 0.00216
+4     3    37         12   0.0484  roc_auc binary  0.924    10 0.00199
+5     4    10         11   0.00232 roc_auc binary  0.921    10 0.00222
 # … with 1 more variable: .config <chr>, and abbreviated variable
 #   names ¹​learn_rate, ²​.estimator
 # ℹ Use `colnames()` to see all variable names
@@ -701,7 +701,7 @@ There were 30 warnings (use warnings() to see them)
 # A tibble: 1 × 5
    mtry min_n tree_depth learn_rate .config              
   <int> <int>      <int>      <dbl> <chr>                
-1     4     3          7     0.0259 Preprocessor1_Model24
+1     2     8          7     0.0129 Preprocessor1_Model13
 #+end_src
 
 ** Modelo entrenado 
@@ -729,14 +729,17 @@ There were 30 warnings (use warnings() to see them)
   Boosted Tree Model Specification (classification)
 
   Main Arguments:
-  mtry = 4
+  mtry = 2
   trees = 1000
-  min_n = 3
+  min_n = 8
   tree_depth = 7
-  learn_rate = 0.0258957422005733
+  learn_rate = 0.0128556104668359
 
   Computational engine: xgboost
 #+end_src
+
+#+REVEAL: split
+Al medir su capacidad predictiva vemos que no hay evidencia de sobreajuste. 
 
 #+begin_src R :exports both :results org 
   final_res <- last_fit(final_xgb, vb_split)
@@ -748,8 +751,8 @@ There were 30 warnings (use warnings() to see them)
 # A tibble: 2 × 4
   .metric  .estimator .estimate .config             
   <chr>    <chr>          <dbl> <chr>               
-1 accuracy binary         0.835 Preprocessor1_Model1
-2 roc_auc  binary         0.924 Preprocessor1_Model1
+1 accuracy binary         0.833 Preprocessor1_Model1
+2 roc_auc  binary         0.925 Preprocessor1_Model1
 #+end_src
 
 #+HEADER: :width 700 :height 700 :R-dev-args bg="transparent"
@@ -784,7 +787,8 @@ There were 30 warnings (use warnings() to see them)
       unnest(.pred) |>
       group_by(trees) |>
       nest(data = c(.pred_class, truth, id)) |>
-      mutate(results = map(data, function(x) {accuracy(x, .pred_class, truth)})) |>
+      mutate(results = map(data, function(x) {
+        accuracy(x, .pred_class, truth)})) |>
       ungroup()
   }
 #+end_src
@@ -808,6 +812,40 @@ There were 30 warnings (use warnings() to see them)
 
 #+RESULTS:
 [[file:../images/vball-boosted-trees.jpeg]]
+
+#+begin_src R :exports code :results none 
+    extract_boosted_roc <- function(dt){
+      final_res |>
+        extract_fit_parsnip() |>
+        multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                      trees = seq(1,1000, by = 1),
+                      type  = "prob") |>
+        mutate(truth = dt$win,
+               id = 1:n()) |>
+        unnest(.pred) |>
+        group_by(trees) |>
+        nest(data = c(.pred_lose, .pred_win, truth, id)) |>
+        mutate(results = map(data, function(x) {
+          roc_curve(x, truth, .pred_win)})) |>
+        ungroup()
+    }
+#+end_src
+
+#+begin_src R :exports none :results none
+  roc_test <- extract_boosted_roc(vb_test) |> mutate(type = "test")
+#+end_src
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-boosted-roc.jpeg :exports results :results output graphics file
+  roc_test |>
+    unnest(results) |>
+    ggplot(aes( 1 - specificity, sensitivity, group = trees, color = trees)) +
+    geom_line() + sin_lineas
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+caption: Diagnóstico ROC para modelo como función del número de árboles.
+#+RESULTS:
+[[file:../images/vb-boosted-roc.jpeg]]
 
 * Procesamiento en paralelo
 
@@ -1010,7 +1048,7 @@ Hasta ahora tenemos tres opciones de ensambles: $\ldots$. Usualmente /boosting/
 requiere mas cuidado en la selección de hiper-parámetros, mientras que
 alternativas basadas en remuestreo usualmente funcionan bien sin requerir tanta
 selección de valores apropiados. ¿Puedes decir por qué? Es por esto que
-citet:Greenwell2022 tiene en mente su opinión
+citet:Greenwell2022 establece
 \begin{align}
 \mathsf{Boosting} \geq \mathsf{Random Forest} > \mathsf{Bagging} > \mathsf{Arbol}\,.
 \end{align}
@@ -1029,9 +1067,9 @@ escogieron de acuerdo a que maximizaban la ~mejora~ en dicha región.
 Para calcular la importancia de la variable $j$ en el  árbol $T$ se suman las
 contribuciones cada vez que esta variable fue utilizada para generar cortes
 \begin{align}
-\mathcal{I}^2_j(T) = \sum_{t = 1}^{J-1}\hat \, \iota^2_t I(v(t) = j)\,,
+\mathcal{I}^2_j(T) = \sum_{t = 1}^{J-1} \hat{\iota}^2_t I(v(t) = j)\,,
 \end{align}
-donde $\hat  \iota^2_t$ es  el registro  de la  mejora en  ~RSS~, ~Gini~  o ~entropía
+donde $\hat{\iota}^2_t$ es  el registro  de la  mejora en  ~RSS~, ~Gini~  o ~entropía
 cruzada~ por el  nodo $t$ cuando este  nodo toma el corte  utilizando la variable
 $v(t)$.
 
