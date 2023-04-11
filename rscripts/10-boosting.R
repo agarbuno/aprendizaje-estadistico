@@ -254,8 +254,9 @@ extract_race_step <- function(xgb_race, ind = 3, alpha = 0.05){
     select(id, .order, .metrics) %>%
     unnest(cols = .metrics) %>%
     filter(.metric == "roc_auc") |>
-    filter(.order <= ind) %>%
-    group_by(.config) %>%
+    filter(.order <= ind) |>
+    mutate(model_id = str_remove_all(.config, "Preprocessor1_Model")) |>
+    group_by(model_id) %>%
     summarize(
       mean = mean(.estimate, na.rm = TRUE),
       err  = sd(.estimate, na.rm = TRUE),
@@ -268,7 +269,7 @@ extract_race_step <- function(xgb_race, ind = 3, alpha = 0.05){
     arrange(desc(mean)) |>
     mutate(.inf = mean - qnorm(1-alpha/2) * err,
            .sup = mean + qnorm(1-alpha/2) * err,
-           .order = 1:n()) 
+           .order = model_id) 
 }
 
 race_initial <- extract_race_step(xgb_res)
@@ -278,7 +279,7 @@ race_initial |>
   geom_point() + sin_lineas +
   xlab("Configuración de modelo") +
   ylab("Métrica de desempeño") + 
-  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+  coord_cartesian(xlim = c(1, 30), ylim = c(.65, .95))
 
 extract_race_step(xgb_res, ind = 4) %>%
   ggplot(aes(.order, mean)) +
@@ -288,7 +289,7 @@ extract_race_step(xgb_res, ind = 4) %>%
   geom_point() + sin_lineas +
   xlab("Configuración de modelo") +
   ylab("Métrica de desempeño") + 
-  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+  coord_cartesian(xlim = c(1, 30), ylim = c(.65, .95))
 
 extract_race_step(xgb_res, ind = 5) |>
   ggplot(aes(.order, mean)) +
@@ -298,7 +299,7 @@ extract_race_step(xgb_res, ind = 5) |>
   geom_point() + sin_lineas +
   xlab("Configuración de modelo") +
   ylab("Métrica de desempeño") + 
-  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+  coord_cartesian(xlim = c(1, 30), ylim = c(.65, .95))
 
 extract_race_step(xgb_res, ind = 10) |>
   ggplot(aes(.order, mean)) +
@@ -308,4 +309,4 @@ extract_race_step(xgb_res, ind = 10) |>
   geom_point() + sin_lineas +
   xlab("Configuración de modelo") +
   ylab("Métrica de desempeño") + 
-  coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+  coord_cartesian(xlim = c(1, 30), ylim = c(.65, .95))
