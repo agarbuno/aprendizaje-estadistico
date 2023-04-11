@@ -269,18 +269,21 @@ ranger_workflow <-
   add_recipe(ranger_recipe) |>
   add_model(ranger_spec)
 
-set.seed(8577)
-## Create a cluster object and then register: 
-cl <- makePSOCKcluster(6)
-doParallel::registerDoParallel(cl)
+all_cores <- parallel::detectCores(logical = TRUE) - 1
+library(doParallel)
+cl <- makePSOCKcluster(all_cores)
+registerDoParallel(cl)
 
+set.seed(8577)
+system.time(
 ranger_tune <-
   tune_grid(ranger_workflow,
             resamples = ikea_folds,
             grid = 11,
-            control =
-              control_grid(parallel_over = "resamples",
-                           verbose = TRUE))
+            control = control_grid(
+              parallel_over = "resamples",
+              verbose = TRUE))
+)
 
 show_best(ranger_tune, metric = "rmse")
 
@@ -292,7 +295,7 @@ final_rf <- ranger_workflow |>
 final_rf
 
 ikea_fit <- last_fit(final_rf, ikea_split)
-ikea_fit
+ikea_fit |> select(c(-id, -.notes)) |> print(width = 75)
 
 collect_metrics(ikea_fit)
 
@@ -323,33 +326,60 @@ rf_model <- randomForest::randomForest(
                             mtry = 2, ntree = 1000, nodesize = 4)
 
 collect_forest_predictions <- function(model, data){
+  ## Obten predicciones por arbol
   predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
   predictions$individual |>
+    ## obten tabla nrows x ncols = nobs x ntrees
     as_tibble() |>
     mutate(observation = 1:nrow(data),
+           ## agrega response
            truth = data$price) |>
+    ## obten tabla de nrows = nobs x ntrees
     pivot_longer(cols = 1:1000,
-                 values_to = ".prediction", names_to = ".tree") |>
+                 values_to = ".prediction", names_to = ".tree")  |>
     group_by(observation) |>
-    mutate(.estimate = cummean(.prediction)) |>
+    ## reordena los arboles de manera aleatoria
+    sample_frac(1, replace = FALSE) |>
+    ## calcula prediccion del bosque
+    mutate(.estimate = cummean(.prediction),
+           .order = 1:n()) |>
     ungroup() |> select(c(-.prediction)) |>
-    nest(data = c(observation, truth, .estimate)) |>
-    mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) }))
+    nest(data = c(observation, truth, .estimate, .tree)) |>
+    ## calcula metrica de error
+    mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) })) |>
+    select(-data)
 }
 
-predictions_train <- collect_forest_predictions(rf_model, ikea_train)
-predictions_test  <- collect_forest_predictions(rf_model, ikea_test)
+nexp <- 100; set.seed(108)
+predictions_train <- tibble(.expid = 1:nexp) |>
+  mutate(.performance = map(## realiza remuestreo de orden de arboles
+           .expid,
+           ~collect_forest_predictions(rf_model, ikea_train)),
+         .type = "training")
+predictions_test <- tibble(.expid = 1:nexp) |>
+  mutate(.performance = map(## realiza remuestreo de orden de arboles
+           .expid,
+           ~collect_forest_predictions(rf_model, ikea_test)),
+         .type = "testing")
 
-predictions_train |> unnest(results) |>
-  mutate(.tree_id = 1:1000,
-         .train = .estimate,
-         .test  = unnest(predictions_test, results)$.estimate) |>
-  select(c(.tree_id, .train, .test)) |>
-  pivot_longer(cols = 2:3, names_to = "data", values_to = ".error") |>
-  ggplot(aes(.tree_id, .error, .group = data, color = data)) +
-  geom_line() + sin_lineas + scale_x_log10()
+original_results <- predictions_train |>
+  rbind(predictions_test) |>
+  unnest(.performance) |> unnest(results) |>
+  group_by(.type, .order) |>
+  summarise(.error = mean(.estimate),
+            .inf = quantile(.estimate, .05),
+            .sup = quantile(.estimate, .95),
+            .groups = "drop")
+
+original_results |>
+  ggplot(aes(.order, .error, fill = .type, group = .type, color = .type)) +
+  geom_ribbon(aes(ymin = .inf, ymax = .sup), alpha = .2, color = "white") + 
+  geom_line() + sin_lineas +  scale_x_log10()
+
+### Quema de bosque ----------------------------------------------------------
 
 predictions <- predict(rf_model, bake(ranger_prep, ikea_train), predict.all = TRUE)
+
 trees_train  <- predictions$individual |>
   as_tibble() |>
   mutate(price = ikea_train$price)
@@ -361,7 +391,7 @@ trees_test  <- predictions$individual |>
 
 trees_train <- trees_test
 
-### Quema de bosque ----------------------------------------------------------
+trees_train |> print(n = 3, width = 75)
 
 lasso_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
   set_engine("glmnet") |>
@@ -384,7 +414,8 @@ lasso_grid <- lasso_wf |>
   )
 
 lasso_grid |>
-  collect_metrics()
+  collect_metrics() |>
+  print(n = 3, width = 75)
 
 lowest_rmse <- lasso_grid |>
   select_best("rmse")
@@ -405,7 +436,6 @@ active_trees |> print(n = 5)
 
 collect_dforest_predictions <- function(model, data, active_trees){
   intercept <- active_trees$beta[1]
-
   predictions <- predict(model, bake(ranger_prep, data), predict.all = TRUE)
   predictions$individual |>
     as_tibble() |>
@@ -416,33 +446,44 @@ collect_dforest_predictions <- function(model, data, active_trees){
     right_join(active_trees |> filter(.tree != "(Intercept)"), by = ".tree") |>
     filter(complete.cases(beta)) |>
     group_by(observation) |>
-    arrange(desc(abs(beta))) |>
-    mutate(.estimate = intercept + cumsum(beta * .prediction)) |>
+    sample_frac(1, replace = FALSE) |>
+    mutate(.estimate = intercept + cumsum(beta * .prediction),
+           .order = 1:n()) |>
     ungroup() |> select(c(-.prediction, -beta)) |>
-    nest(data = c(observation, truth, .estimate)) |>
-    mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) }))
+    nest(data = c(observation, truth, .estimate, .tree)) |>
+    mutate(results = map(data, function(x) { x |> rmse(truth, .estimate) })) |>
+    select(-data)
 }
 
-dpredictions_train <- collect_dforest_predictions(rf_model, ikea_train, active_trees)
-dpredictions_test  <- collect_dforest_predictions(rf_model, ikea_test, active_trees)
-
-original_results <- predictions_train |> unnest(results) |>
-  mutate(.tree_id = 1:1000,
-         .train = .estimate,
-         .test  = unnest(predictions_test, results)$.estimate) |>
-  select(c(.tree_id, .train, .test)) |>
-  pivot_longer(cols = 2:3, names_to = "data", values_to = ".error")
+nexp <- 100; set.seed(108)
+dpredictions_train <- tibble(.expid = 1:nexp) |>
+  mutate(.performance = map(## realiza remuestreo de orden de arboles
+           .expid,
+           ~collect_dforest_predictions(rf_model, ikea_train, active_trees)),
+         .type = "dtraining")
+dpredictions_test <- tibble(.expid = 1:nexp) |>
+  mutate(.performance = map(## realiza remuestreo de orden de arboles
+           .expid,
+           ~collect_dforest_predictions(rf_model, ikea_test, active_trees)),
+         .type = "dtesting")
 
 deforest_results <- dpredictions_train |>
-  unnest(results) |>
-  mutate(.tree_id = 1:n(),
-         .dtrain = .estimate,
-         .dtest  = unnest(dpredictions_test, results)$.estimate) |>
-  select(c(.tree_id, .dtrain, .dtest)) |>
-  pivot_longer(cols = 2:3, names_to = "data", values_to = ".error")
+  rbind(dpredictions_test) |>
+  unnest(.performance) |> unnest(results) |>
+  group_by(.type, .order) |>
+  summarise(.error = mean(.estimate),
+            .inf = quantile(.estimate, .05),
+            .sup = quantile(.estimate, .95),
+            .groups = "drop")
+
+deforest_results |>
+  ggplot(aes(.order, .error, fill = .type, group = .type, color = .type)) +
+  geom_ribbon(aes(ymin = .inf, ymax = .sup), alpha = .2, color = "white") + 
+  geom_line() + sin_lineas +  scale_x_log10()
 
 original_results |>
   rbind(deforest_results) |>
-  ggplot(aes(.tree_id, .error, .group = data, color = data)) +
-  geom_line() + sin_lineas +
-  coord_cartesian(ylim = c(0.22, 1)) + scale_x_log10()
+  ggplot(aes(.order, .error, fill = .type, group = .type, color = .type)) +
+  geom_ribbon(aes(ymin = .inf, ymax = .sup), alpha = .2, color = "white") + 
+  geom_line() + sin_lineas +  scale_x_log10() + scale_y_log10() 
+  ## coord_cartesian(ylim = c(0.1, 1))
