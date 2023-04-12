@@ -1,0 +1,361 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Flujo de diagnóstico~
+#+STARTUP: showall
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/11-screening.pdf
+:END:
+#+PROPERTY: header-args:R :session screening :exports both :results output org :tangle ../rscripts/11-screening.R :mkdirp yes :dir ../ :eval never
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Flujo de diagnóstico.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: Capítulo 10 de [[cite:&Kuhn2013]] y capítulo 15 de [[cite:&Kuhn2022]].
+#+END_NOTES
+
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Table of Contents                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#flujo-de-procesamiento][Flujo de procesamiento]]
+- [[#ajuste-y-evaluación-de-modelos][Ajuste y evaluación de modelos]]
+:END:
+
+* Introducción
+
+Hemos discutido ya sobre distintos modelos y cómo cada modelo tiene distintas
+necesidades para pre-procesar los datos antes de realizarse el ajuste. En el
+capítulo de 10 de citet:Kuhn2013 se ajustan varios modelos para predecir la
+capacidad de compresión de mezclas de concreto en función de los ingredientes que se utiliza para cada mezcla.
+Las preguntas en contreto que resolveremos en esta sección son: 
+
+#+begin_quote
+¿Cómo podemos comparar distintos modelos entre si? ¿Cómo podemos utilizar un
+flujo de trabajo que nos ayude a hacerlo de manera eficiente?
+#+end_quote
+
+#+REVEAL: split
+
+Los datos que usaremos para ilustrar estos conceptos son los mismos que usan
+[[cite:&Kuhn2013]] donde lo que nos interesa es predecir ~compressive_strength~ y las
+unidades son kilogramos por metro cúbico.
+
+#+begin_src R :exports both :results org 
+  library(tidymodels)
+  data(concrete, package = "modeldata")
+  concrete |> print(n = 3, width = 70)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1,030 × 9
+  cement blast_f…¹ fly_ash water super…² coars…³ fine_…⁴   age compr…⁵
+   <dbl>     <dbl>   <dbl> <dbl>   <dbl>   <dbl>   <dbl> <int>   <dbl>
+1   540         0        0   162     2.5    1040     676    28    80.0
+2   540         0        0   162     2.5    1055     676    28    61.9
+3   332.      142.       0   228     0       932     594   270    40.3
+# … with 1,027 more rows, and abbreviated variable names
+#   ¹​blast_furnace_slag, ²​superplasticizer, ³​coarse_aggregate,
+#   ⁴​fine_aggregate, ⁵​compressive_strength
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+En particular para estos datos tenemos mezclas que se probaron varias veces por lo tanto reduciremos un poco esta multiplicidad.
+
+#+begin_src R :exports code :results none
+  concrete <- 
+    concrete %>% 
+    group_by(across(-compressive_strength)) %>% 
+    summarize(compressive_strength = mean(compressive_strength),
+              .groups = "drop")
+#+end_src
+
+\newpage
+#+REVEAL: split
+Prepararemos nuestros conjuntos de entrenamiento y prueba
+
+#+begin_src R :exports code :results none
+  set.seed(1501)
+  concrete_split <- initial_split(concrete, strata = compressive_strength)
+  concrete_train <- training(concrete_split)
+  concrete_test  <- testing(concrete_split)
+
+  set.seed(1502)
+  concrete_folds <- 
+    vfold_cv(concrete_train, strata = compressive_strength, repeats = 5)
+#+end_src
+
+#+REVEAL: split
+Usaremos algunas preparaciones de datos, pues hay modelos (no todos) que las requieren
+
+#+begin_src R :exports code :results none 
+  normalized_rec <- 
+    recipe(compressive_strength ~ ., data = concrete_train) %>% 
+    step_normalize(all_predictors()) 
+
+  poly_recipe <- 
+    normalized_rec %>% 
+    step_poly(all_predictors()) %>% 
+    step_interact(~ all_predictors():all_predictors())
+#+end_src
+
+#+REVEAL: split
+Preparemos nuestras especificaciones de modelos
+
+#+begin_src R :exports code :results none 
+  library(rules)
+  library(baguette)
+
+  linear_reg_spec <- 
+    linear_reg(penalty = tune(), mixture = tune()) %>% 
+    set_engine("glmnet")
+
+  mars_spec <- 
+    mars(prod_degree = tune()) %>%  #<- use GCV to choose terms
+    set_engine("earth") %>% 
+    set_mode("regression")
+#+end_src
+
+#+begin_src R :exports code :results none 
+  cart_spec <- 
+    decision_tree(cost_complexity = tune(), min_n = tune()) %>% 
+    set_engine("rpart") %>% 
+    set_mode("regression")
+
+  bag_cart_spec <- 
+    bag_tree() %>% 
+    set_engine("rpart", times = 50L) %>% 
+    set_mode("regression")
+#+end_src
+
+#+begin_src R :exports code :results none 
+  knn_spec <- 
+    nearest_neighbor(neighbors = tune(),
+                     dist_power = tune(),
+                     weight_func = tune()) %>% 
+    set_engine("kknn") %>% 
+    set_mode("regression")
+#+end_src
+
+
+#+begin_src R :exports code :results none 
+  rf_spec <- 
+    rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
+    set_engine("ranger") %>% 
+    set_mode("regression")
+
+  xgb_spec <- 
+    boost_tree(tree_depth = tune(), learn_rate = tune(),
+               loss_reduction = tune(), 
+               min_n = tune(), sample_size = tune(),
+               trees = tune()) %>% 
+    set_engine("xgboost") %>% 
+    set_mode("regression")
+
+  cubist_spec <- 
+    cubist_rules(committees = tune(), neighbors = tune()) %>% 
+    set_engine("Cubist") 
+#+end_src
+
+* Flujo de procesamiento
+
+#+begin_src R :exports both :results org
+  normalized <- 
+    workflow_set(
+      preproc = list(normalized = normalized_rec), 
+      models = list(KNN = knn_spec)
+    )
+  normalized
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 1 × 4
+  wflow_id       info             option    result    
+  <chr>          <list>           <list>    <list>    
+1 normalized_KNN <tibble [1 × 4]> <opts[0]> <list [0]>
+#+end_src
+
+#+REVEAL: split
+Podemos corroborar que tenemos lo usual
+#+begin_src R :exports both :results org 
+  normalized %>% extract_workflow(id = "normalized_KNN")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+== Workflow ==================================================================
+Preprocessor: Recipe
+Model: nearest_neighbor()
+
+-- Preprocessor -------------------------------------------------------------
+1 Recipe Step
+
+• step_normalize()
+
+-- Model --------------------------------------------------------------------
+K-Nearest Neighbor Model Specification (regression)
+
+Main Arguments:
+  neighbors = tune()
+  weight_func = tune()
+  dist_power = tune()
+
+Computational engine: kknn
+#+end_src
+
+#+REVEAL: split
+Para los demás modelos podemos utilizar ~dplyr~ para definir ~respuesta~ y ~atributos~. 
+
+#+begin_src R :exports both :results org 
+  model_vars <- 
+    workflow_variables(outcomes = compressive_strength, 
+                       predictors = everything())
+  no_pre_proc <- 
+    workflow_set(
+      preproc = list(simple = model_vars), 
+      models = list(MARS = mars_spec, CART = cart_spec,
+                    CART_bagged = bag_cart_spec,
+                    RF = rf_spec, boosting = xgb_spec,
+                    Cubist = cubist_spec)
+    )
+  no_pre_proc
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 6 × 4
+  wflow_id           info             option    result    
+  <chr>              <list>           <list>    <list>    
+1 simple_MARS        <tibble [1 × 4]> <opts[0]> <list [0]>
+2 simple_CART        <tibble [1 × 4]> <opts[0]> <list [0]>
+3 simple_CART_bagged <tibble [1 × 4]> <opts[0]> <list [0]>
+4 simple_RF          <tibble [1 × 4]> <opts[0]> <list [0]>
+5 simple_boosting    <tibble [1 × 4]> <opts[0]> <list [0]>
+6 simple_Cubist      <tibble [1 × 4]> <opts[0]> <list [0]>
+#+end_src
+
+#+REVEAL: split
+Agregamos el conjunto de modelos usan términos no lineales e interacciones. 
+
+#+begin_src R :exports code :results none
+  with_features <- 
+    workflow_set(
+      preproc = list(full_quad = poly_recipe), 
+      models = list(linear_reg = linear_reg_spec, KNN = knn_spec)
+    )
+#+end_src
+
+#+REVEAL: split
+Finalmente, creamos el conjunto completo de procesamiento
+
+#+begin_src R :exports both :results org 
+  all_workflows <- 
+    bind_rows(no_pre_proc, normalized, with_features) %>% 
+    ## Make the workflow ID's a little more simple: 
+    mutate(wflow_id = gsub("(simple_)|(normalized_)", "", wflow_id))
+  all_workflows
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 9 × 4
+  wflow_id             info             option    result    
+  <chr>                <list>           <list>    <list>    
+1 MARS                 <tibble [1 × 4]> <opts[0]> <list [0]>
+2 CART                 <tibble [1 × 4]> <opts[0]> <list [0]>
+3 CART_bagged          <tibble [1 × 4]> <opts[0]> <list [0]>
+4 RF                   <tibble [1 × 4]> <opts[0]> <list [0]>
+5 boosting             <tibble [1 × 4]> <opts[0]> <list [0]>
+6 Cubist               <tibble [1 × 4]> <opts[0]> <list [0]>
+7 KNN                  <tibble [1 × 4]> <opts[0]> <list [0]>
+8 full_quad_linear_reg <tibble [1 × 4]> <opts[0]> <list [0]>
+9 full_quad_KNN        <tibble [1 × 4]> <opts[0]> <list [0]>
+#+end_src
+
+* Ajuste y evaluación de modelos
+
+Casi todos los modelos tienen parámetros que se tienen que ajustar. Podemos
+utilizar los métodos de ajuste que ya hemos visto (~tune_grid()~, etc.). Con la
+función ~workflow_map()~ se aplica la misma función para *todos* los flujos de
+entrenamiento.
+
+Usaremos las mismas opciones para cada uno. Es decir, 25 candidatos en cada
+modelo para validación cruzada, utilizando la misma separación en bloques.
+
+#+begin_src R :exports code :results none
+  grid_ctrl <-
+    control_grid(
+      save_pred = TRUE,
+      parallel_over = "everything",
+      save_workflow = TRUE
+    )
+#+end_src
+
+#+begin_src R :exports both :results org 
+  system.time(
+    grid_results <-
+      all_workflows %>%
+      workflow_map(
+        seed = 1503,
+        resamples = concrete_folds,
+        grid = 25,
+        control = grid_ctrl
+      )
+  )
+#+end_src
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
