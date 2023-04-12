@@ -2868,6 +2868,33 @@
       "Hash": "c23666fdb7789c8a45e65340bb334607",
       "Requirements": []
     },
+    "stacks": {
+      "Package": "stacks",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0dc0004b681e6dbc4e88b7e9efc2a4c6",
+      "Requirements": [
+        "butcher",
+        "cli",
+        "dplyr",
+        "foreach",
+        "ggplot2",
+        "glmnet",
+        "glue",
+        "parsnip",
+        "purrr",
+        "recipes",
+        "rlang",
+        "rsample",
+        "tibble",
+        "tidyr",
+        "tune",
+        "workflows",
+        "workflowsets",
+        "yardstick"
+      ]
+    },
     "stringi": {
       "Package": "stringi",
       "Version": "1.7.8",

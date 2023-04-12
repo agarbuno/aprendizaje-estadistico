@@ -26,8 +26,8 @@ data(concrete, package = "modeldata")
 concrete |> print(n = 3, width = 70)
 
 concrete <- 
-  concrete %>% 
-  group_by(across(-compressive_strength)) %>% 
+  concrete |> 
+  group_by(across(-compressive_strength)) |> 
   summarize(compressive_strength = mean(compressive_strength),
             .groups = "drop")
 
@@ -41,58 +41,58 @@ concrete_folds <-
   vfold_cv(concrete_train, strata = compressive_strength, repeats = 5)
 
 normalized_rec <- 
-  recipe(compressive_strength ~ ., data = concrete_train) %>% 
+  recipe(compressive_strength ~ ., data = concrete_train) |> 
   step_normalize(all_predictors()) 
 
 poly_recipe <- 
-  normalized_rec %>% 
-  step_poly(all_predictors()) %>% 
+  normalized_rec |> 
+  step_poly(all_predictors()) |> 
   step_interact(~ all_predictors():all_predictors())
 
 library(rules)
 library(baguette)
 
 linear_reg_spec <- 
-  linear_reg(penalty = tune(), mixture = tune()) %>% 
+  linear_reg(penalty = tune(), mixture = tune()) |> 
   set_engine("glmnet")
 
 mars_spec <- 
-  mars(prod_degree = tune()) %>%  #<- use GCV to choose terms
-  set_engine("earth") %>% 
+  mars(prod_degree = tune()) |>  #<- use GCV to choose terms
+  set_engine("earth") |> 
   set_mode("regression")
 
 cart_spec <- 
-  decision_tree(cost_complexity = tune(), min_n = tune()) %>% 
-  set_engine("rpart") %>% 
+  decision_tree(cost_complexity = tune(), min_n = tune()) |> 
+  set_engine("rpart") |> 
   set_mode("regression")
 
 bag_cart_spec <- 
-  bag_tree() %>% 
-  set_engine("rpart", times = 50L) %>% 
+  bag_tree() |> 
+  set_engine("rpart", times = 50L) |> 
   set_mode("regression")
 
 knn_spec <- 
   nearest_neighbor(neighbors = tune(),
                    dist_power = tune(),
-                   weight_func = tune()) %>% 
-  set_engine("kknn") %>% 
+                   weight_func = tune()) |> 
+  set_engine("kknn") |> 
   set_mode("regression")
 
 rf_spec <- 
-  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
-  set_engine("ranger") %>% 
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |> 
+  set_engine("ranger") |> 
   set_mode("regression")
 
 xgb_spec <- 
   boost_tree(tree_depth = tune(), learn_rate = tune(),
              loss_reduction = tune(), 
              min_n = tune(), sample_size = tune(),
-             trees = tune()) %>% 
-  set_engine("xgboost") %>% 
+             trees = tune()) |> 
+  set_engine("xgboost") |> 
   set_mode("regression")
 
 cubist_spec <- 
-  cubist_rules(committees = tune(), neighbors = tune()) %>% 
+  cubist_rules(committees = tune(), neighbors = tune()) |> 
   set_engine("Cubist")
 
 normalized <- 
@@ -102,7 +102,7 @@ normalized <-
   )
 normalized
 
-normalized %>% extract_workflow(id = "normalized_KNN")
+normalized |> extract_workflow(id = "normalized_KNN")
 
 model_vars <- 
   workflow_variables(outcomes = compressive_strength, 
@@ -124,7 +124,7 @@ with_features <-
   )
 
 all_workflows <- 
-  bind_rows(no_pre_proc, normalized, with_features) %>% 
+  bind_rows(no_pre_proc, normalized, with_features) |> 
   ## Make the workflow ID's a little more simple: 
   mutate(wflow_id = gsub("(simple_)|(normalized_)", "", wflow_id))
 all_workflows
@@ -143,7 +143,7 @@ registerDoParallel(cl)
 
 system.time(
   grid_results <-
-    all_workflows %>%
+    all_workflows |>
     workflow_map(
       seed = 1503,
       resamples = concrete_folds,
@@ -152,9 +152,9 @@ system.time(
     )
 )
 
-grid_results %>% 
- rank_results() %>% 
- filter(.metric == "rmse") %>% 
+grid_results |> 
+ rank_results() |> 
+ filter(.metric == "rmse") |> 
  select(model, .config, rmse = mean, rank)
 
 autoplot(
@@ -178,7 +178,7 @@ race_ctrl <-
 
 system.time(
   race_results <-
-    all_workflows %>%
+    all_workflows |>
     workflow_map(
       "tune_race_anova",
       seed = 1503,
@@ -186,3 +186,95 @@ system.time(
       grid = 25,
       control = race_ctrl
     ))
+
+race_results
+
+autoplot(
+  race_results,
+  rank_metric = "rmse",  
+  metric = "rmse",       
+  select_best = TRUE    
+) +
+  geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 45, hjust = 1, size = 5) +
+  lims(y = c(3.0, 9.5)) +
+  theme(legend.position = "none") + sin_lineas
+
+matched_results <- 
+  rank_results(race_results, select_best = TRUE) |> 
+  select(wflow_id, .metric, race = mean, config_race = .config) |> 
+  inner_join(
+    rank_results(grid_results, select_best = TRUE) |> 
+    select(wflow_id, .metric, complete = mean, 
+           config_complete = .config, model),
+    by = c("wflow_id", ".metric"),
+    ) |>  
+  filter(.metric == "rmse")
+
+library(ggrepel)
+
+matched_results |> 
+  ggplot(aes(x = complete, y = race)) + 
+  geom_abline(lty = 3) + 
+  geom_point() + 
+  geom_text_repel(aes(label = model)) +
+  coord_obs_pred() + 
+  labs(x = "Complete Grid RMSE", y = "Racing RMSE")  +
+  sin_lineas
+
+best_results <- 
+  race_results |> 
+  extract_workflow_set_result("boosting") |> 
+  select_best(metric = "rmse")
+best_results
+
+boosting_test_results <- 
+   race_results |> 
+   extract_workflow("boosting") |> 
+   finalize_workflow(best_results) |> 
+   last_fit(split = concrete_split)
+
+collect_metrics(boosting_test_results)
+
+boosting_test_results |> 
+  collect_predictions() |> 
+  ggplot(aes(x = compressive_strength, y = .pred)) + 
+  geom_abline(color = "gray50", lty = 2) + 
+  geom_point(alpha = 0.5) + 
+  coord_obs_pred() + 
+  labs(x = "observed", y = "predicted") +
+  sin_lineas
+
+library(stacks)
+
+concrete_stack <- 
+  stacks() |> 
+  add_candidates(race_results)
+
+concrete_stack
+
+set.seed(2001)
+ens <- blend_predictions(concrete_stack)
+
+autoplot(ens) + sin_lineas
+
+set.seed(2002)
+ens <- blend_predictions(concrete_stack, penalty = 10^seq(-2, -0.5, length = 20))
+
+autoplot(ens) + sin_lineas
+
+ens
+
+autoplot(ens, "weights") +
+  geom_text(aes(x = weight + 0.01, label = model), hjust = 0, size = 5) + 
+  theme(legend.position = "none") +
+  lims(x = c(-0.01, 1)) + sin_lineas
+
+ens <- fit_members(ens)
+
+reg_metrics <- metric_set(rmse, rsq)
+ens_test_pred <- 
+  predict(ens, concrete_test) |> 
+  bind_cols(concrete_test)
+
+ens_test_pred |> 
+  reg_metrics(compressive_strength, .pred)
