@@ -343,6 +343,13 @@ modelo para validación cruzada, utilizando la misma separación en bloques.
     )
 #+end_src
 
+#+begin_src R :exports code :results none
+  all_cores <- parallel::detectCores(logical = TRUE) - 3
+  library(doParallel)
+  cl <- makePSOCKcluster(all_cores)
+  registerDoParallel(cl)
+#+end_src
+
 #+begin_src R :exports both :results org 
   system.time(
     grid_results <-
@@ -355,6 +362,92 @@ modelo para validación cruzada, utilizando la misma separación en bloques.
       )
   )
 #+end_src
+
+#+RESULTS:
+#+begin_src org
+i Creating pre-processing data to finalize unknown parameter: mtry
+    user   system  elapsed 
+  26.698    5.506 2083.210
+#+end_src
+
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  grid_results %>% 
+   rank_results() %>% 
+   filter(.metric == "rmse") %>% 
+   select(model, .config, rmse = mean, rank) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 177 × 4
+   model        .config                rmse  rank
+   <chr>        <chr>                 <dbl> <int>
+ 1 boost_tree   Preprocessor1_Model04  4.25     1
+ 2 boost_tree   Preprocessor1_Model06  4.29     2
+ 3 boost_tree   Preprocessor1_Model13  4.31     3
+ 4 boost_tree   Preprocessor1_Model14  4.39     4
+ 5 boost_tree   Preprocessor1_Model16  4.46     5
+ 6 boost_tree   Preprocessor1_Model03  4.47     6
+ 7 boost_tree   Preprocessor1_Model15  4.48     7
+ 8 boost_tree   Preprocessor1_Model05  4.55     8
+ 9 boost_tree   Preprocessor1_Model20  4.71     9
+10 cubist_rules Preprocessor1_Model24  4.71    10
+# … with 167 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-screening.jpeg :exports results :results output graphics file
+  autoplot(
+    grid_results,
+    rank_metric = "rmse",  # <- how to order models
+    metric = "rmse",       # <- which metric to visualize
+    select_best = TRUE     # <- one point per workflow
+  ) +
+    geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 5) +
+    lims(y = c(3.5, 9.5)) +
+    theme(legend.position = "none") + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/concrete-screening.jpeg]]
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  library(finetune)
+
+  race_ctrl <-
+    control_race(
+      save_pred = TRUE,
+      parallel_over = "everything",
+      save_workflow = TRUE
+    )
+#+end_src
+
+#+begin_src R :exports both :results org 
+  system.time(
+    race_results <-
+      all_workflows %>%
+      workflow_map(
+        "tune_race_anova",
+        seed = 1503,
+        resamples = concrete_folds,
+        grid = 25,
+        control = race_ctrl
+      ))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+i Creating pre-processing data to finalize unknown parameter: mtry
+   user  system elapsed 
+157.602   6.237 678.471
+#+end_src
+
 
 
 bibliographystyle:abbrvnat

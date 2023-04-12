@@ -136,6 +136,11 @@ grid_ctrl <-
     save_workflow = TRUE
   )
 
+all_cores <- parallel::detectCores(logical = TRUE) - 3
+library(doParallel)
+cl <- makePSOCKcluster(all_cores)
+registerDoParallel(cl)
+
 system.time(
   grid_results <-
     all_workflows %>%
@@ -146,3 +151,38 @@ system.time(
       control = grid_ctrl
     )
 )
+
+grid_results %>% 
+ rank_results() %>% 
+ filter(.metric == "rmse") %>% 
+ select(model, .config, rmse = mean, rank)
+
+autoplot(
+  grid_results,
+  rank_metric = "rmse",  # <- how to order models
+  metric = "rmse",       # <- which metric to visualize
+  select_best = TRUE     # <- one point per workflow
+) +
+  geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 5) +
+  lims(y = c(3.5, 9.5)) +
+  theme(legend.position = "none") + sin_lineas
+
+library(finetune)
+
+race_ctrl <-
+  control_race(
+    save_pred = TRUE,
+    parallel_over = "everything",
+    save_workflow = TRUE
+  )
+
+system.time(
+  race_results <-
+    all_workflows %>%
+    workflow_map(
+      "tune_race_anova",
+      seed = 1503,
+      resamples = concrete_folds,
+      grid = 25,
+      control = race_ctrl
+    ))
