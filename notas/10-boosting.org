@@ -1,0 +1,1090 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Ensambles: Boosting~
+#+STARTUP: showall
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/10-boosting.pdf
+:END:
+#+PROPERTY: header-args:R :session boosting :exports both :results output org :tangle ../rscripts/10-boosting.R :mkdirp yes :dir ../ :eval never
+#+EXCLUDE_TAGS: toc latex
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Ensambles y /Boosting/.\\
+*Objetivo*: En esta sección estudiaremos otra estrategia para combinar modelos en uno sólo. La estrategia que estudiaremos en esta sección es un mecanismo altamente flexible para regresión y clasificación y actualmente representa el estado del arte para resolver problemas de predicción con datos tabulares.\\
+*Lectura recomendada*: Capítulo 10 del libro citet:Hastie2009c. También el capítulo 5 de citet:Greenwell2022. 
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#modelos-aditivos-secuenciales][Modelos aditivos secuenciales]]
+  - [[#clasificación-binaria][Clasificación binaria]]
+    - [[#para-pensar][Para pensar:]]
+- [[#gradient-boosting][Gradient boosting]]
+  - [[#para-pensar][Para pensar:]]
+- [[#aplicación-analítica-deportiva][Aplicación: Analítica deportiva]]
+  - [[#construcción-del-modelo][Construcción del modelo]]
+  - [[#entrenamiento-del-modelo][Entrenamiento del modelo]]
+  - [[#resultados][Resultados]]
+  - [[#modelo-entrenado][Modelo entrenado]]
+  - [[#post-procesamiento][Post-procesamiento]]
+- [[#procesamiento-en-paralelo][Procesamiento en paralelo]]
+- [[#anova-perfil-rápido-de-desempeño][ANOVA: Perfil rápido de desempeño]]
+- [[#modelos-de-ensamble-epilogo][Modelos de ensamble (epilogo)]]
+  - [[#importancia-de-variables][Importancia de variables]]
+:END:
+
+* Introducción
+
+/Boosting/ es otra estrategia de agregación de modelos. Es una herramienta
+bastante general que puede ser utilizada para problemas de regresión o
+clasificación citep:Schapire2001. La estrategia de ~boosting~ es una ~estrategia
+secuencial~ que busca mejorar la capacidad predictiva lograda anteriormente.
+
+#+REVEAL: split
+Usualmente con /boosting/ utilizamos árboles pequeños (sesgo alto), al contrario de bosques
+aleatorios donde se prefieren árboles profundos (sesgo bajo).
+
+#+REVEAL: split
+En /boosting/ el sesgo se disminuye con modelos predictivos que se encargan de
+distintos grupos en el conjunto de entrenamiento. La varianza se puede controlar
+con el parámetro de tasa de aprendizaje.
+
+* Modelos aditivos secuenciales
+
+En el marco de ~modelos aditivos secuenciales~ aplicados a regresión, consideremos
+el contexto de modelado por etapas.  En este marco, consideremos un predictor de
+la forma
+\begin{align}
+f(x) = \sum_{k = 1}^{M} \beta_k \, b_k(x) = \sum_{k=1}^{M} T_k(x)\,,
+\end{align}
+donde cada término es el resultado de ajustar un árbol de regresión.
+
+#+BEGIN_NOTES
+Recuerda que un árbol $T_k$ de decisión está definido por sus parámetros
+$\theta_k$ los cuales incluyen las variables que se utilizan para los cortes, el
+punto de corte y la predicción en cada una de las regiones terminales.
+#+END_NOTES
+
+#+REVEAL: split
+Resolver este problema es dificil pues se tienen que ajustar los coeficientes y
+los árboles al mismo tiempo. Asi que lo resolveremos de manera secuencial. Es
+decir, consideremos que estamos en la iteración $m$ y que un modelo pre-entrenado
+\begin{align}
+f_{m-1}(x) = \sum_{k = 1}^{m-1} T_k(x)\,,
+\end{align}
+donde $T_k$ con $k = 1, \ldots, m-1$ son los árboles individualmente entrenados.
+
+\newpage
+#+REVEAL: split
+Para la iteración actual, ajustaremos un modelo adicional al resolver
+\begin{align}
+\min_{T \in \mathcal{T}} \sum_{i = 1}^{n} \ell\left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
+\end{align}
+donde $\ell(y, \hat{y})$ es una función de pérdida adecuada.
+
+#+REVEAL: split
+En el contexto de regresión, si utilizamos pérdida cuadrática podemos agrupar y reescribir
+\begin{align}
+\min_{T\in \mathcal{T}} \sum_{i = 1}^{n} \left( r_i^{(m)} - T(x_i) \right)^2\,,
+\end{align}
+donde $r_i^{(m)}$ es el residual que enfrentamos al momento de ajustar el
+$m\text{-ésimo}$ modelo.
+
+** Clasificación binaria
+
+Para problemas de clasificación necesitamos resolver en escala logarítmica para después transformar a probabilidades por medio de
+\begin{align}
+\mathbb{P}(Y = 1| x) = p(x) = h(f(x))\,,
+\end{align}
+donde $h$ es la función logística.
+
+#+REVEAL: split
+En este caso resolvemos el problema de optimización
+\begin{align}
+\min_{T\in \mathcal{T}} \sum_{i = 1}^{n} \ell \left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
+\end{align}
+donde $\ell$ es la ~devianza~ ( - 2 $\times$  log-verosimilitud). Además, usaremos la siguiente codificación de las clases $y \in \{-1, 1\}$. Por lo que la devianza la podemos escribir como
+\begin{align}
+\ell(y, \hat z) = - \left[  ( y + 1) \log h(\hat z) - (y - 1) \log (1 - h(\hat z) )\right] \,,
+\end{align}
+la cual se puede escribir (utilizando la expresión de la función $h$) como
+\begin{align}
+\ell(y, \hat z)  = 2 \log \left( 1 + e^{-y \hat z} \right)\,. 
+\end{align}
+
+#+BEGIN_NOTES
+Nota que en el contexto de regresión el producto $y \hat{z}$ tiene un efecto similar al de un residual en el contexto de regresión. ¿Qué pasa con los signos de la categoría observada $y$ y del /score/ latente $\hat{z}$ cuando coinciden y cuando no?
+#+END_NOTES
+
+#+REVEAL: split
+Esto nos permite formular el problema de optimización como 
+\begin{align}
+\min_{T \in \mathcal{T}} \sum_{i = 1}^{n} 2 \log \left( 1 + e^{-y_i \cdot \left(f_{m-1}(x_i) + T(x_i)\right)} \right)\,,
+\end{align}
+el cual puede ser re-escrito como 
+\begin{align}
+\min_{T \in \mathcal{T}} \sum_{i = 1}^{n} 2 \log \left( 1 + d_{i}^{(m)} e^{-y_i T(x_i)} \right)\,.
+\end{align}
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿Cómo cambia la función objetivo si la función de pérdida es una pérdida exponencial? Es decir, bajo
+\begin{align}
+\ell(y, f_m(x)) = \exp \left(  - y f_m(x)  \right)\,.
+\end{align}
+
+
+#+BEGIN_NOTES
+En este caso (clasificación binaria) vemos que la formulación no es tan fácil
+que con pérdida cuadrática en el contexto de regresión. Sin embargo, parece ser
+que los datos reciben una ponderación $d_i^{(m)}$.
+#+END_NOTES
+
+* /Gradient boosting/
+
+Utilizaremos /gradient boosting/ para resolver la formulación anterior. Esta técnica se puede aplicar de manera general para cualquier función de pérdida. Lo que necesitamos es resolver
+\begin{align}
+\min_{T\in \mathcal{T}} \sum_{i = 1}^{n} \ell\left( y_i, f_{m-1}(x_i) + T(x_i) \right)\,,
+\end{align}
+donde podemos interpretar como /qué tanto tenemos que movernos a partir de $f_{m-1}$ para disminuir la función de pérdida/.
+
+#+REVEAL: split
+Si nos fijamos en uno de los términos y escribimos
+\begin{align}
+\ell(y_i, f_{m-1}(x_i) + z_i)\,,
+\end{align}
+entonces sabemos que tenemos que modificar de acuerdo a
+al negativo del gradiente 
+\begin{align}
+z_i = -\frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) + z \right) \big|_{z = 0}\,.
+\end{align}
+
+#+REVEAL: split
+La restricción que tenemos es que $z_i = T(x_i)$ para toda observación. De hecho, lo mejor que podríamos tener es que
+\begin{align}
+T(x_i) \approx \frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) \right) = g_{i,m}\,.
+\end{align}
+
+#+REVEAL: split
+Así que formulamos un nuevo problema de optimización como 
+\begin{align}
+\min_{T\in \mathcal{T}} \sum_{i = 1}^{n} \left( g_{i,m} - T(x_i) \right)^2\,,
+\end{align}
+donde $g_{i,m}$ es el gradiente de la función objetivo en la iteración $m$ evaluando en la observación $i$. Por lo que la actualización sería de la forma
+\begin{align}
+f_m(x) = f_{m-1}(x) + \lambda T(x)\,,
+\end{align}
+donde el parámetro $\lambda$ se puede interpretar como una longitud de paso o un mecanismo de suavizamiento/regularización.
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿Tiene sentido utilizar un árbol de clasificación para la formulación anterior?
+
+** Pseudo-código (tarea de regresión)
+
+#+BEGIN_NOTES
+El caso de regresión con pérdida cuadrática se presenta a continuación como un ejemplo. Nota que en esta formulación el problema de optimización en términos del gradiente de la función de pérdida es equivalente a ajustar los residuales. Esto nos ayuda a conectar la formulación con resolver un problema predictivo. La tasa de aprendizaje en este caso, previene el sobreajuste pues ayuda a reducir la importancia de la solución a los residuales. 
+#+END_NOTES
+
+
+1. Definimos $\hat f(x) = 0$ , y $r_i = y_i$ para toda observación en el conjunto de entrenamiento.
+2. Para cada $m = 1, 2, \ldots, {\color{orange} M}$ :
+   1. Ajustamos un árbol sencillo $\hat f_{m}$ con ${\color{orange} J}$ nodos terminales para el conjunto $\{(x_i, r_i)\}_{i = 1}^n$.
+   2. Actualizamos el predictor $\hat f$ al incluir una versión escalada del nuevo árbol
+      \begin{align}
+      \hat f (x) \leftarrow \hat f(x) + {\color{orange} \lambda} \hat f_{m}(x) \,.
+      \end{align}
+   3. Actualizamos los residuales 
+      \begin{align}
+      r_i \leftarrow r_i - {\color{orange} \lambda} \hat f_{m}(x) \,.
+      \end{align}
+3. Regresamos el modelo
+   \begin{align}
+   \hat f(x) = \lambda \sum_{m = 1}^{M} \hat f_{m}(x) \,.
+   \end{align}
+
+#+BEGIN_NOTES
+Hay algunas librerías que no consideran $\lambda$ como un parámetro de
+búsqueda. Al contrario, utilizan un mecanismo para ajustar la longitud de paso
+de manera automática. Le pueden preguntar a su profesor favorito de optimización
+numérica por /line search/ o consultar el libro de citet:Nocedal2006.
+#+END_NOTES
+
+** Funciones de pérdida
+
+La selección de función de pérdida parte crucial del algoritmo y se escoge de acuerdo al problema y al objetivo que se quiera resolver. Por ejemplo, en regresión tenemos (por nombrar un par):
+1. *Pérdida cuadrática*:
+   \begin{align}
+   \ell(y, z) = \frac12 (y - z)^2, \qquad \frac{\partial \ell}{\partial z} = - (y - z)\,.
+   \end{align}
+2. *Pérdida absoluta*: 
+   \begin{align}
+   \ell(y, z) = |y - z|, \qquad \frac{\partial \ell}{\partial z} = \frac{|y -z|}{y -z}\,.
+   \end{align}
+
+#+REVEAL: split
+En el contexto de clasificación podemos utilizar:
+1. *Devianza binomial*:
+   \begin{align}
+   \ell(y, z) = -\log(1 + e^{-yz}), \qquad \frac{\partial \ell}{\partial z} = I(y = 1) - h(z)\,.
+   \end{align}
+2. *Pérdida exponencial*:
+   \begin{align}
+   \ell(y, z) = e^{-yz}, \qquad \frac{\partial \ell}{\partial z} = - y e^{-yz}\,.
+   \end{align}
+
+
+** Parámetros a optimizar
+
+Los parámetros que usualmente se ajustan con validación cruzada son:
+- La tasa de aprendizaje o tamaño de paso $\lambda$.
+- El número de términos del modelo $M$.
+#+REVEAL: split
+Más los adicionales de la familia de árboles:
+- Profundidad del árbol.
+- Número de observaciones en los nodos terminales.
+#+REVEAL: split
+Se pueden incorporar adicionales:
+- El número de predictores a utilizar (como en ~RF~).
+- Alguna cota de reducción de función objetivo para profundizar el árbol.
+- Tamaño de submuestreo (/Stochastic gradient boosting/). 
+
+
+** Observaciones
+
+- El número de arboles en la expansión puede llevar a sobre-ajuste.
+- La estrategia de validación cruzada puede ser muy útil para determinar el
+  número de iteraciones en algunas situaciones.
+- Se puede utilizar un criterio de paro para evitar sobre-ajuste.
+- Los hiper-parámetros $M$ y $\lambda$ *no* son independientes.
+  
+* Aplicación: Analítica deportiva
+
+El objetivo es determinar si un equipo de /volleyball/ ganará su siguiente partido
+tomando en cuenta estadísticas como errores, ataques, bloqueos, etc. por equipo.
+
+#+begin_src R :exports none :results none
+  ## Aplicación: Volleyball de playa -------------------------------------------
+#+end_src
+
+#+begin_src R :exports none :results none
+  library(tidymodels)
+  vb_matches <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-05-19/vb_matches.csv', progress = FALSE, show_col_types = FALSE)
+  vb_matches |> print(n = 3, width = 75)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 76,756 × 65
+  circuit tournament       country   year date       gender match…¹ w_pla…²
+  <chr>   <chr>            <chr>    <dbl> <date>     <chr>    <dbl> <chr>  
+1 AVP     Huntington Beach United …  2002 2002-05-24 M            1 Kevin …
+2 AVP     Huntington Beach United …  2002 2002-05-24 M            2 Brad T…
+3 AVP     Huntington Beach United …  2002 2002-05-24 M            3 Eduard…
+# … with 76,753 more rows, 57 more variables: w_p1_birthdate <date>,
+#   w_p1_age <dbl>, w_p1_hgt <dbl>, w_p1_country <chr>, w_player2 <chr>,
+#   w_p2_birthdate <date>, w_p2_age <dbl>, w_p2_hgt <dbl>,
+#   w_p2_country <chr>, w_rank <chr>, l_player1 <chr>,
+#   l_p1_birthdate <date>, l_p1_age <dbl>, l_p1_hgt <dbl>,
+#   l_p1_country <chr>, l_player2 <chr>, l_p2_birthdate <date>,
+#   l_p2_age <dbl>, l_p2_hgt <dbl>, l_p2_country <chr>, l_rank <chr>, …
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+Necesitamos los estadísticos por equipo, no por jugador.
+
+#+begin_src R :exports both :results org 
+  vb_parsed <- vb_matches |>
+  transmute(
+    circuit,
+    gender,
+    year,
+    w_attacks = w_p1_tot_attacks + w_p2_tot_attacks,
+    w_kills = w_p1_tot_kills + w_p2_tot_kills,
+    w_errors = w_p1_tot_errors + w_p2_tot_errors,
+    w_aces = w_p1_tot_aces + w_p2_tot_aces,
+    w_serve_errors = w_p1_tot_serve_errors + w_p2_tot_serve_errors,
+    w_blocks = w_p1_tot_blocks + w_p2_tot_blocks,
+    w_digs = w_p1_tot_digs + w_p2_tot_digs,
+    l_attacks = l_p1_tot_attacks + l_p2_tot_attacks,
+    l_kills = l_p1_tot_kills + l_p2_tot_kills,
+    l_errors = l_p1_tot_errors + l_p2_tot_errors,
+    l_aces = l_p1_tot_aces + l_p2_tot_aces,
+    l_serve_errors = l_p1_tot_serve_errors + l_p2_tot_serve_errors,
+    l_blocks = l_p1_tot_blocks + l_p2_tot_blocks,
+    l_digs = l_p1_tot_digs + l_p2_tot_digs
+  ) |>
+  na.omit()
+  vb_parsed |> print(n = 3, width = 75)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 14,332 × 17
+  circuit gender  year w_attacks w_kills w_errors w_aces w_serve_…¹ w_blo…²
+  <chr>   <chr>  <dbl>     <dbl>   <dbl>    <dbl>  <dbl>      <dbl>   <dbl>
+1 AVP     M       2004        45      24        7      0          2       5
+2 AVP     M       2004        71      31       16      3          8       7
+3 AVP     M       2004        43      26        5      2          4       7
+# … with 14,329 more rows, 8 more variables: w_digs <dbl>,
+#   l_attacks <dbl>, l_kills <dbl>, l_errors <dbl>, l_aces <dbl>,
+#   l_serve_errors <dbl>, l_blocks <dbl>, l_digs <dbl>, and abbreviated
+#   variable names ¹​w_serve_errors, ²​w_blocks
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+REVEAL: split
+Separemos por equipos que ganan sus partidos y los que no. 
+#+begin_src R :exports code :results none
+  winners <- vb_parsed |>
+    select(circuit, gender, year,
+           w_attacks:w_digs) |>
+    rename_with(~ str_remove_all(., "w_"), w_attacks:w_digs) |>
+    mutate(win = "win")
+
+  losers <- vb_parsed |>
+    select(circuit, gender, year,
+           l_attacks:l_digs) |>
+    rename_with(~ str_remove_all(., "l_"), l_attacks:l_digs) |>
+    mutate(win = "lose")
+
+  vb_df <- bind_rows(winners, losers) |>
+    mutate_if(is.character, factor) |>
+    mutate(win = factor(win, levels = c("win", "lose")))
+#+end_src
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/vball-eda.jpeg :exports results :results output graphics file
+  vb_df |>
+    pivot_longer(attacks:digs, names_to = "stat", values_to = "value") |>
+    ggplot(aes(gender, value, fill = win, color = win)) +
+    geom_boxplot(alpha = 0.4) +
+    facet_wrap(~stat, scales = "free_y", nrow = 2) +
+    labs(y = NULL, color = NULL, fill = NULL) + sin_lineas
+#+end_src
+#+caption: Análisis exploratorio inicial. 
+#+results:
+[[file:../images/vball-eda.jpeg]]
+
+** Construcción del modelo
+
+#+begin_src R :exports code :results none 
+  set.seed(123)
+  vb_split <- initial_split(vb_df, strata = win)
+  vb_train <- training(vb_split)
+  vb_test <- testing(vb_split)
+#+end_src
+
+#+begin_src R :exports both :results org
+  xgb_spec <- boost_tree(
+    trees = 1000,
+    tree_depth = tune(), min_n = tune(), ## complexity
+    mtry = tune(),         ## randomness
+    learn_rate = tune()    ## step size
+  ) |>
+    set_engine("xgboost") |>
+    set_mode("classification")
+
+  xgb_spec
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Boosted Tree Model Specification (classification)
+
+Main Arguments:
+  mtry = tune()
+  trees = 1000
+  min_n = tune()
+  tree_depth = tune()
+  learn_rate = tune()
+
+Computational engine: xgboost
+#+end_src
+
+#+begin_src R :exports both :results org 
+  xgb_rec <- recipe(win ~ ., vb_train) |>
+    step_dummy(all_nominal_predictors())
+
+  xgb_rec
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+Recipe
+
+Inputs:
+
+      role #variables
+   outcome          1
+ predictor         10
+
+Operations:
+
+Dummy variables from all_nominal_predictors()
+#+end_src
+
+#+REVEAL: split
+Usaremos un diseño experimental tipo /latin hypercube/. Su característica
+principal es que es un diseño que tiende a cubrir de manera uniforme el espacio
+de búsqueda con componentes aleatorios. Se denomina diseño de /cobertura de
+espacio/ (/space filling/) y es uno de los que ya están codificados en ~tidymodels~.
+
+#+begin_src R :exports both :results org 
+  xgb_grid <- grid_latin_hypercube(
+    tree_depth(),
+    min_n(),
+    finalize(mtry(), vb_train),
+    learn_rate(),
+    size = 30
+  )
+
+  xgb_grid |> print(n = 3)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 30 × 4
+  tree_depth min_n  mtry learn_rate
+       <int> <int> <int>      <dbl>
+1          2    20     6   1.21e- 8
+2          6    22     7   1.86e-10
+3          5    30     6   7.34e- 3
+# … with 27 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+** Entrenamiento del modelo
+
+#+begin_src R :exports both :results org 
+  xgb_wf <- workflow() |>
+    add_recipe(xgb_rec) |>
+    add_model(xgb_spec)
+
+  xgb_wf
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+== Workflow ==================================================================
+Preprocessor: Recipe
+Model: boost_tree()
+
+-- Preprocessor --------------------------------------------------------------
+1 Recipe Step
+
+- step_dummy()
+
+-- Model ---------------------------------------------------------------------
+Boosted Tree Model Specification (classification)
+
+Main Arguments:
+  mtry = tune()
+  trees = 1000
+  min_n = tune()
+  tree_depth = tune()
+  learn_rate = tune()
+
+Computational engine: xgboost
+#+end_src
+
+#+begin_src R :exports both :results org
+  set.seed(123)
+  vb_folds <- vfold_cv(vb_train, strata = win)
+  vb_folds |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#  10-fold cross-validation using stratification 
+# A tibble: 10 × 2
+  splits               id    
+  <list>               <chr> 
+1 <split [19348/2150]> Fold01
+2 <split [19348/2150]> Fold02
+3 <split [19348/2150]> Fold03
+4 <split [19348/2150]> Fold04
+5 <split [19348/2150]> Fold05
+# … with 5 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+begin_src R :exports code :results none
+  all_cores <- parallel::detectCores(logical = TRUE) - 1
+  library(doParallel)
+  cl <- makePSOCKcluster(all_cores)
+  registerDoParallel(cl)
+#+end_src
+
+#+begin_src R :exports both :results org 
+  set.seed(234)
+  system.time(
+  xgb_res <- tune_grid(
+    xgb_wf,
+    resamples = vb_folds,
+    grid = xgb_grid,
+    control = control_grid(
+      save_pred = TRUE, parallel = "everything")
+  ))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+    user   system  elapsed 
+   5.381    1.946 1255.699 
+There were 30 warnings (use warnings() to see them)
+#+end_src
+
+#+DOWNLOADED: screenshot @ 2023-04-07 14:24:19
+#+caption: Procesamiento en paralelo utilizando todos los recursos computacionales. 
+#+attr_html: :width 1200 :align center
+[[file:images/20230407-142419_screenshot.png]]
+
+#+begin_src R :exports both :results org 
+  set.seed(234)
+  system.time(
+  xgb_res <- tune_grid(
+    xgb_wf,
+    resamples = vb_folds,
+    grid = xgb_grid,
+    control = control_grid(
+      save_pred = TRUE, parallel = "resamples")
+  ))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+   user  system elapsed 
+  1.439   0.755 820.734
+#+end_src
+
+#+begin_src R :exports none :results none
+  xgb_res |> print(n = 3, width = 70)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# Tuning results
+# 10-fold cross-validation using stratification 
+# A tibble: 10 × 5
+  splits               id     .metrics          .notes           .predict…¹
+  <list>               <chr>  <list>            <list>           <list>    
+1 <split [19348/2150]> Fold01 <tibble [60 × 8]> <tibble [0 × 3]> <tibble>  
+2 <split [19348/2150]> Fold02 <tibble [60 × 8]> <tibble [0 × 3]> <tibble>  
+3 <split [19348/2150]> Fold03 <tibble [60 × 8]> <tibble [0 × 3]> <tibble>  
+# … with 7 more rows, and abbreviated variable name ¹​.predictions
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+** Resultados
+
+#+begin_src R :exports both :results org 
+  collect_metrics(xgb_res) |> print(n = 5, width = 70)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 60 × 10
+   mtry min_n tree_depth learn_r…¹ .metric .esti…²  mean     n std_err
+  <int> <int>      <int>     <dbl> <chr>   <chr>   <dbl> <int>   <dbl>
+1     6    20          2  1.21e- 8 accura… binary  0.735    10 0.00289
+2     6    20          2  1.21e- 8 roc_auc binary  0.835    10 0.00218
+3     7    22          6  1.86e-10 accura… binary  0.738    10 0.00194
+4     7    22          6  1.86e-10 roc_auc binary  0.856    10 0.00279
+5     6    30          5  7.34e- 3 accura… binary  0.836    10 0.00229
+# … with 55 more rows, 1 more variable: .config <chr>, and
+#   abbreviated variable names ¹​learn_rate, ²​.estimator
+# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
+#+end_src
+
+#+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/vball-model-results.jpeg :exports results :results output graphics file
+  xgb_res |>
+    collect_metrics() |>
+    filter(.metric == "roc_auc") |>
+    select(mean, mtry:learn_rate) |>
+    pivot_longer(mtry:learn_rate,
+                 values_to = "value",
+                 names_to = "parameter"
+                 ) |>
+    ggplot(aes(value, mean, color = parameter)) +
+    geom_point(alpha = 0.8, show.legend = FALSE) +
+    facet_wrap(~parameter, scales = "free_x") +
+    labs(x = NULL, y = "AUC") + sin_lineas
+#+end_src
+#+caption: Resultados del ajuste por validación cruzada. 
+#+RESULTS:
+[[file:../images/vball-model-results.jpeg]]
+
+#+begin_src R :exports both :results org 
+  show_best(xgb_res, "roc_auc") |>
+    print(width = 70)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 5 × 10
+   mtry min_n tree_depth learn_r…¹ .metric .esti…²  mean     n std_err
+  <int> <int>      <int>     <dbl> <chr>   <chr>   <dbl> <int>   <dbl>
+1     2     8          7   0.0129  roc_auc binary  0.927    10 0.00211
+2     8    13         14   0.00515 roc_auc binary  0.925    10 0.00209
+3     6    30          5   0.00734 roc_auc binary  0.924    10 0.00216
+4     3    37         12   0.0484  roc_auc binary  0.924    10 0.00199
+5     4    10         11   0.00232 roc_auc binary  0.921    10 0.00222
+# … with 1 more variable: .config <chr>, and abbreviated variable
+#   names ¹​learn_rate, ²​.estimator
+# ℹ Use `colnames()` to see all variable names
+#+end_src
+
+#+begin_src R :exports both :results org 
+  best_auc <- select_best(xgb_res, "roc_auc")
+  best_auc
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 5
+   mtry min_n tree_depth learn_rate .config              
+  <int> <int>      <int>      <dbl> <chr>                
+1     2     8          7     0.0129 Preprocessor1_Model13
+#+end_src
+
+** Modelo entrenado 
+
+#+begin_src R :exports both :results org 
+  final_xgb <- finalize_workflow(
+    xgb_wf,
+    best_auc
+  )
+
+  final_xgb
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  == Workflow ================================================================
+  Preprocessor: Recipe
+  Model: boost_tree()
+
+  -- Preprocessor ------------------------------------------------------------
+  1 Recipe Step
+  - step_dummy()
+
+  -- Model -------------------------------------------------------------------
+  Boosted Tree Model Specification (classification)
+
+  Main Arguments:
+  mtry = 2
+  trees = 1000
+  min_n = 8
+  tree_depth = 7
+  learn_rate = 0.0128556104668359
+
+  Computational engine: xgboost
+#+end_src
+
+#+REVEAL: split
+Al medir su capacidad predictiva vemos que no hay evidencia de sobreajuste. 
+
+#+begin_src R :exports both :results org 
+  final_res <- last_fit(final_xgb, vb_split)
+  collect_metrics(final_res)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 2 × 4
+  .metric  .estimator .estimate .config             
+  <chr>    <chr>          <dbl> <chr>               
+1 accuracy binary         0.833 Preprocessor1_Model1
+2 roc_auc  binary         0.925 Preprocessor1_Model1
+#+end_src
+
+#+HEADER: :width 700 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/vball-roc-plot.jpeg :exports results :results output graphics file
+  final_res |>
+    collect_predictions() |>
+    roc_curve(win, .pred_win) |>
+    ggplot(aes(x = 1 - specificity, y = sensitivity)) +
+    geom_line(size = 1.5, color = "midnightblue") +
+    geom_abline(
+      lty = 2, alpha = 0.5,
+      color = "gray50",
+      size = 1.2
+    ) + sin_lineas +
+    coord_equal()
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+caption: Diagnóstico ROC para conjunto de prueba. 
+#+RESULTS:
+[[file:../images/vball-roc-plot.jpeg]]
+
+** Post-procesamiento 
+
+#+begin_src R :exports code :results none 
+  extract_boosted_prediction <- function(dt){
+    final_res |>
+      extract_fit_parsnip() |>
+      multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                    trees = seq(1,1000, by = 5)) |>
+      mutate(truth = dt$win,
+             id = 1:n()) |>
+      unnest(.pred) |>
+      group_by(trees) |>
+      nest(data = c(.pred_class, truth, id)) |>
+      mutate(results = map(data, function(x) {
+        accuracy(x, .pred_class, truth)})) |>
+      ungroup()
+  }
+#+end_src
+
+#+begin_src R :exports code :results none
+  preds_train <- extract_boosted_prediction(vb_train) |> mutate(type = "train")
+  preds_test <- extract_boosted_prediction(vb_test) |> mutate(type = "test")
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vball-boosted-trees.jpeg :exports results :results output graphics file
+  preds_train |> select(-data) |>
+    unnest(results) |>
+    rbind(preds_test |> select(-data) |>
+          unnest(results)) |>
+    mutate(.estimate = 1 - .estimate) |>
+    ggplot(aes(trees, .estimate, group = type, color = type)) +
+    geom_line() + sin_lineas +
+    ylab("error rate")
+#+end_src
+
+#+RESULTS:
+[[file:../images/vball-boosted-trees.jpeg]]
+
+#+begin_src R :exports code :results none 
+    extract_boosted_roc <- function(dt){
+      final_res |>
+        extract_fit_parsnip() |>
+        multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                      trees = seq(1,1000, by = 1),
+                      type  = "prob") |>
+        mutate(truth = dt$win,
+               id = 1:n()) |>
+        unnest(.pred) |>
+        group_by(trees) |>
+        nest(data = c(.pred_lose, .pred_win, truth, id)) |>
+        mutate(results = map(data, function(x) {
+          roc_curve(x, truth, .pred_win)})) |>
+        ungroup()
+    }
+#+end_src
+
+#+begin_src R :exports none :results none
+  roc_test <- extract_boosted_roc(vb_test) |> mutate(type = "test")
+#+end_src
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-boosted-roc.jpeg :exports results :results output graphics file
+  roc_test |>
+    unnest(results) |>
+    ggplot(aes( 1 - specificity, sensitivity, group = trees, color = trees)) +
+    geom_line() + sin_lineas
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+caption: Diagnóstico ROC para modelo como función del número de árboles.
+#+RESULTS:
+[[file:../images/vb-boosted-roc.jpeg]]
+
+* Procesamiento en paralelo
+
+Hemos utilizado procesamiento en paralelo para poder eficientar el cómputo
+necesario para el ajuste y comparación de modelos por medio de validación
+cruzada.
+
+#+REVEAL: split
+Hemos considerado dos esquemas de procesamiento en paralelo. Un método utiliza un ciclo usando los bloques de validación cruzada (o remuestras) y el otro utiliza las configuraciones distintas que se están considerando.
+
+El esquema es el siguiente
+#+begin_src R :exports code :results none :eval never :tangle no 
+  for (rs in resamples) {
+    ## Create analysis and assessment sets
+    ## Preprocess data (e.g. formula or recipe)
+    for (mod in configurations) {
+      ## Fit model {mod} to the {rs} analysis set
+      ## Predict the {rs} assessment set
+    }
+  }
+#+end_src
+
+#+REVEAL: split
+El /default/ utiliza el ciclo externo y es lo mas conveniente cuando el
+pre-procesamiento es computacionalmente costoso.
+
+Las desventajas son:
+1. Tiene una limitante si el pre-procesamiento no es costoso.
+2. Tiene un límite por el número de remuestras que utilizamos.
+
+
+#+REVEAL: split
+Consideremos la situación donde usamos validación cruzada con 5 bloques y
+estamos comparando 7 configuraciones distintas. En este escenario contamos con 5
+/cores/ para el procesamiento.
+
+#+DOWNLOADED: screenshot @ 2023-04-07 21:48:53
+#+attr_latex: :width .65\linewidth
+#+caption: Imagen tomada de [[cite:&Kuhn2022]].
+#+attr_html: :width 1200 :align center
+[[file:images/20230407-214853_screenshot.png]]
+
+
+#+REVEAL: split
+Por otro lado, podemos considerar todas las combinaciones posibles entre bloques e hiper-parámetros.
+Algo que esquemáticamente podemos representar como:
+#+begin_src R :exports code :results none :eval never :tangle no
+  all_tasks <- crossing(resamples, configurations)
+
+  for (iter in all_tasks) {                           
+    ## Create analysis and assessment sets for {iter}
+    ## Preprocess data (e.g. formula or recipe)
+    ## Fit model {iter} to the {iter} analysis set
+    ## Predict the {iter} assessment set
+  }
+#+end_src
+
+#+REVEAL: split
+En este escenario el pre-procesamiento se repite distintas veces. Tantas como número de bloques y combinaciones únicas de hiper-parametros tengamos. El esquema se ve de esta manera si contamos con 10 /cores/
+
+#+DOWNLOADED: screenshot @ 2023-04-07 21:54:07
+#+caption: Imagen tomada de [[cite:&Kuhn2022]].
+#+attr_html: :width 1200 :align center
+[[file:images/20230407-215407_screenshot.png]]
+
+#+REVEAL: split
+En la práctica entre mas /cores/ tengamos disponibles mejores serán los retornos
+en eficiencia computacional (escenarios típicos de cómputo remoto).
+
+* ANOVA: Perfil rápido de desempeño
+
+#+begin_src R :exports both :results org 
+  library(finetune)
+  system.time(
+    xgb_res <- tune_race_anova(
+      xgb_wf,
+      resamples = vb_folds,
+      grid = xgb_grid,
+      control = control_race(
+        alpha = .05,
+        verbose_elim = TRUE, 
+        save_pred = TRUE,
+        parallel = "everything"))
+  )
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+ℹ Racing will maximize the roc_auc metric.
+ℹ Resamples are analyzed in a random order.
+ℹ Fold10: 25 eliminated;  5 candidates remain.
+ℹ Fold02:  2 eliminated;  3 candidates remain.
+ℹ Fold06:  0 eliminated;  3 candidates remain.
+ℹ Fold04:  0 eliminated;  3 candidates remain.
+ℹ Fold03:  0 eliminated;  3 candidates remain.
+ℹ Fold07:  0 eliminated;  3 candidates remain.
+ℹ Fold08:  0 eliminated;  3 candidates remain.
+   user  system elapsed 
+  7.832   0.766 517.435
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-tune-race.jpeg :exports results :results output graphics file
+  plot_race(xgb_res) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/vb-tune-race.jpeg]]
+
+#+begin_src R :exports none :results none
+  extract_race_step <- function(xgb_race, ind = 3, alpha = 0.05){
+    xgb_race |>
+      select(id, .order, .metrics) %>%
+      unnest(cols = .metrics) %>%
+      filter(.metric == "roc_auc") |>
+      filter(.order <= ind) %>%
+      group_by(.config) %>%
+      summarize(
+        mean = mean(.estimate, na.rm = TRUE),
+        err  = sd(.estimate, na.rm = TRUE),
+        n = sum(!is.na(.estimate)),
+        .groups = "drop"
+      ) %>%
+      mutate(stage = ind) %>%
+      ungroup() %>%
+      filter(n == ind) |>
+      arrange(desc(mean)) |>
+      mutate(.inf = mean - qnorm(1-alpha/2) * err,
+             .sup = mean + qnorm(1-alpha/2) * err,
+             .order = 1:n()) 
+  }
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing.jpeg :exports results :results output graphics file
+  race_initial <- extract_race_step(xgb_res)
+  race_initial |>
+    ggplot(aes(.order, mean)) +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con tres evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing.jpeg]]
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing-04.jpeg :exports results :results output graphics file
+  extract_race_step(xgb_res, ind = 4) %>%
+    ggplot(aes(.order, mean)) +
+    geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+    geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con cuatro evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing-04.jpeg]]
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing-05.jpeg :exports results :results output graphics file
+  extract_race_step(xgb_res, ind = 5) |>
+    ggplot(aes(.order, mean)) +
+    geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+    geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con cinco evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing-05.jpeg]]
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/vb-race-testing-10.jpeg :exports results :results output graphics file
+  extract_race_step(xgb_res, ind = 10) |>
+    ggplot(aes(.order, mean)) +
+    geom_point(data = race_initial, aes(.order, mean), color = "lightgray") + 
+    geom_linerange(data = race_initial, aes(ymin = .inf, max = .sup), color = "lightgray") +
+    geom_linerange(aes(ymin = .inf, max = .sup)) +
+    geom_point() + sin_lineas +
+    xlab("Configuración de modelo") +
+    ylab("Métrica de desempeño") + 
+    coord_cartesian(xlim = c(0, 30), ylim = c(.65, .95))
+#+end_src
+#+caption: Estimación de desempeño con diez evaluaciones.
+#+RESULTS:
+[[file:../images/vb-race-testing-10.jpeg]]
+
+* Modelos de ensamble (epilogo)
+
+Hasta ahora tenemos tres opciones de ensambles: $\ldots$. Usualmente /boosting/
+requiere mas cuidado en la selección de hiper-parámetros, mientras que
+alternativas basadas en remuestreo usualmente funcionan bien sin requerir tanta
+selección de valores apropiados. ¿Puedes decir por qué? Es por esto que
+citet:Greenwell2022 establece
+\begin{align}
+\mathsf{Boosting} \geq \mathsf{Random Forest} > \mathsf{Bagging} > \mathsf{Arbol}\,.
+\end{align}
+
+** Importancia de variables
+
+Tanto para bosques aleatorios como modelos de /boosting/ basados en árboles se puede
+estimar cuáles fueron las variables (atributos) que mas contribuyeron en la
+construcción del modelo.
+
+#+REVEAL: split
+En cada /nodo interno/ de los árboles construidos sabemos que la variable y el punto de corte se
+escogieron de acuerdo a que maximizaban la ~mejora~ en dicha región. 
+
+#+REVEAL: split
+Para calcular la importancia de la variable $j$ en el  árbol $T$ se suman las
+contribuciones cada vez que esta variable fue utilizada para generar cortes
+\begin{align}
+\mathcal{I}^2_j(T) = \sum_{t = 1}^{J-1} \hat{\iota}^2_t I(v(t) = j)\,,
+\end{align}
+donde $\hat{\iota}^2_t$ es  el registro  de la  mejora en  ~RSS~, ~Gini~  o ~entropía
+cruzada~ por el  nodo $t$ cuando este  nodo toma el corte  utilizando la variable
+$v(t)$.
+
+#+REVEAL: split
+La métrica de importancia en un ensamble de modelos considera promediar la mejora en todo el ensamble
+\begin{align}
+\mathcal{I}_j^2 = \frac{1}{M} \sum_{m=1}^{M} \mathcal{I}^2_j(T_m)\,.
+\end{align}
+
+#+REVEAL: split
+Se acostumbra registrar importancias relativas de manera que la variable con
+mayor importancia se le asigna un /score/ de 100 puntos y las demás se calculan de
+manera proporcional.
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
