@@ -91,13 +91,13 @@ clasificación citep:Schapire2001. La estrategia de ~boosting~ es una ~estrategi
 secuencial~ que busca mejorar la capacidad predictiva lograda anteriormente.
 
 #+REVEAL: split
-Usualmente con /boosting/ utilizamos árboles pequeños (sesgo alto), al contrario de bosques
-aleatorios donde se prefieren árboles profundos (sesgo bajo).
+Usualmente con /boosting/ utilizamos árboles pequeños (sesgo alto/varianza baja), al contrario de bosques
+aleatorios donde se prefieren árboles profundos (sesgo bajo/varianza alta).
 
 #+REVEAL: split
 En /boosting/ el sesgo se disminuye con modelos predictivos que se encargan de
 distintos grupos en el conjunto de entrenamiento. La varianza se puede controlar
-con el parámetro de tasa de aprendizaje.
+con un parámetro que llamamos tasa de aprendizaje.
 
 * Modelos aditivos secuenciales
 
@@ -122,7 +122,7 @@ decir, consideremos que estamos en la iteración $m$ y que un modelo pre-entrena
 \begin{align}
 f_{m-1}(x) = \sum_{k = 1}^{m-1} T_k(x)\,,
 \end{align}
-donde $T_k$ con $k = 1, \ldots, m-1$ son los árboles individualmente entrenados.
+donde $T_k$ con $k = 1, \ldots, m-1$ son los árboles entrenados en iteraciones previas.
 
 \newpage
 #+REVEAL: split
@@ -212,7 +212,8 @@ z_i = -\frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) + z \right) 
 \end{align}
 
 #+REVEAL: split
-La restricción que tenemos es que $z_i = T(x_i)$ para toda observación. De hecho, lo mejor que podríamos tener es que
+La restricción es que queremos $z_i = T(x_i)$ para toda observación. De
+hecho, lo mejor que podríamos tener es que
 \begin{align}
 T(x_i) \approx \frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) \right) = g_{i,m}\,.
 \end{align}
