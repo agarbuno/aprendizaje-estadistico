@@ -1,7 +1,7 @@
 #+TITLE: EST-25134: Aprendizaje Estadístico
 #+AUTHOR: Prof. Alfredo Garbuno Iñigo
 #+EMAIL:  agarbuno@itam.mx
-#+DATE: ~Flujo de diagnóstico~
+#+DATE: ~Ensamble de modelos~
 #+STARTUP: showall
 :LATEX_PROPERTIES:
 #+OPTIONS: toc:nil date:nil author:nil tasks:nil
@@ -30,11 +30,10 @@
 #+EXCLUDE_TAGS: toc
 
 #+BEGIN_NOTES
-*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Flujo de diagnóstico.\\
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Ensamble de modelos.\\
 *Objetivo*: Que veremos.\\
 *Lectura recomendada*: Capítulo 10 de [[cite:&Kuhn2013]] y capítulo 15 de [[cite:&Kuhn2022]].
 #+END_NOTES
-
 
 #+begin_src R :exports none :results none
   ## Setup ---------------------------------------------------------------------
@@ -71,8 +70,9 @@
 - [[#selección-y-comparación][Selección y comparación]]
   - [[#flujo-de-procesamiento][Flujo de procesamiento]]
   - [[#ajuste-y-evaluación-de-modelos][Ajuste y evaluación de modelos]]
+  - [[#ajuste-y-comparación-eficiente][Ajuste y comparación eficiente]]
   - [[#finalizar-modelo][Finalizar modelo]]
-- [[#modelo-de-ensamble][Modelo de ensamble]]
+- [[#ensamble-de-modelos][Ensamble de modelos]]
 :END:
 
 * Introducción
@@ -80,8 +80,9 @@
 Hemos discutido ya sobre distintos modelos y cómo cada modelo tiene distintas
 necesidades para pre-procesar los datos antes de realizarse el ajuste. En el
 capítulo de 10 de citet:Kuhn2013 se ajustan varios modelos para predecir la
-capacidad de compresión de mezclas de concreto en función de los ingredientes que se utiliza para cada mezcla.
-Las preguntas en contreto que resolveremos en esta sección son: 
+capacidad de compresión de mezclas de concreto en función de los ingredientes
+que se utiliza para cada mezcla.  Las preguntas en contreto que resolveremos en
+esta sección son:
 
 #+begin_quote
 ¿Cómo podemos comparar distintos modelos entre si? ¿Cómo podemos utilizar un
@@ -114,7 +115,8 @@ unidades son kilogramos por metro cúbico.
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
-En particular para estos datos tenemos mezclas que se probaron varias veces por lo tanto reduciremos un poco esta multiplicidad.
+En particular para estos datos tenemos mezclas que se probaron varias veces por
+lo tanto reduciremos un poco esta multiplicidad.
 
 #+begin_src R :exports code :results none
   concrete <- 
@@ -126,7 +128,8 @@ En particular para estos datos tenemos mezclas que se probaron varias veces por 
 
 \newpage
 #+REVEAL: split
-Prepararemos nuestros conjuntos de entrenamiento y prueba
+Prepararemos nuestros conjuntos de entrenamiento, prueba y agendamos nuestro
+presupuesto de datos.
 
 #+begin_src R :exports code :results none
   set.seed(1501)
@@ -140,7 +143,8 @@ Prepararemos nuestros conjuntos de entrenamiento y prueba
 #+end_src
 
 #+REVEAL: split
-Usaremos algunas preparaciones de datos, pues hay modelos (no todos) que las requieren
+Usaremos algunas instrucciones de pre-procesamiento de datos, pues hay modelos
+(no todos) que las requieren
 
 #+begin_src R :exports code :results none 
   normalized_rec <- 
@@ -157,20 +161,22 @@ Usaremos algunas preparaciones de datos, pues hay modelos (no todos) que las req
 Preparemos nuestras especificaciones de modelos
 
 #+begin_src R :exports code :results none 
-  library(rules)
-  library(baguette)
-
-  linear_reg_spec <- 
-    linear_reg(penalty = tune(), mixture = tune()) |> 
-    set_engine("glmnet")
-
-  mars_spec <- 
-    mars(prod_degree = tune()) |>  #<- use GCV to choose terms
-    set_engine("earth") |> 
+  knn_spec <- 
+    nearest_neighbor(neighbors = tune(),
+                     dist_power = tune(),
+                     weight_func = tune()) |> 
+    set_engine("kknn") |> 
     set_mode("regression")
 #+end_src
 
 #+begin_src R :exports code :results none 
+  linear_reg_spec <- 
+    linear_reg(penalty = tune(), mixture = tune()) |> 
+    set_engine("glmnet")
+#+end_src
+
+#+begin_src R :exports code :results none 
+  library(baguette)
   cart_spec <- 
     decision_tree(cost_complexity = tune(), min_n = tune()) |> 
     set_engine("rpart") |> 
@@ -181,16 +187,6 @@ Preparemos nuestras especificaciones de modelos
     set_engine("rpart", times = 50L) |> 
     set_mode("regression")
 #+end_src
-
-#+begin_src R :exports code :results none 
-  knn_spec <- 
-    nearest_neighbor(neighbors = tune(),
-                     dist_power = tune(),
-                     weight_func = tune()) |> 
-    set_engine("kknn") |> 
-    set_mode("regression")
-#+end_src
-
 
 #+begin_src R :exports code :results none 
   rf_spec <- 
@@ -205,16 +201,21 @@ Preparemos nuestras especificaciones de modelos
                trees = tune()) |> 
     set_engine("xgboost") |> 
     set_mode("regression")
-
-  cubist_spec <- 
-    cubist_rules(committees = tune(), neighbors = tune()) |> 
-    set_engine("Cubist") 
 #+end_src
-
 
 * Selección y comparación 
 
+La idea de poder comparar distintos modelos es poder tener una idea de qué
+estructura de modelos tienen un mejor desempeño. Para después hacer más
+optimizaciones en las estructuras que funcionan.
+
+#+REVEAL: split
+Usaremos la infraestuctura de ~tidymodels~ para poder utilizar una interfase para
+ejecutar un flujo de trabajo ordenado.
+
 ** Flujo de procesamiento
+
+Empezamos combinando la /receta/ estandarizadora con el modelo adecuado.
 
 #+begin_src R :exports both :results org
   normalized <- 
@@ -244,20 +245,15 @@ Podemos corroborar que tenemos lo usual
 == Workflow ==================================================================
 Preprocessor: Recipe
 Model: nearest_neighbor()
-
 -- Preprocessor -------------------------------------------------------------
 1 Recipe Step
-
 - step_normalize()
-
 -- Model --------------------------------------------------------------------
 K-Nearest Neighbor Model Specification (regression)
-
 Main Arguments:
   neighbors = tune()
   weight_func = tune()
   dist_power = tune()
-
 Computational engine: kknn
 #+end_src
 
@@ -271,40 +267,37 @@ Para los demás modelos podemos utilizar ~dplyr~ para definir ~respuesta~ y ~atr
   no_pre_proc <- 
     workflow_set(
       preproc = list(simple = model_vars), 
-      models = list(MARS = mars_spec, CART = cart_spec,
+      models = list(CART = cart_spec,
                     CART_bagged = bag_cart_spec,
-                    RF = rf_spec, boosting = xgb_spec,
-                    Cubist = cubist_spec)
+                    RF = rf_spec, boosting = xgb_spec)
     )
   no_pre_proc
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-# A workflow set/tibble: 6 × 4
+# A workflow set/tibble: 4 × 4
   wflow_id           info             option    result    
   <chr>              <list>           <list>    <list>    
-1 simple_MARS        <tibble [1 × 4]> <opts[0]> <list [0]>
-2 simple_CART        <tibble [1 × 4]> <opts[0]> <list [0]>
-3 simple_CART_bagged <tibble [1 × 4]> <opts[0]> <list [0]>
-4 simple_RF          <tibble [1 × 4]> <opts[0]> <list [0]>
-5 simple_boosting    <tibble [1 × 4]> <opts[0]> <list [0]>
-6 simple_Cubist      <tibble [1 × 4]> <opts[0]> <list [0]>
+1 simple_CART        <tibble [1 × 4]> <opts[0]> <list [0]>
+2 simple_CART_bagged <tibble [1 × 4]> <opts[0]> <list [0]>
+3 simple_RF          <tibble [1 × 4]> <opts[0]> <list [0]>
+4 simple_boosting    <tibble [1 × 4]> <opts[0]> <list [0]>
 #+end_src
 
 #+REVEAL: split
-Agregamos el conjunto de modelos usan términos no lineales e interacciones. 
+Agregamos otro conjunto de modelos que usen términos no lineales e interacciones. 
 
 #+begin_src R :exports code :results none
   with_features <- 
     workflow_set(
-      preproc = list(full_quad = poly_recipe), 
+      preproc = list(fullquad = poly_recipe), 
       models = list(linear_reg = linear_reg_spec, KNN = knn_spec)
     )
 #+end_src
 
 #+REVEAL: split
-Finalmente, creamos el conjunto completo de procesamiento
+Finalmente, creamos el conjunto completo de procesamiento (preparación, entrenamiento, evaluación)
 
 #+begin_src R :exports both :results org 
   all_workflows <- 
@@ -316,18 +309,16 @@ Finalmente, creamos el conjunto completo de procesamiento
 
 #+RESULTS:
 #+begin_src org
-# A workflow set/tibble: 9 × 4
-  wflow_id             info             option    result    
-  <chr>                <list>           <list>    <list>    
-1 MARS                 <tibble [1 × 4]> <opts[0]> <list [0]>
-2 CART                 <tibble [1 × 4]> <opts[0]> <list [0]>
-3 CART_bagged          <tibble [1 × 4]> <opts[0]> <list [0]>
-4 RF                   <tibble [1 × 4]> <opts[0]> <list [0]>
-5 boosting             <tibble [1 × 4]> <opts[0]> <list [0]>
-6 Cubist               <tibble [1 × 4]> <opts[0]> <list [0]>
-7 KNN                  <tibble [1 × 4]> <opts[0]> <list [0]>
-8 full_quad_linear_reg <tibble [1 × 4]> <opts[0]> <list [0]>
-9 full_quad_KNN        <tibble [1 × 4]> <opts[0]> <list [0]>
+# A workflow set/tibble: 7 × 4
+  wflow_id            info             option    result    
+  <chr>               <list>           <list>    <list>    
+1 CART                <tibble [1 × 4]> <opts[0]> <list [0]>
+2 CART_bagged         <tibble [1 × 4]> <opts[0]> <list [0]>
+3 RF                  <tibble [1 × 4]> <opts[0]> <list [0]>
+4 boosting            <tibble [1 × 4]> <opts[0]> <list [0]>
+5 KNN                 <tibble [1 × 4]> <opts[0]> <list [0]>
+6 fullquad_linear_reg <tibble [1 × 4]> <opts[0]> <list [0]>
+7 fullquad_KNN        <tibble [1 × 4]> <opts[0]> <list [0]>
 #+end_src
 
 ** Ajuste y evaluación de modelos
@@ -339,6 +330,13 @@ entrenamiento.
 
 Usaremos las mismas opciones para cada uno. Es decir, 25 candidatos en cada
 modelo para validación cruzada, utilizando la misma separación en bloques.
+
+#+BEGIN_NOTES
+La idea de este proceso es ilustrar un mecanismo para condensar en una misma
+ejecución lo que hemos visto a lo largo de todo el curso. Si, cada modelo tiene
+distintos hiper-parámetros pero de momento nos concentraremos en explorar
+capacidades predictivas.
+#+END_NOTES
 
 #+begin_src R :exports code :results none
   grid_ctrl <-
@@ -373,35 +371,55 @@ modelo para validación cruzada, utilizando la misma separación en bloques.
 #+begin_src org
 i Creating pre-processing data to finalize unknown parameter: mtry
     user   system  elapsed 
-  26.698    5.506 2083.210
+  16.785    2.903 1418.576
+#+end_src
+
+#+REVEAL: split
+El =tibble= del flujo se actualiza con las leyendas en ~option~ y ~results~. Los
+indicadores ~tune[+]~ y ~rsmp[+]~ significan que no hubo problemas para procesar ese
+modelo.
+
+#+begin_src R :exports both :results org 
+  grid_results 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 7 × 4
+  wflow_id            info             option    result   
+  <chr>               <list>           <list>    <list>   
+1 CART                <tibble [1 × 4]> <opts[3]> <tune[+]>
+2 CART_bagged         <tibble [1 × 4]> <opts[3]> <rsmp[+]>
+3 RF                  <tibble [1 × 4]> <opts[3]> <tune[+]>
+4 boosting            <tibble [1 × 4]> <opts[3]> <tune[+]>
+5 KNN                 <tibble [1 × 4]> <opts[3]> <tune[+]>
+6 fullquad_linear_reg <tibble [1 × 4]> <opts[3]> <tune[+]>
+7 fullquad_KNN        <tibble [1 × 4]> <opts[3]> <tune[+]>
 #+end_src
 
 
 #+REVEAL: split
+Por último, con la función ~rank_results()~ ordenamos los modelos de acuerdo a su capacidad predictiva. 
+
 #+begin_src R :exports both :results org 
   grid_results |> 
-   rank_results() |> 
+   rank_results(select_best = TRUE) |> 
    filter(.metric == "rmse") |> 
    select(model, .config, rmse = mean, rank) 
 #+end_src
 
 #+RESULTS:
 #+begin_src org
-# A tibble: 177 × 4
-   model        .config                rmse  rank
-   <chr>        <chr>                 <dbl> <int>
- 1 boost_tree   Preprocessor1_Model04  4.25     1
- 2 boost_tree   Preprocessor1_Model06  4.29     2
- 3 boost_tree   Preprocessor1_Model13  4.31     3
- 4 boost_tree   Preprocessor1_Model14  4.39     4
- 5 boost_tree   Preprocessor1_Model16  4.46     5
- 6 boost_tree   Preprocessor1_Model03  4.47     6
- 7 boost_tree   Preprocessor1_Model15  4.48     7
- 8 boost_tree   Preprocessor1_Model05  4.55     8
- 9 boost_tree   Preprocessor1_Model20  4.71     9
-10 cubist_rules Preprocessor1_Model24  4.71    10
-# … with 167 more rows
-# ℹ Use `print(n = ...)` to see more rows
+# A tibble: 7 × 4
+  model            .config                rmse  rank
+  <chr>            <chr>                 <dbl> <int>
+1 boost_tree       Preprocessor1_Model04  4.25     1
+2 rand_forest      Preprocessor1_Model18  5.29     2
+3 bag_tree         Preprocessor1_Model1   5.32     3
+4 linear_reg       Preprocessor1_Model16  6.26     4
+5 decision_tree    Preprocessor1_Model19  7.16     5
+6 nearest_neighbor Preprocessor1_Model18  8.23     6
+7 nearest_neighbor Preprocessor1_Model16  9.07     7
 #+end_src
 
 
@@ -414,15 +432,16 @@ i Creating pre-processing data to finalize unknown parameter: mtry
     metric = "rmse",       # <- which metric to visualize
     select_best = TRUE     # <- one point per workflow
   ) +
-    geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 5) +
-    lims(y = c(3.5, 9.5)) +
-    theme(legend.position = "none") + sin_lineas
+    geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 7) +
+    theme(legend.position = "none") + sin_lineas +
+    coord_cartesian(ylim = c(2.5, 9.5))
 #+end_src
 
 #+RESULTS:
 [[file:../images/concrete-screening.jpeg]]
 
-#+REVEAL: split
+** Ajuste y comparación eficiente
+
 #+begin_src R :exports code :results none 
   library(finetune)
 
@@ -451,7 +470,7 @@ i Creating pre-processing data to finalize unknown parameter: mtry
 #+begin_src org
 i Creating pre-processing data to finalize unknown parameter: mtry
    user  system elapsed 
-157.602   6.237 678.471
+ 96.917   1.464 374.666
 #+end_src
 
 
@@ -462,18 +481,16 @@ i Creating pre-processing data to finalize unknown parameter: mtry
 
 #+RESULTS:
 #+begin_src org
-# A workflow set/tibble: 9 × 4
-  wflow_id             info             option    result   
-  <chr>                <list>           <list>    <list>   
-1 MARS                 <tibble [1 × 4]> <opts[3]> <race[+]>
-2 CART                 <tibble [1 × 4]> <opts[3]> <race[+]>
-3 CART_bagged          <tibble [1 × 4]> <opts[3]> <rsmp[+]>
-4 RF                   <tibble [1 × 4]> <opts[3]> <race[+]>
-5 boosting             <tibble [1 × 4]> <opts[3]> <race[+]>
-6 Cubist               <tibble [1 × 4]> <opts[3]> <race[+]>
-7 KNN                  <tibble [1 × 4]> <opts[3]> <race[+]>
-8 full_quad_linear_reg <tibble [1 × 4]> <opts[3]> <race[+]>
-9 full_quad_KNN        <tibble [1 × 4]> <opts[3]> <race[+]>
+# A workflow set/tibble: 7 × 4
+  wflow_id            info             option    result   
+  <chr>               <list>           <list>    <list>   
+1 CART                <tibble [1 × 4]> <opts[3]> <race[+]>
+2 CART_bagged         <tibble [1 × 4]> <opts[3]> <rsmp[+]>
+3 RF                  <tibble [1 × 4]> <opts[3]> <race[+]>
+4 boosting            <tibble [1 × 4]> <opts[3]> <race[+]>
+5 KNN                 <tibble [1 × 4]> <opts[3]> <race[+]>
+6 fullquad_linear_reg <tibble [1 × 4]> <opts[3]> <race[+]>
+7 fullquad_KNN        <tibble [1 × 4]> <opts[3]> <race[+]>
 #+end_src
 
 
@@ -486,16 +503,16 @@ i Creating pre-processing data to finalize unknown parameter: mtry
     metric = "rmse",       
     select_best = TRUE    
   ) +
-    geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 45, hjust = 1, size = 5) +
-    lims(y = c(3.0, 9.5)) +
-    theme(legend.position = "none") + sin_lineas
+    geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 45, hjust = 1, size = 7) +
+    theme(legend.position = "none") + sin_lineas + 
+    coord_cartesian(ylim = c(2.5, 9.5))
 #+end_src
 
 #+RESULTS:
 [[file:../images/concrete-racing.jpeg]]
 
 #+REVEAL: split
-#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+HEADER: :width 500 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/concrete-comparison-finetuning.jpeg :exports results :results output graphics file
   matched_results <- 
     rank_results(race_results, select_best = TRUE) |> 
@@ -560,8 +577,8 @@ boosting_test_results <-
 # A tibble: 2 × 4
   .metric .estimator .estimate .config             
   <chr>   <chr>          <dbl> <chr>               
-1 rmse    standard       3.43  Preprocessor1_Model1
-2 rsq     standard       0.953 Preprocessor1_Model1
+1 rmse    standard       3.41  Preprocessor1_Model1
+2 rsq     standard       0.954 Preprocessor1_Model1
 #+end_src
 
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
@@ -580,7 +597,7 @@ boosting_test_results <-
 [[file:../images/concrete-final-boosting.jpeg]]
 
 
-* Modelo de ensamble
+* Ensamble de modelos
 
 #+begin_src R :exports code :results none
   library(stacks)
@@ -596,13 +613,11 @@ boosting_test_results <-
 
 #+RESULTS:
 #+begin_src org
-  # A data stack with 9 model definitions and 15 candidate members:
-  #   MARS: 1 model configuration
+  # A data stack with 7 model definitions and 13 candidate members:
   #   CART: 1 model configuration
   #   CART_bagged: 1 model configuration
   #   RF: 1 model configuration
   #   boosting: 1 model configuration
-  #   Cubist: 1 model configuration
   #   KNN: 3 model configurations
   #   full_quad_linear_reg: 5 model configurations
   #   full_quad_KNN: 1 model configuration
@@ -641,23 +656,21 @@ boosting_test_results <-
 
 #+RESULTS:
 #+begin_src org
--- A stacked ensemble model --------------------------------------------------
+  -- A stacked ensemble model --------------------------------------------------
+  Out of 13 possible candidate members, the ensemble retained 4.
+  Penalty: 0.0428133239871939.
+  Mixture: 1.
 
-Out of 15 possible candidate members, the ensemble retained 5.
-Penalty: 0.0428133239871939.
-Mixture: 1.
+  The 4 highest weighted members are:
+  # A tibble: 4 × 3
+  member                   type              weight
+  <chr>                    <chr>              <dbl>
+  1 boosting_1_04            boost_tree       0.911  
+  2 fullquad_linear_reg_1_17 linear_reg       0.0638 
+  3 fullquad_linear_reg_1_16 linear_reg       0.0387 
+  4 KNN_1_12                 nearest_neighbor 0.00704
 
-The 5 highest weighted members are:
-# A tibble: 5 × 3
-  member                    type         weight
-  <chr>                     <chr>         <dbl>
-1 boosting_1_04             boost_tree   0.777 
-2 Cubist_1_25               cubist_rules 0.172 
-3 full_quad_linear_reg_1_16 linear_reg   0.0322
-4 MARS_1_2                  mars         0.0215
-5 full_quad_linear_reg_1_17 linear_reg   0.0179
-
-Members have not yet been fitted with `fit_members()`.
+  Members have not yet been fitted with `fit_members()`.
 #+end_src
 
 #+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
@@ -675,7 +688,6 @@ Members have not yet been fitted with `fit_members()`.
   ens <- fit_members(ens)
 #+end_src
 
-
 #+begin_src R :exports both :results org 
   reg_metrics <- metric_set(rmse, rsq)
   ens_test_pred <- 
@@ -691,8 +703,8 @@ Members have not yet been fitted with `fit_members()`.
 # A tibble: 2 × 3
   .metric .estimator .estimate
   <chr>   <chr>          <dbl>
-1 rmse    standard       3.32 
-2 rsq     standard       0.957
+1 rmse    standard       3.36 
+2 rsq     standard       0.956
 #+end_src
 
 
