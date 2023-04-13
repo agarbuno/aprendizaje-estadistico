@@ -28,26 +28,23 @@ vb_matches <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience
 vb_matches |> print(n = 3, width = 75)
 
 vb_parsed <- vb_matches |>
-transmute(
-  circuit,
-  gender,
-  year,
-  w_attacks = w_p1_tot_attacks + w_p2_tot_attacks,
-  w_kills = w_p1_tot_kills + w_p2_tot_kills,
-  w_errors = w_p1_tot_errors + w_p2_tot_errors,
-  w_aces = w_p1_tot_aces + w_p2_tot_aces,
-  w_serve_errors = w_p1_tot_serve_errors + w_p2_tot_serve_errors,
-  w_blocks = w_p1_tot_blocks + w_p2_tot_blocks,
-  w_digs = w_p1_tot_digs + w_p2_tot_digs,
-  l_attacks = l_p1_tot_attacks + l_p2_tot_attacks,
-  l_kills = l_p1_tot_kills + l_p2_tot_kills,
-  l_errors = l_p1_tot_errors + l_p2_tot_errors,
-  l_aces = l_p1_tot_aces + l_p2_tot_aces,
-  l_serve_errors = l_p1_tot_serve_errors + l_p2_tot_serve_errors,
-  l_blocks = l_p1_tot_blocks + l_p2_tot_blocks,
-  l_digs = l_p1_tot_digs + l_p2_tot_digs
-) |>
-na.omit()
+  transmute(circuit, gender, year,
+            w_attacks = w_p1_tot_attacks + w_p2_tot_attacks,
+            w_kills = w_p1_tot_kills + w_p2_tot_kills,
+            w_errors = w_p1_tot_errors + w_p2_tot_errors,
+            w_aces = w_p1_tot_aces + w_p2_tot_aces,
+            w_serve_errors = w_p1_tot_serve_errors + w_p2_tot_serve_errors,
+            w_blocks = w_p1_tot_blocks + w_p2_tot_blocks,
+            w_digs = w_p1_tot_digs + w_p2_tot_digs,
+            l_attacks = l_p1_tot_attacks + l_p2_tot_attacks,
+            l_kills = l_p1_tot_kills + l_p2_tot_kills,
+            l_errors = l_p1_tot_errors + l_p2_tot_errors,
+            l_aces = l_p1_tot_aces + l_p2_tot_aces,
+            l_serve_errors = l_p1_tot_serve_errors + l_p2_tot_serve_errors,
+            l_blocks = l_p1_tot_blocks + l_p2_tot_blocks,
+            l_digs = l_p1_tot_digs + l_p2_tot_digs
+            ) |>
+  na.omit()
 vb_parsed |> print(n = 3, width = 75)
 
 winners <- vb_parsed |>
@@ -166,7 +163,6 @@ final_xgb <- finalize_workflow(
   xgb_wf,
   best_auc
 )
-
 final_xgb
 
 final_res <- last_fit(final_xgb, vb_split)

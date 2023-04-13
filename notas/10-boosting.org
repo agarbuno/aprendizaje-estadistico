@@ -212,7 +212,7 @@ z_i = -\frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) + z \right) 
 \end{align}
 
 #+REVEAL: split
-La restricción es que queremos $z_i = T(x_i)$ para toda observación. De
+La restricción que tenemos $z_i = T(x_i)$ para toda observación. De
 hecho, lo mejor que podríamos tener es que
 \begin{align}
 T(x_i) \approx \frac{\partial \ell}{\partial z_i} \left(  y_i, f_{m-1}(x_i) \right) = g_{i,m}\,.
@@ -242,18 +242,15 @@ El caso de regresión con pérdida cuadrática se presenta a continuación como 
 #+END_NOTES
 
 
-1. Definimos $\hat f(x) = 0$ , y $r_i = y_i$ para toda observación en el conjunto de entrenamiento.
+1. Definimos $\hat{f_0}(x) = 0$ , y $r_{i,0} = y_i$ para toda observación en el conjunto de entrenamiento.
 2. Para cada $m = 1, 2, \ldots, {\color{orange} M}$ :
-   1. Ajustamos un árbol sencillo $\hat f_{m}$ con ${\color{orange} J}$ nodos terminales para el conjunto $\{(x_i, r_i)\}_{i = 1}^n$.
+   1. Ajustamos un árbol sencillo $\hat{f}_{m}$ con ${\color{orange} J}$ hojas y datos $\{(x_i, r_{i,m})\}_{i = 1}^n$.
    2. Actualizamos el predictor $\hat f$ al incluir una versión escalada del nuevo árbol
       \begin{align}
-      \hat f (x) \leftarrow \hat f(x) + {\color{orange} \lambda} \hat f_{m}(x) \,.
+      \hat{f}_{m} (x) = \hat{f}_{m-1}(x) + {\color{orange} \lambda} \hat{f}_{m}(x) \,.
       \end{align}
-   3. Actualizamos los residuales 
-      \begin{align}
-      r_i \leftarrow r_i - {\color{orange} \lambda} \hat f_{m}(x) \,.
-      \end{align}
-3. Regresamos el modelo
+3. Actualizamos los residuales $r_{i,m} = r_{i,m-1} - {\color{orange} \lambda} \hat{f}_{m}(x)$.
+4. Regresamos el modelo
    \begin{align}
    \hat f(x) = \lambda \sum_{m = 1}^{M} \hat f_{m}(x) \,.
    \end{align}
@@ -267,7 +264,9 @@ numérica por /line search/ o consultar el libro de citet:Nocedal2006.
 
 ** Funciones de pérdida
 
-La selección de función de pérdida parte crucial del algoritmo y se escoge de acuerdo al problema y al objetivo que se quiera resolver. Por ejemplo, en regresión tenemos (por nombrar un par):
+La selección de función de pérdida es parte crucial del algoritmo y se escoge de
+acuerdo al problema y al objetivo que se quiera resolver. Por ejemplo, en
+regresión tenemos (por nombrar un par):
 1. *Pérdida cuadrática*:
    \begin{align}
    \ell(y, z) = \frac12 (y - z)^2, \qquad \frac{\partial \ell}{\partial z} = - (y - z)\,.
@@ -291,7 +290,7 @@ En el contexto de clasificación podemos utilizar:
 
 ** Parámetros a optimizar
 
-Los parámetros que usualmente se ajustan con validación cruzada son:
+Los parámetros de /boosting/ que usualmente se ajustan son:
 - La tasa de aprendizaje o tamaño de paso $\lambda$.
 - El número de términos del modelo $M$.
 #+REVEAL: split
@@ -351,26 +350,23 @@ Necesitamos los estadísticos por equipo, no por jugador.
 
 #+begin_src R :exports both :results org 
   vb_parsed <- vb_matches |>
-  transmute(
-    circuit,
-    gender,
-    year,
-    w_attacks = w_p1_tot_attacks + w_p2_tot_attacks,
-    w_kills = w_p1_tot_kills + w_p2_tot_kills,
-    w_errors = w_p1_tot_errors + w_p2_tot_errors,
-    w_aces = w_p1_tot_aces + w_p2_tot_aces,
-    w_serve_errors = w_p1_tot_serve_errors + w_p2_tot_serve_errors,
-    w_blocks = w_p1_tot_blocks + w_p2_tot_blocks,
-    w_digs = w_p1_tot_digs + w_p2_tot_digs,
-    l_attacks = l_p1_tot_attacks + l_p2_tot_attacks,
-    l_kills = l_p1_tot_kills + l_p2_tot_kills,
-    l_errors = l_p1_tot_errors + l_p2_tot_errors,
-    l_aces = l_p1_tot_aces + l_p2_tot_aces,
-    l_serve_errors = l_p1_tot_serve_errors + l_p2_tot_serve_errors,
-    l_blocks = l_p1_tot_blocks + l_p2_tot_blocks,
-    l_digs = l_p1_tot_digs + l_p2_tot_digs
-  ) |>
-  na.omit()
+    transmute(circuit, gender, year,
+              w_attacks = w_p1_tot_attacks + w_p2_tot_attacks,
+              w_kills = w_p1_tot_kills + w_p2_tot_kills,
+              w_errors = w_p1_tot_errors + w_p2_tot_errors,
+              w_aces = w_p1_tot_aces + w_p2_tot_aces,
+              w_serve_errors = w_p1_tot_serve_errors + w_p2_tot_serve_errors,
+              w_blocks = w_p1_tot_blocks + w_p2_tot_blocks,
+              w_digs = w_p1_tot_digs + w_p2_tot_digs,
+              l_attacks = l_p1_tot_attacks + l_p2_tot_attacks,
+              l_kills = l_p1_tot_kills + l_p2_tot_kills,
+              l_errors = l_p1_tot_errors + l_p2_tot_errors,
+              l_aces = l_p1_tot_aces + l_p2_tot_aces,
+              l_serve_errors = l_p1_tot_serve_errors + l_p2_tot_serve_errors,
+              l_blocks = l_p1_tot_blocks + l_p2_tot_blocks,
+              l_digs = l_p1_tot_digs + l_p2_tot_digs
+              ) |>
+    na.omit()
   vb_parsed |> print(n = 3, width = 75)
 #+end_src
 
@@ -403,12 +399,15 @@ Separemos por equipos que ganan sus partidos y los que no.
            l_attacks:l_digs) |>
     rename_with(~ str_remove_all(., "l_"), l_attacks:l_digs) |>
     mutate(win = "lose")
+#+end_src
 
+#+begin_src R :exports none :results none
   vb_df <- bind_rows(winners, losers) |>
     mutate_if(is.character, factor) |>
     mutate(win = factor(win, levels = c("win", "lose")))
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/vball-eda.jpeg :exports results :results output graphics file
   vb_df |>
@@ -431,6 +430,7 @@ Separemos por equipos que ganan sus partidos y los que no.
   vb_test <- testing(vb_split)
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org
   xgb_spec <- boost_tree(
     trees = 1000,
@@ -458,6 +458,7 @@ Main Arguments:
 Computational engine: xgboost
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   xgb_rec <- recipe(win ~ ., vb_train) |>
     step_dummy(all_nominal_predictors())
@@ -486,6 +487,7 @@ principal es que es un diseño que tiende a cubrir de manera uniforme el espacio
 de búsqueda con componentes aleatorios. Se denomina diseño de /cobertura de
 espacio/ (/space filling/) y es uno de los que ya están codificados en ~tidymodels~.
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   xgb_grid <- grid_latin_hypercube(
     tree_depth(),
@@ -525,25 +527,21 @@ espacio/ (/space filling/) y es uno de los que ya están codificados en ~tidymod
 == Workflow ==================================================================
 Preprocessor: Recipe
 Model: boost_tree()
-
 -- Preprocessor --------------------------------------------------------------
 1 Recipe Step
-
 - step_dummy()
-
 -- Model ---------------------------------------------------------------------
 Boosted Tree Model Specification (classification)
-
 Main Arguments:
   mtry = tune()
   trees = 1000
   min_n = tune()
   tree_depth = tune()
   learn_rate = tune()
-
 Computational engine: xgboost
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org
   set.seed(123)
   vb_folds <- vfold_cv(vb_train, strata = win)
@@ -565,6 +563,7 @@ Computational engine: xgboost
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports code :results none
   all_cores <- parallel::detectCores(logical = TRUE) - 1
   library(doParallel)
@@ -572,6 +571,7 @@ Computational engine: xgboost
   registerDoParallel(cl)
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   set.seed(234)
   system.time(
@@ -591,11 +591,7 @@ Computational engine: xgboost
 There were 30 warnings (use warnings() to see them)
 #+end_src
 
-#+DOWNLOADED: screenshot @ 2023-04-07 14:24:19
-#+caption: Procesamiento en paralelo utilizando todos los recursos computacionales. 
-#+attr_html: :width 1200 :align center
-[[file:images/20230407-142419_screenshot.png]]
-
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   set.seed(234)
   system.time(
@@ -613,6 +609,12 @@ There were 30 warnings (use warnings() to see them)
    user  system elapsed 
   1.439   0.755 820.734
 #+end_src
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2023-04-07 14:24:19
+#+caption: Procesamiento en paralelo utilizando todos los recursos computacionales. 
+#+attr_html: :width 1200 :align center
+[[file:images/20230407-142419_screenshot.png]]
 
 #+begin_src R :exports none :results none
   xgb_res |> print(n = 3, width = 70)
@@ -653,6 +655,7 @@ There were 30 warnings (use warnings() to see them)
 # ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/vball-model-results.jpeg :exports results :results output graphics file
   xgb_res |>
@@ -672,6 +675,7 @@ There were 30 warnings (use warnings() to see them)
 #+RESULTS:
 [[file:../images/vball-model-results.jpeg]]
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   show_best(xgb_res, "roc_auc") |>
     print(width = 70)
@@ -692,6 +696,7 @@ There were 30 warnings (use warnings() to see them)
 # ℹ Use `colnames()` to see all variable names
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   best_auc <- select_best(xgb_res, "roc_auc")
   best_auc
@@ -712,7 +717,6 @@ There were 30 warnings (use warnings() to see them)
     xgb_wf,
     best_auc
   )
-
   final_xgb
 #+end_src
 
@@ -721,21 +725,17 @@ There were 30 warnings (use warnings() to see them)
   == Workflow ================================================================
   Preprocessor: Recipe
   Model: boost_tree()
-
   -- Preprocessor ------------------------------------------------------------
   1 Recipe Step
   - step_dummy()
-
   -- Model -------------------------------------------------------------------
   Boosted Tree Model Specification (classification)
-
   Main Arguments:
   mtry = 2
   trees = 1000
   min_n = 8
   tree_depth = 7
   learn_rate = 0.0128556104668359
-
   Computational engine: xgboost
 #+end_src
 
@@ -756,6 +756,7 @@ Al medir su capacidad predictiva vemos que no hay evidencia de sobreajuste.
 2 roc_auc  binary         0.925 Preprocessor1_Model1
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 700 :height 700 :R-dev-args bg="transparent"
 #+begin_src R :file images/vball-roc-plot.jpeg :exports results :results output graphics file
   final_res |>
@@ -799,6 +800,7 @@ Al medir su capacidad predictiva vemos que no hay evidencia de sobreajuste.
   preds_test <- extract_boosted_prediction(vb_test) |> mutate(type = "test")
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/vball-boosted-trees.jpeg :exports results :results output graphics file
   preds_train |> select(-data) |>
@@ -814,28 +816,30 @@ Al medir su capacidad predictiva vemos que no hay evidencia de sobreajuste.
 #+RESULTS:
 [[file:../images/vball-boosted-trees.jpeg]]
 
+#+REVEAL: split
 #+begin_src R :exports code :results none 
-    extract_boosted_roc <- function(dt){
-      final_res |>
-        extract_fit_parsnip() |>
-        multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
-                      trees = seq(1,1000, by = 1),
-                      type  = "prob") |>
-        mutate(truth = dt$win,
-               id = 1:n()) |>
-        unnest(.pred) |>
-        group_by(trees) |>
-        nest(data = c(.pred_lose, .pred_win, truth, id)) |>
-        mutate(results = map(data, function(x) {
-          roc_curve(x, truth, .pred_win)})) |>
-        ungroup()
-    }
+  extract_boosted_roc <- function(dt){
+    final_res |>
+      extract_fit_parsnip() |>
+      multi_predict(new_data = prep(xgb_rec) |> bake(dt) |> select(-win),
+                    trees = seq(1,1000, by = 1),
+                    type  = "prob") |>
+      mutate(truth = dt$win,
+             id = 1:n()) |>
+      unnest(.pred) |>
+      group_by(trees) |>
+      nest(data = c(.pred_lose, .pred_win, truth, id)) |>
+      mutate(results = map(data, function(x) {
+        roc_curve(x, truth, .pred_win)})) |>
+      ungroup()
+  }
 #+end_src
 
 #+begin_src R :exports none :results none
   roc_test <- extract_boosted_roc(vb_test) |> mutate(type = "test")
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
 #+begin_src R :file images/vb-boosted-roc.jpeg :exports results :results output graphics file
   roc_test |>
@@ -886,7 +890,7 @@ estamos comparando 7 configuraciones distintas. En este escenario contamos con 5
 #+DOWNLOADED: screenshot @ 2023-04-07 21:48:53
 #+attr_latex: :width .65\linewidth
 #+caption: Imagen tomada de [[cite:&Kuhn2022]].
-#+attr_html: :width 1200 :align center
+#+attr_html: :width 1000 :align center
 [[file:images/20230407-214853_screenshot.png]]
 
 
@@ -895,7 +899,6 @@ Por otro lado, podemos considerar todas las combinaciones posibles entre bloques
 Algo que esquemáticamente podemos representar como:
 #+begin_src R :exports code :results none :eval never :tangle no
   all_tasks <- crossing(resamples, configurations)
-
   for (iter in all_tasks) {                           
     ## Create analysis and assessment sets for {iter}
     ## Preprocess data (e.g. formula or recipe)
@@ -909,7 +912,7 @@ En este escenario el pre-procesamiento se repite distintas veces. Tantas como n�
 
 #+DOWNLOADED: screenshot @ 2023-04-07 21:54:07
 #+caption: Imagen tomada de [[cite:&Kuhn2022]].
-#+attr_html: :width 1200 :align center
+#+attr_html: :width 800 :align center
 [[file:images/20230407-215407_screenshot.png]]
 
 #+REVEAL: split
@@ -932,7 +935,7 @@ en eficiencia computacional (escenarios típicos de cómputo remoto).
         parallel = "everything"))
   )
 #+end_src
-
+#+REVEAL: split
 #+RESULTS:
 #+begin_src org
   ℹ Racing will maximize the roc_auc metric.
@@ -944,6 +947,7 @@ en eficiencia computacional (escenarios típicos de cómputo remoto).
   6.232   1.516 420.782 
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/vb-tune-race.jpeg :exports results :results output graphics file
   plot_race(xgb_res) + sin_lineas
@@ -977,6 +981,7 @@ en eficiencia computacional (escenarios típicos de cómputo remoto).
   }
 #+end_src
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/vb-race-testing.jpeg :exports results :results output graphics file
   race_initial <- extract_race_step(xgb_res)
@@ -992,6 +997,7 @@ en eficiencia computacional (escenarios típicos de cómputo remoto).
 #+RESULTS:
 [[file:../images/vb-race-testing.jpeg]]
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/vb-race-testing-04.jpeg :exports results :results output graphics file
   extract_race_step(xgb_res, ind = 4) %>%
@@ -1008,6 +1014,7 @@ en eficiencia computacional (escenarios típicos de cómputo remoto).
 #+RESULTS:
 [[file:../images/vb-race-testing-04.jpeg]]
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/vb-race-testing-05.jpeg :exports results :results output graphics file
   extract_race_step(xgb_res, ind = 5) |>
@@ -1024,6 +1031,7 @@ en eficiencia computacional (escenarios típicos de cómputo remoto).
 #+RESULTS:
 [[file:../images/vb-race-testing-05.jpeg]]
 
+#+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/vb-race-testing-10.jpeg :exports results :results output graphics file
   extract_race_step(xgb_res, ind = 10) |>
