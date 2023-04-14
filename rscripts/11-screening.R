@@ -49,18 +49,18 @@ poly_recipe <-
   step_poly(all_predictors()) |> 
   step_interact(~ all_predictors():all_predictors())
 
-library(rules)
-library(baguette)
+knn_spec <- 
+  nearest_neighbor(neighbors = tune(),
+                   dist_power = tune(),
+                   weight_func = tune()) |> 
+  set_engine("kknn") |> 
+  set_mode("regression")
 
 linear_reg_spec <- 
   linear_reg(penalty = tune(), mixture = tune()) |> 
   set_engine("glmnet")
 
-mars_spec <- 
-  mars(prod_degree = tune()) |>  #<- use GCV to choose terms
-  set_engine("earth") |> 
-  set_mode("regression")
-
+library(baguette)
 cart_spec <- 
   decision_tree(cost_complexity = tune(), min_n = tune()) |> 
   set_engine("rpart") |> 
@@ -69,13 +69,6 @@ cart_spec <-
 bag_cart_spec <- 
   bag_tree() |> 
   set_engine("rpart", times = 50L) |> 
-  set_mode("regression")
-
-knn_spec <- 
-  nearest_neighbor(neighbors = tune(),
-                   dist_power = tune(),
-                   weight_func = tune()) |> 
-  set_engine("kknn") |> 
   set_mode("regression")
 
 rf_spec <- 
@@ -91,10 +84,6 @@ xgb_spec <-
   set_engine("xgboost") |> 
   set_mode("regression")
 
-cubist_spec <- 
-  cubist_rules(committees = tune(), neighbors = tune()) |> 
-  set_engine("Cubist")
-
 normalized <- 
   workflow_set(
     preproc = list(normalized = normalized_rec), 
@@ -104,22 +93,23 @@ normalized
 
 normalized |> extract_workflow(id = "normalized_KNN")
 
-model_vars <- 
-  workflow_variables(outcomes = compressive_strength, 
-                     predictors = everything())
-no_pre_proc <- 
-  workflow_set(
-    preproc = list(simple = model_vars), 
-    models = list(MARS = mars_spec, CART = cart_spec,
-                  CART_bagged = bag_cart_spec,
-                  RF = rf_spec, boosting = xgb_spec,
-                  Cubist = cubist_spec)
-  )
+model_vars <- workflow_variables(
+  outcomes = compressive_strength, 
+  predictors = everything()
+)
+
+no_pre_proc <- workflow_set(
+  preproc = list(simple = model_vars), 
+  models = list(CART = cart_spec,
+                CART_bagged = bag_cart_spec,
+                RF = rf_spec,
+                boosting = xgb_spec)
+)
 no_pre_proc
 
 with_features <- 
   workflow_set(
-    preproc = list(full_quad = poly_recipe), 
+    preproc = list(fullquad = poly_recipe), 
     models = list(linear_reg = linear_reg_spec, KNN = knn_spec)
   )
 
@@ -142,8 +132,7 @@ cl <- makePSOCKcluster(all_cores)
 registerDoParallel(cl)
 
 system.time(
-  grid_results <-
-    all_workflows |>
+  grid_results <- all_workflows |>
     workflow_map(
       seed = 1503,
       resamples = concrete_folds,
@@ -152,8 +141,10 @@ system.time(
     )
 )
 
+grid_results
+
 grid_results |> 
- rank_results() |> 
+ rank_results(select_best = TRUE) |> 
  filter(.metric == "rmse") |> 
  select(model, .config, rmse = mean, rank)
 
@@ -163,9 +154,9 @@ autoplot(
   metric = "rmse",       # <- which metric to visualize
   select_best = TRUE     # <- one point per workflow
 ) +
-  geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 5) +
-  lims(y = c(3.5, 9.5)) +
-  theme(legend.position = "none") + sin_lineas
+  geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 7) +
+  theme(legend.position = "none") + sin_lineas +
+  coord_cartesian(ylim = c(2.5, 9.5))
 
 library(finetune)
 
@@ -195,9 +186,9 @@ autoplot(
   metric = "rmse",       
   select_best = TRUE    
 ) +
-  geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 45, hjust = 1, size = 5) +
-  lims(y = c(3.0, 9.5)) +
-  theme(legend.position = "none") + sin_lineas
+  geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 45, hjust = 1, size = 7) +
+  theme(legend.position = "none") + sin_lineas + 
+  coord_cartesian(ylim = c(2.5, 9.5))
 
 matched_results <- 
   rank_results(race_results, select_best = TRUE) |> 

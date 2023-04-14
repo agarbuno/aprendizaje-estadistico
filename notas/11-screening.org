@@ -81,8 +81,8 @@ Hemos discutido ya sobre distintos modelos y cómo cada modelo tiene distintas
 necesidades para pre-procesar los datos antes de realizarse el ajuste. En el
 capítulo de 10 de citet:Kuhn2013 se ajustan varios modelos para predecir la
 capacidad de compresión de mezclas de concreto en función de los ingredientes
-que se utiliza para cada mezcla.  Las preguntas en contreto que resolveremos en
-esta sección son:
+que se utilizan para cada mezcla.  Las preguntas que resolveremos en esta sección
+son:
 
 #+begin_quote
 ¿Cómo podemos comparar distintos modelos entre si? ¿Cómo podemos utilizar un
@@ -90,7 +90,6 @@ flujo de trabajo que nos ayude a hacerlo de manera eficiente?
 #+end_quote
 
 #+REVEAL: split
-
 Los datos que usaremos para ilustrar estos conceptos son los mismos que usan
 [[cite:&Kuhn2013]] donde lo que nos interesa es predecir ~compressive_strength~ y las
 unidades son kilogramos por metro cúbico.
@@ -129,7 +128,7 @@ lo tanto reduciremos un poco esta multiplicidad.
 \newpage
 #+REVEAL: split
 Prepararemos nuestros conjuntos de entrenamiento, prueba y agendamos nuestro
-presupuesto de datos.
+presupuesto de datos en un proceso de validación cruzada.
 
 #+begin_src R :exports code :results none
   set.seed(1501)
@@ -260,17 +259,22 @@ Computational engine: kknn
 #+REVEAL: split
 Para los demás modelos podemos utilizar ~dplyr~ para definir ~respuesta~ y ~atributos~. 
 
+#+begin_src R :exports code :results none
+  model_vars <- workflow_variables(
+    outcomes = compressive_strength, 
+    predictors = everything()
+  )
+#+end_src
+
+#+REVEAL: split
 #+begin_src R :exports both :results org 
-  model_vars <- 
-    workflow_variables(outcomes = compressive_strength, 
-                       predictors = everything())
-  no_pre_proc <- 
-    workflow_set(
-      preproc = list(simple = model_vars), 
-      models = list(CART = cart_spec,
-                    CART_bagged = bag_cart_spec,
-                    RF = rf_spec, boosting = xgb_spec)
-    )
+  no_pre_proc <- workflow_set(
+    preproc = list(simple = model_vars), 
+    models = list(CART = cart_spec,
+                  CART_bagged = bag_cart_spec,
+                  RF = rf_spec,
+                  boosting = xgb_spec)
+  )
   no_pre_proc
 #+end_src
 
@@ -356,8 +360,7 @@ capacidades predictivas.
 
 #+begin_src R :exports both :results org 
   system.time(
-    grid_results <-
-      all_workflows |>
+    grid_results <- all_workflows |>
       workflow_map(
         seed = 1503,
         resamples = concrete_folds,
@@ -380,7 +383,7 @@ indicadores ~tune[+]~ y ~rsmp[+]~ significan que no hubo problemas para procesar
 modelo.
 
 #+begin_src R :exports both :results org 
-  grid_results 
+  grid_results
 #+end_src
 
 #+RESULTS:
