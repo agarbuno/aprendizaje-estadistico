@@ -2666,6 +2666,23 @@
       "Hash": "690bd2acc42a9166ce34845884459320",
       "Requirements": []
     },
+    "rules": {
+      "Package": "rules",
+      "Version": "1.0.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "cbd971b6537943f1177d4562cd23276e",
+      "Requirements": [
+        "dials",
+        "dplyr",
+        "generics",
+        "parsnip",
+        "purrr",
+        "rlang",
+        "stringr",
+        "tidyr"
+      ]
+    },
     "rvest": {
       "Package": "rvest",
       "Version": "1.0.3",
@@ -2850,6 +2867,33 @@
       "Repository": "CRAN",
       "Hash": "c23666fdb7789c8a45e65340bb334607",
       "Requirements": []
+    },
+    "stacks": {
+      "Package": "stacks",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "0dc0004b681e6dbc4e88b7e9efc2a4c6",
+      "Requirements": [
+        "butcher",
+        "cli",
+        "dplyr",
+        "foreach",
+        "ggplot2",
+        "glmnet",
+        "glue",
+        "parsnip",
+        "purrr",
+        "recipes",
+        "rlang",
+        "rsample",
+        "tibble",
+        "tidyr",
+        "tune",
+        "workflows",
+        "workflowsets",
+        "yardstick"
+      ]
     },
     "stringi": {
       "Package": "stringi",

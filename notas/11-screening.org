@@ -1,0 +1,850 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Ensamble de modelos~
+#+STARTUP: showall
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+#+PROPERTY: header-args:R :session screening :exports both :results output org :tangle ../rscripts/11-screening.R :mkdirp yes :dir ../ :eval never 
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Ensamble de modelos.\\
+*Objetivo*: En competencias de modelado predictivo es usual observar que combinaciones de modelos logran los mejores resultados. En esta sección del curso explicaremos por qué y presentaremos una implementación de esto de la librería ~tidymodels~.\\
+*Lectura recomendada*: Capítulo 10 de [[cite:&Kuhn2013]] y capítulo 15 de [[cite:&Kuhn2022]]. La última sección del libro de citep:Hastie2009c menciona las garantías estadísticas que presentamos en esta clase.
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+* Table of Contents                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#selección-y-comparación][Selección y comparación]]
+  - [[#flujo-de-procesamiento][Flujo de procesamiento]]
+  - [[#ajuste-y-evaluación-de-modelos][Ajuste y evaluación de modelos]]
+  - [[#ajuste-y-comparación-eficiente][Ajuste y comparación eficiente]]
+  - [[#finalizar-modelo][Finalizar modelo]]
+- [[#ensamble-de-modelos][Ensamble de modelos]]
+  - [[#stacking-de-modelos][Stacking de modelos]]
+- [[#ilustración-numérica][Ilustración numérica]]
+  - [[#para-pensar][Para pensar:]]
+- [[#conclusiones][Conclusiones]]
+:END:
+
+* Introducción
+
+Hemos discutido ya sobre distintos modelos y cómo cada modelo tiene distintas
+necesidades para pre-procesar los datos antes de realizarse el ajuste. En el
+capítulo de 10 de citet:Kuhn2013 se ajustan varios modelos para predecir la
+capacidad de compresión de mezclas de concreto en función de los ingredientes
+que se utilizan para cada mezcla.  Las preguntas que resolveremos en esta sección
+son:
+
+#+begin_quote
+¿Cómo podemos comparar distintos modelos entre si? ¿Cómo podemos utilizar un
+flujo de trabajo que nos ayude a hacerlo de manera eficiente?
+#+end_quote
+
+#+REVEAL: split
+Los datos que usaremos para ilustrar estos conceptos son los mismos que usan
+[[cite:&Kuhn2013]] donde lo que nos interesa es predecir ~compressive_strength~ y las
+unidades son kilogramos por metro cúbico.
+
+#+begin_src R :exports both :results org 
+  library(tidymodels)
+  data(concrete, package = "modeldata")
+  concrete |> print(n = 3, width = 70)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1,030 × 9
+  cement blast_f…¹ fly_ash water super…² coars…³ fine_…⁴   age compr…⁵
+   <dbl>     <dbl>   <dbl> <dbl>   <dbl>   <dbl>   <dbl> <int>   <dbl>
+1   540         0        0   162     2.5    1040     676    28    80.0
+2   540         0        0   162     2.5    1055     676    28    61.9
+3   332.      142.       0   228     0       932     594   270    40.3
+# … with 1,027 more rows, and abbreviated variable names
+#   ¹​blast_furnace_slag, ²​superplasticizer, ³​coarse_aggregate,
+#   ⁴​fine_aggregate, ⁵​compressive_strength
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+En particular para estos datos tenemos mezclas que se probaron varias veces por
+lo tanto reduciremos un poco esta multiplicidad.
+
+#+begin_src R :exports code :results none
+  concrete <- 
+    concrete |> 
+    group_by(across(-compressive_strength)) |> 
+    summarize(compressive_strength = mean(compressive_strength),
+              .groups = "drop")
+#+end_src
+
+\newpage
+#+REVEAL: split
+Prepararemos nuestros conjuntos de entrenamiento, prueba y agendamos nuestro
+presupuesto de datos en un proceso de validación cruzada.
+
+#+begin_src R :exports code :results none
+  set.seed(1501)
+  concrete_split <- initial_split(concrete, strata = compressive_strength)
+  concrete_train <- training(concrete_split)
+  concrete_test  <- testing(concrete_split)
+
+  set.seed(1502)
+  concrete_folds <- 
+    vfold_cv(concrete_train, strata = compressive_strength, repeats = 5)
+#+end_src
+
+#+REVEAL: split
+Usaremos algunas instrucciones de pre-procesamiento de datos, pues hay modelos
+(no todos) que las requieren
+
+#+begin_src R :exports code :results none 
+  normalized_rec <- 
+    recipe(compressive_strength ~ ., data = concrete_train) |> 
+    step_normalize(all_predictors()) 
+
+  poly_recipe <- 
+    normalized_rec |> 
+    step_poly(all_predictors()) |> 
+    step_interact(~ all_predictors():all_predictors())
+#+end_src
+
+#+REVEAL: split
+Preparemos nuestras especificaciones de modelos
+
+#+begin_src R :exports code :results none 
+  knn_spec <- 
+    nearest_neighbor(neighbors = tune(),
+                     dist_power = tune(),
+                     weight_func = tune()) |> 
+    set_engine("kknn") |> 
+    set_mode("regression")
+#+end_src
+
+#+begin_src R :exports code :results none 
+  linear_reg_spec <- 
+    linear_reg(penalty = tune(), mixture = tune()) |> 
+    set_engine("glmnet")
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  library(baguette)
+  cart_spec <- 
+    decision_tree(cost_complexity = tune(), min_n = tune()) |> 
+    set_engine("rpart") |> 
+    set_mode("regression")
+
+  bag_cart_spec <- 
+    bag_tree() |> 
+    set_engine("rpart", times = 50L) |> 
+    set_mode("regression")
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  rf_spec <- 
+    rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |> 
+    set_engine("ranger") |> 
+    set_mode("regression")
+
+  xgb_spec <- 
+    boost_tree(tree_depth = tune(), learn_rate = tune(),
+               loss_reduction = tune(), 
+               min_n = tune(), sample_size = tune(),
+               trees = tune()) |> 
+    set_engine("xgboost") |> 
+    set_mode("regression")
+#+end_src
+
+* Selección y comparación 
+
+La idea de poder comparar distintos modelos es poder tener una idea de qué
+estructura de modelos tienen un mejor desempeño. Para después hacer más
+optimizaciones en las estructuras que funcionan.
+
+#+REVEAL: split
+Usaremos la infraestuctura de ~tidymodels~ para poder utilizar una interfase para
+ejecutar un flujo de trabajo ordenado.
+
+** Flujo de procesamiento
+
+Empezamos combinando la /receta/ estandarizadora con el modelo adecuado.
+
+#+begin_src R :exports both :results org
+  normalized <- 
+    workflow_set(
+      preproc = list(normalized = normalized_rec), 
+      models = list(KNN = knn_spec)
+    )
+  normalized
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 1 × 4
+  wflow_id       info             option    result    
+  <chr>          <list>           <list>    <list>    
+1 normalized_KNN <tibble [1 × 4]> <opts[0]> <list [0]>
+#+end_src
+
+#+REVEAL: split
+Podemos corroborar que tenemos lo usual
+#+begin_src R :exports both :results org 
+  normalized |> extract_workflow(id = "normalized_KNN")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+== Workflow ==================================================================
+Preprocessor: Recipe
+Model: nearest_neighbor()
+-- Preprocessor -------------------------------------------------------------
+1 Recipe Step
+- step_normalize()
+-- Model --------------------------------------------------------------------
+K-Nearest Neighbor Model Specification (regression)
+Main Arguments:
+  neighbors = tune()
+  weight_func = tune()
+  dist_power = tune()
+Computational engine: kknn
+#+end_src
+
+#+REVEAL: split
+Para los demás modelos podemos utilizar ~dplyr~ para definir ~respuesta~ y ~atributos~. 
+
+#+begin_src R :exports code :results none
+  model_vars <- workflow_variables(
+    outcomes = compressive_strength, 
+    predictors = everything()
+  )
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  no_pre_proc <- workflow_set(
+    preproc = list(simple = model_vars), 
+    models = list(CART = cart_spec,
+                  CART_bagged = bag_cart_spec,
+                  RF = rf_spec,
+                  boosting = xgb_spec)
+  )
+  no_pre_proc
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 4 × 4
+  wflow_id           info             option    result    
+  <chr>              <list>           <list>    <list>    
+1 simple_CART        <tibble [1 × 4]> <opts[0]> <list [0]>
+2 simple_CART_bagged <tibble [1 × 4]> <opts[0]> <list [0]>
+3 simple_RF          <tibble [1 × 4]> <opts[0]> <list [0]>
+4 simple_boosting    <tibble [1 × 4]> <opts[0]> <list [0]>
+#+end_src
+
+#+REVEAL: split
+Agregamos otro conjunto de modelos que usen términos no lineales e interacciones. 
+
+#+begin_src R :exports code :results none
+  with_features <- 
+    workflow_set(
+      preproc = list(fullquad = poly_recipe), 
+      models = list(linear_reg = linear_reg_spec, KNN = knn_spec)
+    )
+#+end_src
+
+#+REVEAL: split
+Finalmente, creamos el conjunto completo de procesamiento (preparación, entrenamiento, evaluación)
+
+#+begin_src R :exports both :results org 
+  all_workflows <- 
+    bind_rows(no_pre_proc, normalized, with_features) |> 
+    ## Make the workflow ID's a little more simple: 
+    mutate(wflow_id = gsub("(simple_)|(normalized_)", "", wflow_id))
+  all_workflows
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 7 × 4
+  wflow_id            info             option    result    
+  <chr>               <list>           <list>    <list>    
+1 CART                <tibble [1 × 4]> <opts[0]> <list [0]>
+2 CART_bagged         <tibble [1 × 4]> <opts[0]> <list [0]>
+3 RF                  <tibble [1 × 4]> <opts[0]> <list [0]>
+4 boosting            <tibble [1 × 4]> <opts[0]> <list [0]>
+5 KNN                 <tibble [1 × 4]> <opts[0]> <list [0]>
+6 fullquad_linear_reg <tibble [1 × 4]> <opts[0]> <list [0]>
+7 fullquad_KNN        <tibble [1 × 4]> <opts[0]> <list [0]>
+#+end_src
+
+** Ajuste y evaluación de modelos
+
+Casi todos los modelos tienen parámetros que se tienen que ajustar. Podemos
+utilizar los métodos de ajuste que ya hemos visto (~tune_grid()~, etc.). Con la
+función ~workflow_map()~ se aplica la misma función para *todos* los flujos de
+entrenamiento.
+
+#+REVEAL: split
+Usaremos las mismas opciones para cada uno. Es decir, 25 candidatos en cada
+modelo para validación cruzada, utilizando la misma separación en bloques.
+
+#+BEGIN_NOTES
+La idea de este proceso es ilustrar un mecanismo para condensar en una misma
+ejecución lo que hemos visto a lo largo de todo el curso. Si, cada modelo tiene
+distintos hiper-parámetros pero de momento nos concentraremos en explorar
+capacidades predictivas.
+#+END_NOTES
+
+#+begin_src R :exports code :results none
+  grid_ctrl <-
+    control_grid(
+      save_pred = TRUE,
+      parallel_over = "everything",
+      save_workflow = TRUE
+    )
+#+end_src
+
+#+begin_src R :exports none :results none
+  all_cores <- parallel::detectCores(logical = TRUE) - 3
+  library(doParallel)
+  cl <- makePSOCKcluster(all_cores)
+  registerDoParallel(cl)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  system.time(
+    grid_results <- all_workflows |>
+      workflow_map(
+        seed = 1503,
+        resamples = concrete_folds,
+        grid = 25,
+        control = grid_ctrl
+      )
+  )
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+i Creating pre-processing data to finalize unknown parameter: mtry
+    user   system  elapsed 
+  16.785    2.903 1418.576
+#+end_src
+
+#+REVEAL: split
+El =tibble= del flujo se actualiza con las leyendas en ~option~ y ~results~. Los
+indicadores ~tune[+]~ y ~rsmp[+]~ significan que no hubo problemas para procesar ese
+modelo.
+
+#+begin_src R :exports both :results org 
+  grid_results
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 7 × 4
+  wflow_id            info             option    result   
+  <chr>               <list>           <list>    <list>   
+1 CART                <tibble [1 × 4]> <opts[3]> <tune[+]>
+2 CART_bagged         <tibble [1 × 4]> <opts[3]> <rsmp[+]>
+3 RF                  <tibble [1 × 4]> <opts[3]> <tune[+]>
+4 boosting            <tibble [1 × 4]> <opts[3]> <tune[+]>
+5 KNN                 <tibble [1 × 4]> <opts[3]> <tune[+]>
+6 fullquad_linear_reg <tibble [1 × 4]> <opts[3]> <tune[+]>
+7 fullquad_KNN        <tibble [1 × 4]> <opts[3]> <tune[+]>
+#+end_src
+
+#+REVEAL: split
+Por último, con la función ~rank_results()~ ordenamos los modelos de acuerdo a su
+capacidad predictiva. La opción ~select_best~ nos muestra dentro de cada familia
+el mejor modelo para ordenar por capacidad predictiva.
+
+#+begin_src R :exports both :results org 
+  grid_results |> 
+   rank_results(select_best = TRUE) |> 
+   filter(.metric == "rmse") |> 
+   select(model, .config, rmse = mean, rank) 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 7 × 4
+  model            .config                rmse  rank
+  <chr>            <chr>                 <dbl> <int>
+1 boost_tree       Preprocessor1_Model04  4.25     1
+2 rand_forest      Preprocessor1_Model18  5.29     2
+3 bag_tree         Preprocessor1_Model1   5.32     3
+4 linear_reg       Preprocessor1_Model16  6.26     4
+5 decision_tree    Preprocessor1_Model19  7.16     5
+6 nearest_neighbor Preprocessor1_Model18  8.23     6
+7 nearest_neighbor Preprocessor1_Model16  9.07     7
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-screening.jpeg :exports results :results output graphics file
+  autoplot(
+    grid_results,
+    rank_metric = "rmse",  # <- how to order models
+    metric = "rmse",       # <- which metric to visualize
+    select_best = TRUE     # <- one point per workflow
+  ) +
+    geom_text(aes(y = mean - 1/2, label = wflow_id), angle =45, hjust = 1, size = 7) +
+    theme(legend.position = "none") + sin_lineas +
+    coord_cartesian(ylim = c(2.5, 9.5))
+#+end_src
+
+#+RESULTS:
+[[file:../images/concrete-screening.jpeg]]
+
+** Ajuste y comparación eficiente
+
+Utilizaremos el mismo proceso eficiente de comparación de modelos para
+determinar la mejor configuración dentro de cada uno. 
+
+#+begin_src R :exports code :results none 
+  library(finetune)
+
+  race_ctrl <-
+    control_race(
+      save_pred = TRUE,
+      parallel_over = "everything",
+      save_workflow = TRUE
+    )
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  system.time(
+    race_results <-
+      all_workflows |>
+      workflow_map(
+        "tune_race_anova",
+        seed = 1503,
+        resamples = concrete_folds,
+        grid = 25,
+        control = race_ctrl
+      ))
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+i Creating pre-processing data to finalize unknown parameter: mtry
+   user  system elapsed 
+ 89.465   1.612 364.972
+#+end_src
+
+El método ajusta 11 modelos de los 151 posibles. Es decir, sólo requiere ajustar el $7.3\%$ .
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  race_results
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A workflow set/tibble: 7 × 4
+  wflow_id            info             option    result   
+  <chr>               <list>           <list>    <list>   
+1 CART                <tibble [1 × 4]> <opts[3]> <race[+]>
+2 CART_bagged         <tibble [1 × 4]> <opts[3]> <rsmp[+]>
+3 RF                  <tibble [1 × 4]> <opts[3]> <race[+]>
+4 boosting            <tibble [1 × 4]> <opts[3]> <race[+]>
+5 KNN                 <tibble [1 × 4]> <opts[3]> <race[+]>
+6 fullquad_linear_reg <tibble [1 × 4]> <opts[3]> <race[+]>
+7 fullquad_KNN        <tibble [1 × 4]> <opts[3]> <race[+]>
+#+end_src
+
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-racing.jpeg :exports results :results output graphics file
+  autoplot(
+    race_results,
+    rank_metric = "rmse",  
+    metric = "rmse",       
+    select_best = TRUE    
+  ) +
+    geom_text(aes(y = mean - 1/2, label = wflow_id), angle = 45, hjust = 1, size = 7) +
+    theme(legend.position = "none") + sin_lineas + 
+    coord_cartesian(ylim = c(2.5, 9.5))
+#+end_src
+
+#+RESULTS:
+[[file:../images/concrete-racing.jpeg]]
+
+#+REVEAL: split
+#+HEADER: :width 500 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-comparison-finetuning.jpeg :exports results :results output graphics file
+  matched_results <- 
+    rank_results(race_results, select_best = TRUE) |> 
+    select(wflow_id, .metric, race = mean, config_race = .config) |> 
+    inner_join(
+      rank_results(grid_results, select_best = TRUE) |> 
+      select(wflow_id, .metric, complete = mean, 
+             config_complete = .config, model),
+      by = c("wflow_id", ".metric"),
+      ) |>  
+    filter(.metric == "rmse")
+
+  library(ggrepel)
+
+  matched_results |> 
+    ggplot(aes(x = complete, y = race)) + 
+    geom_abline(lty = 3) + 
+    geom_point() + 
+    geom_text_repel(aes(label = model)) +
+    coord_obs_pred() + 
+    labs(x = "Complete Grid RMSE", y = "Racing RMSE")  +
+    sin_lineas
+#+end_src
+#+caption: Comparación de procedimiento completo contra paro acelerado.
+#+attr_html: :width 900
+#+attr_latex: :width .45\linewidth
+#+RESULTS:
+[[file:../images/concrete-comparison-finetuning.jpeg]]
+
+** Finalizar modelo
+
+#+begin_src R :exports both :results org 
+  best_results <- 
+    race_results |> 
+    extract_workflow_set_result("boosting") |> 
+    select_best(metric = "rmse")
+  best_results
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 7
+  trees min_n tree_depth learn_rate loss_reduction sample_size .config              
+  <int> <int>      <int>      <dbl>          <dbl>       <dbl> <chr>                
+1  1957     8          7     0.0756    0.000000145       0.679 Preprocessor1_Model04
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  boosting_test_results <- 
+    race_results |> 
+    extract_workflow("boosting") |> 
+    finalize_workflow(best_results) |> 
+    last_fit(split = concrete_split)
+#+end_src
+
+#+begin_src R :exports both :results org 
+  collect_metrics(boosting_test_results)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 2 × 4
+  .metric .estimator .estimate .config             
+  <chr>   <chr>          <dbl> <chr>               
+1 rmse    standard       3.52  Preprocessor1_Model1
+2 rsq     standard       0.951 Preprocessor1_Model1
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 500 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-final-boosting.jpeg :exports results :results output graphics file
+  boosting_test_results |> 
+    collect_predictions() |> 
+    ggplot(aes(x = compressive_strength, y = .pred)) + 
+    geom_abline(color = "gray50", lty = 2) + 
+    geom_point(alpha = 0.5) + 
+    coord_obs_pred() + 
+    labs(x = "observed", y = "predicted") +
+    sin_lineas
+#+end_src
+#+caption: Predicciones contra datos reales.
+#+attr_latex: :width .45\linewidth
+#+attr_html: :width 900
+#+RESULTS:
+[[file:../images/concrete-final-boosting.jpeg]]
+
+* Ensamble de modelos
+
+Consideremos que tenemos una colección de modelos entrenados con los cuales podemos obtener predicciones $\hat{f}_{1}(x), \ldots, \hat{f}_{M}(x)$. Considerando pérdida cuadrática podemos buscar pesos $\omega = (\omega_{1}, \ldots, \omega_{M})$ tales que 
+\begin{align}
+\hat{\omega} = \arg \min_{\omega \in \mathbb{R}^M_+} \mathbb{E}_{\mathcal{D}_n, Y} \left( Y - \sum_{m = 1}^{M} \omega_m \hat{f}_m(x) \right)^2\,,
+\end{align}
+donde el valor esperado se calcula considerando la variabilidad en conjuntos de
+entrenamiento y la aleatoriedad en la respuesta para un atributo fijo.
+
+#+REVEAL: split
+La solución de este problema será la solución *poblacional* considerando el vector que acopla las predicciones de una familia de modelos $\hat{F}^\top = [ \hat{f}_{1}(x), \ldots, \hat{f}_{M}(x)]$ :
+\begin{align}
+\hat{\omega} = \mathbb{E}[\hat{F}(x) \hat{F}^\top(x)]^{-1} \, \mathbb{E}[\hat{F}(x)Y]\,.
+\end{align}
+#+REVEAL: split
+La combinación lineal, sabemos, tiene mejor capacidad predictiva que cualquier modelo
+\begin{align}
+\mathbb{E} \left(  Y - \sum_{m = 1}^{M} \hat{\omega}_m \hat{f}_m(x) \right)^2 \leq \mathbb{E}\left(  Y - \hat{f}_m(x) \right)^2\, \quad \forall m\,.
+\end{align}
+
+#+REVEAL: split
+El problema es que no tenemos acceso a la solución poblacional del problema de
+regresión. Asi que podemos usar el concepto de ~stacking~ para construir un
+estimador basado en predicciones fuera de muestra.
+
+** /Stacking/ de modelos
+
+Una manera que tenemos para darle la vuelta al problema de antes es utilizar el
+mecanismo de ~validación cruzada~ para ajustar los pesos de la siguiente manera.
+
+#+REVEAL: split
+Denotemos por $\hat{f}_m^{-i}(x)$ la salida del $m\text{-ésimo}$ modelo en $x$
+el cual fue entrenado sin la observación $i\text{-ésima}$.  Los coeficientes se
+ajustan por medio de mínimos cuadrados utilizando la regresión de respuestas
+$y_i$ con atributos $\hat{f}_m^{-i}(x)$. De tal forma que tenemos
+\begin{align}
+\hat{\omega}^{\mathsf{stack}} = \arg \min_{\omega \in \mathbb{R}^M} \sum_{i = 1}^{N} \left( y_i - \sum_{m = 1}^{M} \omega_m \hat{f}_m^{-i}(x) \right)^2\,.
+\end{align}
+
+#+REVEAL: split
+Las predicciones se realizan por medio de 
+\begin{align}
+\sum_{m = 1}^{M} \hat{\omega}^{\mathsf{stack}}_m \hat{f}_m^{-i}(x)\,.
+\end{align}
+
+#+REVEAL: split
+El resultado es un combinación lineal de predicciones. En la práctica se
+obtienen los mejores resultados si se restringen los pesos de la combinación
+lineal a ser no-negativos y que sumen 1.
+
+* Ilustración numérica
+
+Retomaremos nuestra colección de modelos que hemos ajustado. La intención es
+poder crear una combinación de éstos para mejorar nuestra capacidad
+predictiva. Para estos usaremos ~stacks~ de ~tidymodels~.
+
+#+begin_src R :exports code :results none
+  library(stacks)
+#+end_src
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+1. En el contexto de validación cruzada con $K$ bloques: ¿cuántas predicciones fuera de muestra tenemos para cada observación con el conjunto de entrenamiento?
+2. En el contexto de validación cruzada con $K$ bloques: ¿cuántas predicciones fuera de muestra tenemos para cada observación con el conjunto de entrenamiento si repetimos validación cruzada $B$ veces?
+3. En el contexto de los modelos que hemos usado: ¿cuántas predicciones fuera de
+   muestra tenemos para /bagging/?
+
+** Construyendo nuestra colección de predicciones
+
+Le pasamos nuestros modelos entrenados a un /stack/ vacío. La función
+~add_candidates()~ se encarga de filtrar modelos tienen *todo* el perfil predictivo
+para cada observación en el conjunto de entrenamiento.
+
+#+begin_src R :exports both :results org 
+  concrete_stack <- 
+    stacks() |> 
+    add_candidates(race_results)
+
+  concrete_stack 
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  # A data stack with 7 model definitions and 13 candidate members:
+  #   CART: 1 model configuration
+  #   CART_bagged: 1 model configuration
+  #   RF: 1 model configuration
+  #   boosting: 1 model configuration
+  #   KNN: 3 model configurations
+  #   full_quad_linear_reg: 5 model configurations
+  #   full_quad_KNN: 1 model configuration
+  # Outcome: compressive_strength (numeric)
+#+end_src
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿Qué pasaría si en lugar de pasar resultados de $\mathsf{ANOVA}$ usamos los resultados de la función ~tune_grid()~?
+
+** Mezcla de predicciones
+
+Entrenamos nuestro /meta/-modelo utilizando las predicciones fuera de muestra. En esta situación debemos de considerar:
+1. Las predicciones entre familias de predictores pueden estar altamente correlacionadas.
+2. Habrá predictores que no son necesarios si ya hay algún elemento de la misma familia.
+
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿Qué estrategia de regularización hemos visto para resolver estos problemas?
+
+*** Implementación
+
+La función ~stacks::blend_predictions()~ nos permite ajustar un modelo lineal
+regularizado que es capaz de evitar estos problemas. 
+
+#+begin_src R :exports code :results none 
+  set.seed(2001)
+  ens <- blend_predictions(concrete_stack)
+#+end_src
+
+
+#+REVEAL: split
+El procedimiento realiza un ajuste interno con remuestreo que permite construir
+trazar la curva de error predictivo como función de factor de penalización.
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-stack.jpeg :exports results :results output graphics file
+  autoplot(ens) + sin_lineas
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+RESULTS:
+[[file:../images/concrete-stack.jpeg]]
+
+#+REVEAL: split
+Al igual que en validación cruzada los resultados obtenidos nos pueden ayudar a
+concentrar nuestros esfuerzos computacionales en zonas de mayor interés.
+
+#+begin_src R :exports code :results none 
+  set.seed(2002)
+  ens <- blend_predictions(concrete_stack, penalty = 10^seq(-2, -0.5, length = 20))
+#+end_src
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/concrete-stack-larger.jpeg :exports results :results output graphics file
+  autoplot(ens) + sin_lineas
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+RESULTS:
+[[file:../images/concrete-stack-larger.jpeg]]
+
+
+#+REVEAL: split
+La combinación final queda construida de la siguiente manera. x
+
+#+begin_src R :exports both :results org 
+  ens
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+  -- A stacked ensemble model --------------------------------------------------
+  Out of 13 possible candidate members, the ensemble retained 4.
+  Penalty: 0.0428133239871939.
+  Mixture: 1.
+
+  The 4 highest weighted members are:
+  # A tibble: 4 × 3
+  member                   type              weight
+  <chr>                    <chr>              <dbl>
+  1 boosting_1_04            boost_tree       0.911  
+  2 fullquad_linear_reg_1_17 linear_reg       0.0638 
+  3 fullquad_linear_reg_1_16 linear_reg       0.0387 
+  4 KNN_1_12                 nearest_neighbor 0.00704
+
+  Members have not yet been fitted with `fit_members()`.
+#+end_src
+
+#+REVEAL: split
+Las contribuciones de cada modelo se pueden resumir de manera gráfica con la función de ~autoplot()~ $^\dagger$. 
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
+#+begin_src R :file images/stacking-weights.jpeg :exports results :results output graphics file
+  autoplot(ens, "weights") +
+    geom_text(aes(x = weight + 0.01, label = model), hjust = 0, size = 5) + 
+    theme(legend.position = "none") +
+    lims(x = c(-0.01, 1)) + sin_lineas
+#+end_src
+#+attr_latex: :width .65\linewidth
+#+RESULTS:
+[[file:../images/stacking-weights.jpeg]]
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+Por último hay que ajustar los modelos finales a todo el conjunto de
+entrenamiento. ¿En nuestro ejemplo cuántos modelos se entrenan? ¿Cómo cambia
+esto cuando lo comparamos con el contexto de validación cruzada?
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  ens <- fit_members(ens)
+#+end_src
+
+#+begin_src R :exports both :results org 
+  reg_metrics <- metric_set(rmse, rsq)
+  ens_test_pred <- 
+    predict(ens, concrete_test) |> 
+    bind_cols(concrete_test)
+
+  ens_test_pred |> 
+    reg_metrics(compressive_strength, .pred)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 2 × 3
+  .metric .estimator .estimate
+  <chr>   <chr>          <dbl>
+1 rmse    standard       3.36 
+2 rsq     standard       0.956
+#+end_src
+
+* Conclusiones
+
+- Las mejoras pueden ser marginales comparadas contra las del mejor modelo individual.
+- En la práctica la mezcla de modelos vuelve el resultado muy poco interpretable.
+- Para las tareas de interés predictivo (sin explicaciones y sin restricciones
+  computacionales) son lo mejor.
+- Una combinación lineal de predictores es sólo una forma de combinar.
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
