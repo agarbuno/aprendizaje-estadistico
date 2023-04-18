@@ -3,30 +3,21 @@
 #+EMAIL:  agarbuno@itam.mx
 #+DATE: ~Ensamble de modelos~
 #+STARTUP: showall
-:LATEX_PROPERTIES:
-#+OPTIONS: toc:nil date:nil author:nil tasks:nil
-#+LANGUAGE: sp
-#+LATEX_CLASS: handout
-#+LATEX_HEADER: \usepackage[spanish]{babel}
-#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
-#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
-#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
-#+LATEX_HEADER: \decimalpoint
-#+LATEX_HEADER:\usepackage{framed}
-#+LaTeX_HEADER: \usepackage{listings}
-#+LATEX_HEADER: \usepackage{fancyvrb}
-#+LATEX_HEADER: \usepackage{xcolor}
-#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
-#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
-#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
-#+LaTeX_HEADER: {}
-#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
-#+LaTeX_HEADER: {}
-#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
-#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
-#+EXPORT_FILE_NAME: ../docs/11-screening.pdf
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
 :END:
-#+PROPERTY: header-args:R :session screening :exports both :results output org :tangle ../rscripts/11-screening.R :mkdirp yes :dir ../ :eval never
+#+PROPERTY: header-args:R :session screening :exports both :results output org :tangle ../rscripts/11-screening.R :mkdirp yes :dir ../ :eval never 
 #+EXCLUDE_TAGS: toc
 
 #+BEGIN_NOTES
@@ -59,7 +50,6 @@
   sin_leyenda <- theme(legend.position = "none")
   sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
 #+end_src
-
 
 * Table of Contents                                                             :toc:
 :PROPERTIES:
@@ -118,6 +108,7 @@ unidades son kilogramos por metro cúbico.
 # ℹ Use `print(n = ...)` to see more rows
 #+end_src
 
+#+REVEAL: split
 En particular para estos datos tenemos mezclas que se probaron varias veces por
 lo tanto reduciremos un poco esta multiplicidad.
 
@@ -178,6 +169,7 @@ Preparemos nuestras especificaciones de modelos
     set_engine("glmnet")
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports code :results none 
   library(baguette)
   cart_spec <- 
@@ -191,6 +183,7 @@ Preparemos nuestras especificaciones de modelos
     set_mode("regression")
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports code :results none 
   rf_spec <- 
     rand_forest(mtry = tune(), min_n = tune(), trees = 1000) |> 
@@ -336,6 +329,7 @@ utilizar los métodos de ajuste que ya hemos visto (~tune_grid()~, etc.). Con la
 función ~workflow_map()~ se aplica la misma función para *todos* los flujos de
 entrenamiento.
 
+#+REVEAL: split
 Usaremos las mismas opciones para cada uno. Es decir, 25 candidatos en cada
 modelo para validación cruzada, utilizando la misma separación en bloques.
 
@@ -355,13 +349,14 @@ capacidades predictivas.
     )
 #+end_src
 
-#+begin_src R :exports code :results none
+#+begin_src R :exports none :results none
   all_cores <- parallel::detectCores(logical = TRUE) - 3
   library(doParallel)
   cl <- makePSOCKcluster(all_cores)
   registerDoParallel(cl)
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   system.time(
     grid_results <- all_workflows |>
@@ -463,6 +458,7 @@ determinar la mejor configuración dentro de cada uno.
     )
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports both :results org 
   system.time(
     race_results <-
@@ -480,7 +476,7 @@ determinar la mejor configuración dentro de cada uno.
 #+begin_src org
 i Creating pre-processing data to finalize unknown parameter: mtry
    user  system elapsed 
- 96.917   1.464 374.666
+ 89.465   1.612 364.972
 #+end_src
 
 El método ajusta 11 modelos de los 151 posibles. Es decir, sólo requiere ajustar el $7.3\%$ .
@@ -548,12 +544,12 @@ El método ajusta 11 modelos de los 151 posibles. Es decir, sólo requiere ajust
     sin_lineas
 #+end_src
 #+caption: Comparación de procedimiento completo contra paro acelerado.
+#+attr_html: :width 900
 #+attr_latex: :width .45\linewidth
 #+RESULTS:
 [[file:../images/concrete-comparison-finetuning.jpeg]]
 
 ** Finalizar modelo
-
 
 #+begin_src R :exports both :results org 
   best_results <- 
@@ -571,13 +567,13 @@ El método ajusta 11 modelos de los 151 posibles. Es decir, sólo requiere ajust
 1  1957     8          7     0.0756    0.000000145       0.679 Preprocessor1_Model04
 #+end_src
 
-
+#+REVEAL: split
 #+begin_src R :exports code :results none
-boosting_test_results <- 
-   race_results |> 
-   extract_workflow("boosting") |> 
-   finalize_workflow(best_results) |> 
-   last_fit(split = concrete_split)
+  boosting_test_results <- 
+    race_results |> 
+    extract_workflow("boosting") |> 
+    finalize_workflow(best_results) |> 
+    last_fit(split = concrete_split)
 #+end_src
 
 #+begin_src R :exports both :results org 
@@ -589,11 +585,12 @@ boosting_test_results <-
 # A tibble: 2 × 4
   .metric .estimator .estimate .config             
   <chr>   <chr>          <dbl> <chr>               
-1 rmse    standard       3.41  Preprocessor1_Model1
-2 rsq     standard       0.954 Preprocessor1_Model1
+1 rmse    standard       3.52  Preprocessor1_Model1
+2 rsq     standard       0.951 Preprocessor1_Model1
 #+end_src
 
-#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+REVEAL: split
+#+HEADER: :width 500 :height 500 :R-dev-args bg="transparent"
 #+begin_src R :file images/concrete-final-boosting.jpeg :exports results :results output graphics file
   boosting_test_results |> 
     collect_predictions() |> 
@@ -605,10 +602,10 @@ boosting_test_results <-
     sin_lineas
 #+end_src
 #+caption: Predicciones contra datos reales.
-#+attr_latex: :width .99\linewidth
+#+attr_latex: :width .45\linewidth
+#+attr_html: :width 900
 #+RESULTS:
 [[file:../images/concrete-final-boosting.jpeg]]
-
 
 * Ensamble de modelos
 
@@ -624,6 +621,7 @@ La solución de este problema será la solución *poblacional* considerando el v
 \begin{align}
 \hat{\omega} = \mathbb{E}[\hat{F}(x) \hat{F}^\top(x)]^{-1} \, \mathbb{E}[\hat{F}(x)Y]\,.
 \end{align}
+#+REVEAL: split
 La combinación lineal, sabemos, tiene mejor capacidad predictiva que cualquier modelo
 \begin{align}
 \mathbb{E} \left(  Y - \sum_{m = 1}^{M} \hat{\omega}_m \hat{f}_m(x) \right)^2 \leq \mathbb{E}\left(  Y - \hat{f}_m(x) \right)^2\, \quad \forall m\,.
@@ -814,6 +812,7 @@ Por último hay que ajustar los modelos finales a todo el conjunto de
 entrenamiento. ¿En nuestro ejemplo cuántos modelos se entrenan? ¿Cómo cambia
 esto cuando lo comparamos con el contexto de validación cruzada?
 
+#+REVEAL: split
 #+begin_src R :exports code :results none 
   ens <- fit_members(ens)
 #+end_src
