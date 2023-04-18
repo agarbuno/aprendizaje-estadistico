@@ -31,8 +31,8 @@
 
 #+BEGIN_NOTES
 *Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Ensamble de modelos.\\
-*Objetivo*: Que veremos.\\
-*Lectura recomendada*: Capítulo 10 de [[cite:&Kuhn2013]] y capítulo 15 de [[cite:&Kuhn2022]].
+*Objetivo*: En competencias de modelado predictivo es usual observar que combinaciones de modelos logran los mejores resultados. En esta sección del curso explicaremos por qué y presentaremos una implementación de esto de la librería ~tidymodels~.\\
+*Lectura recomendada*: Capítulo 10 de [[cite:&Kuhn2013]] y capítulo 15 de [[cite:&Kuhn2022]]. La última sección del libro de citep:Hastie2009c menciona las garantías estadísticas que presentamos en esta clase.
 #+END_NOTES
 
 #+begin_src R :exports none :results none
@@ -73,6 +73,10 @@
   - [[#ajuste-y-comparación-eficiente][Ajuste y comparación eficiente]]
   - [[#finalizar-modelo][Finalizar modelo]]
 - [[#ensamble-de-modelos][Ensamble de modelos]]
+  - [[#stacking-de-modelos][Stacking de modelos]]
+- [[#ilustración-numérica][Ilustración numérica]]
+  - [[#para-pensar][Para pensar:]]
+- [[#conclusiones][Conclusiones]]
 :END:
 
 * Introducción
@@ -400,9 +404,10 @@ modelo.
 7 fullquad_KNN        <tibble [1 × 4]> <opts[3]> <tune[+]>
 #+end_src
 
-
 #+REVEAL: split
-Por último, con la función ~rank_results()~ ordenamos los modelos de acuerdo a su capacidad predictiva. 
+Por último, con la función ~rank_results()~ ordenamos los modelos de acuerdo a su
+capacidad predictiva. La opción ~select_best~ nos muestra dentro de cada familia
+el mejor modelo para ordenar por capacidad predictiva.
 
 #+begin_src R :exports both :results org 
   grid_results |> 
@@ -425,7 +430,6 @@ Por último, con la función ~rank_results()~ ordenamos los modelos de acuerdo a
 7 nearest_neighbor Preprocessor1_Model16  9.07     7
 #+end_src
 
-
 #+REVEAL: split
 #+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/concrete-screening.jpeg :exports results :results output graphics file
@@ -444,6 +448,9 @@ Por último, con la función ~rank_results()~ ordenamos los modelos de acuerdo a
 [[file:../images/concrete-screening.jpeg]]
 
 ** Ajuste y comparación eficiente
+
+Utilizaremos el mismo proceso eficiente de comparación de modelos para
+determinar la mejor configuración dentro de cada uno. 
 
 #+begin_src R :exports code :results none 
   library(finetune)
@@ -476,6 +483,7 @@ i Creating pre-processing data to finalize unknown parameter: mtry
  96.917   1.464 374.666
 #+end_src
 
+El método ajusta 11 modelos de los 151 posibles. Es decir, sólo requiere ajustar el $7.3\%$ .
 
 #+REVEAL: split
 #+begin_src R :exports both :results org 
@@ -539,7 +547,8 @@ i Creating pre-processing data to finalize unknown parameter: mtry
     labs(x = "Complete Grid RMSE", y = "Racing RMSE")  +
     sin_lineas
 #+end_src
-
+#+caption: Comparación de procedimiento completo contra paro acelerado.
+#+attr_latex: :width .45\linewidth
 #+RESULTS:
 [[file:../images/concrete-comparison-finetuning.jpeg]]
 
@@ -595,16 +604,85 @@ boosting_test_results <-
     labs(x = "observed", y = "predicted") +
     sin_lineas
 #+end_src
-
+#+caption: Predicciones contra datos reales.
+#+attr_latex: :width .99\linewidth
 #+RESULTS:
 [[file:../images/concrete-final-boosting.jpeg]]
 
 
 * Ensamble de modelos
 
+Consideremos que tenemos una colección de modelos entrenados con los cuales podemos obtener predicciones $\hat{f}_{1}(x), \ldots, \hat{f}_{M}(x)$. Considerando pérdida cuadrática podemos buscar pesos $\omega = (\omega_{1}, \ldots, \omega_{M})$ tales que 
+\begin{align}
+\hat{\omega} = \arg \min_{\omega \in \mathbb{R}^M_+} \mathbb{E}_{\mathcal{D}_n, Y} \left( Y - \sum_{m = 1}^{M} \omega_m \hat{f}_m(x) \right)^2\,,
+\end{align}
+donde el valor esperado se calcula considerando la variabilidad en conjuntos de
+entrenamiento y la aleatoriedad en la respuesta para un atributo fijo.
+
+#+REVEAL: split
+La solución de este problema será la solución *poblacional* considerando el vector que acopla las predicciones de una familia de modelos $\hat{F}^\top = [ \hat{f}_{1}(x), \ldots, \hat{f}_{M}(x)]$ :
+\begin{align}
+\hat{\omega} = \mathbb{E}[\hat{F}(x) \hat{F}^\top(x)]^{-1} \, \mathbb{E}[\hat{F}(x)Y]\,.
+\end{align}
+La combinación lineal, sabemos, tiene mejor capacidad predictiva que cualquier modelo
+\begin{align}
+\mathbb{E} \left(  Y - \sum_{m = 1}^{M} \hat{\omega}_m \hat{f}_m(x) \right)^2 \leq \mathbb{E}\left(  Y - \hat{f}_m(x) \right)^2\, \quad \forall m\,.
+\end{align}
+
+#+REVEAL: split
+El problema es que no tenemos acceso a la solución poblacional del problema de
+regresión. Asi que podemos usar el concepto de ~stacking~ para construir un
+estimador basado en predicciones fuera de muestra.
+
+** /Stacking/ de modelos
+
+Una manera que tenemos para darle la vuelta al problema de antes es utilizar el
+mecanismo de ~validación cruzada~ para ajustar los pesos de la siguiente manera.
+
+#+REVEAL: split
+Denotemos por $\hat{f}_m^{-i}(x)$ la salida del $m\text{-ésimo}$ modelo en $x$
+el cual fue entrenado sin la observación $i\text{-ésima}$.  Los coeficientes se
+ajustan por medio de mínimos cuadrados utilizando la regresión de respuestas
+$y_i$ con atributos $\hat{f}_m^{-i}(x)$. De tal forma que tenemos
+\begin{align}
+\hat{\omega}^{\mathsf{stack}} = \arg \min_{\omega \in \mathbb{R}^M} \sum_{i = 1}^{N} \left( y_i - \sum_{m = 1}^{M} \omega_m \hat{f}_m^{-i}(x) \right)^2\,.
+\end{align}
+
+#+REVEAL: split
+Las predicciones se realizan por medio de 
+\begin{align}
+\sum_{m = 1}^{M} \hat{\omega}^{\mathsf{stack}}_m \hat{f}_m^{-i}(x)\,.
+\end{align}
+
+#+REVEAL: split
+El resultado es un combinación lineal de predicciones. En la práctica se
+obtienen los mejores resultados si se restringen los pesos de la combinación
+lineal a ser no-negativos y que sumen 1.
+
+* Ilustración numérica
+
+Retomaremos nuestra colección de modelos que hemos ajustado. La intención es
+poder crear una combinación de éstos para mejorar nuestra capacidad
+predictiva. Para estos usaremos ~stacks~ de ~tidymodels~.
+
 #+begin_src R :exports code :results none
   library(stacks)
 #+end_src
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+1. En el contexto de validación cruzada con $K$ bloques: ¿cuántas predicciones fuera de muestra tenemos para cada observación con el conjunto de entrenamiento?
+2. En el contexto de validación cruzada con $K$ bloques: ¿cuántas predicciones fuera de muestra tenemos para cada observación con el conjunto de entrenamiento si repetimos validación cruzada $B$ veces?
+3. En el contexto de los modelos que hemos usado: ¿cuántas predicciones fuera de
+   muestra tenemos para /bagging/?
+
+** Construyendo nuestra colección de predicciones
+
+Le pasamos nuestros modelos entrenados a un /stack/ vacío. La función
+~add_candidates()~ se encarga de filtrar modelos tienen *todo* el perfil predictivo
+para cada observación en el conjunto de entrenamiento.
 
 #+begin_src R :exports both :results org 
   concrete_stack <- 
@@ -627,18 +705,51 @@ boosting_test_results <-
   # Outcome: compressive_strength (numeric)
 #+end_src
 
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿Qué pasaría si en lugar de pasar resultados de $\mathsf{ANOVA}$ usamos los resultados de la función ~tune_grid()~?
+
+** Mezcla de predicciones
+
+Entrenamos nuestro /meta/-modelo utilizando las predicciones fuera de muestra. En esta situación debemos de considerar:
+1. Las predicciones entre familias de predictores pueden estar altamente correlacionadas.
+2. Habrá predictores que no son necesarios si ya hay algún elemento de la misma familia.
+
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+¿Qué estrategia de regularización hemos visto para resolver estos problemas?
+
+*** Implementación
+
+La función ~stacks::blend_predictions()~ nos permite ajustar un modelo lineal
+regularizado que es capaz de evitar estos problemas. 
+
 #+begin_src R :exports code :results none 
   set.seed(2001)
   ens <- blend_predictions(concrete_stack)
 #+end_src
 
-#+HEADER: :width 900 :height 600 :R-dev-args bg="transparent"
+
+#+REVEAL: split
+El procedimiento realiza un ajuste interno con remuestreo que permite construir
+trazar la curva de error predictivo como función de factor de penalización.
+
+#+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
 #+begin_src R :file images/concrete-stack.jpeg :exports results :results output graphics file
   autoplot(ens) + sin_lineas
 #+end_src
-
+#+attr_latex: :width .65\linewidth
 #+RESULTS:
 [[file:../images/concrete-stack.jpeg]]
+
+#+REVEAL: split
+Al igual que en validación cruzada los resultados obtenidos nos pueden ayudar a
+concentrar nuestros esfuerzos computacionales en zonas de mayor interés.
 
 #+begin_src R :exports code :results none 
   set.seed(2002)
@@ -649,9 +760,13 @@ boosting_test_results <-
 #+begin_src R :file images/concrete-stack-larger.jpeg :exports results :results output graphics file
   autoplot(ens) + sin_lineas
 #+end_src
-
+#+attr_latex: :width .65\linewidth
 #+RESULTS:
 [[file:../images/concrete-stack-larger.jpeg]]
+
+
+#+REVEAL: split
+La combinación final queda construida de la siguiente manera. x
 
 #+begin_src R :exports both :results org 
   ens
@@ -676,6 +791,9 @@ boosting_test_results <-
   Members have not yet been fitted with `fit_members()`.
 #+end_src
 
+#+REVEAL: split
+Las contribuciones de cada modelo se pueden resumir de manera gráfica con la función de ~autoplot()~ $^\dagger$. 
+
 #+HEADER: :width 900 :height 700 :R-dev-args bg="transparent"
 #+begin_src R :file images/stacking-weights.jpeg :exports results :results output graphics file
   autoplot(ens, "weights") +
@@ -683,9 +801,18 @@ boosting_test_results <-
     theme(legend.position = "none") +
     lims(x = c(-0.01, 1)) + sin_lineas
 #+end_src
-
+#+attr_latex: :width .65\linewidth
 #+RESULTS:
 [[file:../images/stacking-weights.jpeg]]
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+Por último hay que ajustar los modelos finales a todo el conjunto de
+entrenamiento. ¿En nuestro ejemplo cuántos modelos se entrenan? ¿Cómo cambia
+esto cuando lo comparamos con el contexto de validación cruzada?
 
 #+begin_src R :exports code :results none 
   ens <- fit_members(ens)
@@ -709,6 +836,14 @@ boosting_test_results <-
 1 rmse    standard       3.36 
 2 rsq     standard       0.956
 #+end_src
+
+* Conclusiones
+
+- Las mejoras pueden ser marginales comparadas contra las del mejor modelo individual.
+- En la práctica la mezcla de modelos vuelve el resultado muy poco interpretable.
+- Para las tareas de interés predictivo (sin explicaciones y sin restricciones
+  computacionales) son lo mejor.
+- Una combinación lineal de predictores es sólo una forma de combinar.
 
 
 bibliographystyle:abbrvnat
