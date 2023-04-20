@@ -1,0 +1,628 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Redes neuronales~
+:REVEAL_PROPERTIES:
+# Template uses org export with export option <R B>
+# Alternatives: use with citeproc
+#+LANGUAGE: es
+#+OPTIONS: num:nil toc:nil timestamp:nil
+#+REVEAL_REVEAL_JS_VERSION: 4
+#+REVEAL_MATHJAX_URL: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+#+REVEAL_THEME: night
+#+REVEAL_SLIDE_NUMBER: t
+#+REVEAL_HEAD_PREAMBLE: <meta name="description" content="Aprendizaje">
+#+REVEAL_INIT_OPTIONS: width:1600, height:900, margin:.2
+#+REVEAL_EXTRA_CSS: ./mods.css
+#+REVEAL_PLUGINS: (notes)
+:END:
+#+STARTUP: showall
+#+PROPERTY: header-args:R :session redes-neuronales :exports both :results output org :tangle ../rscripts/12-redes-neuronales.R :mkdirp yes :dir ../
+#+EXCLUDE_TAGS: toc latex
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Redes Neuronales.\\
+*Objetivo*: En esta sección estudiaremos modelos basados en redes neuronales. El campo de /deep learning/ es muy extenso. Asi que esta sección del curso busca dar una versión global del tema y mencionar puntos importantes de dichos temas. Un tratamiento mas extenso se puede encontrar en cursos especializados. Por ejemplo, el curso de Aprendizaje Profundo en el ITAM. \\
+*Lectura recomendada*: Capítulo 10 de citep:James2021 y algunos pasajes de citep:Zhang2021c. /Disclaimer/: Todas las figuras han sido tomadas de citep:James2021. 
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Contenido                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+- [[#precursor-perceptrón][Precursor: perceptrón]]
+  - [[#algoritmo][Algoritmo:]]
+  - [[#observaciones][Observaciones]]
+- [[#red-neuronal-de-una-capa][Red neuronal de una capa]]
+  - [[#detalles][Detalles]]
+  - [[#ejemplo-clasificación-multi-clase-mnist][Ejemplo: clasificación multi-clase (MNIST)]]
+  - [[#el-modelo][El modelo]]
+    - [[#cuántos-parámetros-tiene-este-modelo][¿Cuántos parámetros tiene este modelo?]]
+  - [[#la-capa-de-salida][La capa de salida]]
+  - [[#detalles][Detalles]]
+  - [[#regularización][Regularización]]
+- [[#modelos-convolucionales][Modelos convolucionales]]
+  - [[#ideas-generales][Ideas generales]]
+  - [[#capas--de-convolución][Capas  de convolución]]
+  - [[#ejemplo-de-un-filtro][Ejemplo de un filtro]]
+  - [[#capas-de-resumen-pooling][Capas de resumen (pooling)]]
+  - [[#arquitectura-de-una-cnn][Arquitectura de una CNN]]
+  - [[#aplicación-de-cnn][Aplicación de CNN]]
+  - [[#comentarios][Comentarios]]
+- [[#modelos-recurrentes][Modelos recurrentes]]
+  - [[#motivación][Motivación]]
+  - [[#vectorización-de-texto][Vectorización de texto]]
+  - [[#redes-neuronal-recurrentes-rnn][Redes neuronal recurrentes (RNN)]]
+  - [[#arquitectura][Arquitectura]]
+  - [[#detalles-de-rnn][Detalles de RNN]]
+  - [[#regresando-a-las-reseñas][Regresando a las reseñas]]
+  - [[#conclusiones][Conclusiones]]
+- [[#casos-de-uso][Casos de uso]]
+- [[#ajuste-y-regularización][Ajuste y regularización]]
+  - [[#descenso-en-gradiente][Descenso en gradiente]]
+  - [[#gradientes-y-backpropagation][Gradientes y backpropagation]]
+  - [[#observaciones][Observaciones]]
+  - [[#regularización-dropout][Regularización: Dropout]]
+  - [[#regularización-aumento-de-datos][Regularización: Aumento de datos]]
+- [[#software][Software]]
+:END:
+
+* Introducción 
+
+- La primera publicación relacionada es la de citet:Rosenblatt1958. 
+- Las redes neuronales se volvieron populares en los 80s (con impacto limitado). 
+- A partir de ahí, se vio un auge en otros modelos predictivos.
+- A partir de 2010, surge /Deep Learning/ con resultados impresionantes.
+#+REVEAL: split
+- Mejora en poder de cómputo, /software/  y datos.
+
+#+DOWNLOADED: screenshot @ 2022-05-02 21:06:56
+#+caption: Imagen tomada de citep:Zhang2021c. 
+#+attr_html: :width 1200 :align center
+[[file:images/20220502-210656_screenshot.png]]
+
+
+#+REVEAL: split
+- El avance y adopción se debe a diversos investigadores en varios ámbitos de lo que rodea /Deep Learning/.
+- Por ejemplo ([[https://en.wikipedia.org/wiki/Timeline_of_machine_learning][time-line de eventos importantes]]):
+  - citet:Rumelhart1986: Redescubren la regla de la cadena (~backpropagation~). 
+  - Yann LeCun, *Corinna Cortes* y Christopher Burges hacen pública la base de datos de [[http://yann.lecun.com/exdb/mnist/][~MNIST~]] (1998).
+  - Un equipo de investigadores liderado por *Fei-Fei Li* publica la base de [[https://www.image-net.org/index.php][~imageNet~]] para concurso (2009).
+  - Un equipo de investigadores en [[https://www.deepmind.com/publications/mastering-the-game-of-go-with-deep-neural-networks-tree-search][Google Deepmind]] logra vencer a jugadores profesionales en Go (2016).
+- Otros perfiles de gente impresionante haciendo investigación en el área se puede encontrar [[https://learn.g2.com/trends/women-in-ai][aquí]]. 
+
+* Precursor: perceptrón
+
+- Objetivo: resolver el problema de clasificación binaria por medio de separaciones lineales.
+- Es decir, poder encontrar una $\omega$ tal que
+  \begin{gather}
+  \langle \omega, x \rangle \geq 0, \qquad \text{ si } y = 1\,,\\
+  \langle \omega, x \rangle < 0, \qquad \text{ si } y = -1\,.
+  \end{gather}
+- Por lo tanto, lo que queremos es un predictor de la forma
+  \begin{align}
+  \hat y = \mathsf{signo}(\langle \omega, x \rangle)\,.
+  \end{align}
+
+** Algoritmo: 
+
+- Empezamos con $\omega^{(1)} = 0$.
+- Para cada iteración $t = 1, \ldots, T$:
+  - Buscamos un elemento mal clasificado:
+    \begin{align}
+    y_i \cdot \langle \omega^{(t)}, x_i \rangle < 0\,,
+    \end{align}
+    dentro de observaciones. 
+  - Actualizamos por medio de:
+    \begin{align}
+    \omega^{(t + 1)} = \omega^{(t)} + y_i \cdot x_i\,.
+    \end{align}
+
+- Nos detenemos cuando todas las observaciones están bien clasificadas. 
+
+** Observaciones
+
+- El perceptrón funciona cuando las clases son separables.
+- El perceptrón no convergerá cuando las clases no son separables.
+- La pérdida asociada a este algoritmo considera términos individuales
+  \begin{align}
+  \max[0, - y \langle \omega, x \rangle]\,.
+  \end{align}
+- La idea que utilizaremos: el perceptrón emite una señal si $\langle \omega, x \rangle \geq 0$,
+
+  ¿qué tal que utilizamos un conjunto de perceptrones y los combinamos linealmente?
+
+* Red neuronal de una capa
+
+Consideramos el modelo predictivo de la forma
+\begin{align}
+f(X) = \beta_0 + \sum_{k = 1}^{K} \beta_k h_k(X)\,,
+\end{align}
+donde los términos $h_k$ son ~transformaciones no-lineales~ de ~combinaciones
+lineales de los atributos~. Es decir,
+\begin{align}
+h_k(X) = g\left(\omega_{k0} + \sum_{j = 1}^{p} \omega_{kj} X_j\right)\,,
+\end{align}
+donde $g(\cdot)$ es una transformación no-lineal de $\mathbb{R}$ a $\mathbb{R}$.
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-02 20:29:08
+#+attr_html: :width 800 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220502-203004_screenshot.png]]
+ 
+
+** Detalles
+
+- En la figura anterior tenemos que $A_k = h_k(X) = g\left(\omega_0 + \sum_{j = 1}^{p} \omega_{kj} X_j\right)$.
+- La función $g(\cdot)$ se denomina ~función de activación~.
+- Las opciones mas populares son: ~ReLU~ o ~sigmoide~.
+- Si no utilizamos funciones de activación no-lineales, entonces el modelo seguiría siendo lineal.
+- La salida de las funciones de activación son interpretadas como atributos .
+- El modelo se entrena (en regresión) minimizando
+  \begin{align}
+  \sum_{i = 1}^{n} (y_i - f(x_i))^2\,.
+  \end{align}
+- La solución aprende representaciones de los atributos que pueden servir para predecir. 
+
+** Ejemplo: clasificación multi-clase (~MNIST~)
+
+Tenemos imágenes de $28 \times 28$ pixeles en escala de grises. Tenemos $60K$
+datos de entrenamiento y $10K$ datos de validación. Podemos pensar que cada
+imagen es un vector de 784 dimensiones. Las etiquetas son los dígitos del 0 al 9. 
+
+*Objetivo*: Predecir la clase de la imagen basada en los valores de los pixeles. 
+
+#+attr_html: :width 800 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220503-085256_screenshot.png]]
+ 
+
+  
+** El modelo
+
+Se utiliza una red neuronal de dos capas. La estructura (arquitectura) es 256 unidades en la primera capa, 128
+unidades en la capa intermedia y 10 unidades de salida.
+
+*** ¿Cuántos parámetros tiene este modelo?
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+
+#+attr_html: :width 800 :align center 
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220502-204955_screenshot.png]]
+
+
+** La capa de salida
+
+- Denotemos por
+  \begin{align}
+  Z_m = \beta_{m0} + \sum_{\ell = 1}^{K_2} \beta_{m\ell} A_{\ell}^{(2)}\,,  
+  \end{align}
+  las $m$ combinaciones lineales de las unidades que salen de la segunda capa.
+- Denotamos por $m$ es el número de unidades en la capa de salida.
+
+#+REVEAL: split
+- Para obtener /probabilidades/ usamos la función ~softmax~ como función de activación en la última capa
+  \begin{align}
+  f_m(X) = \mathbb{P}(Y = m | X) = \frac{\exp(Z_m)}{\sum_{\ell = 0}^{9} \exp(Z_\ell)}\,,
+  \end{align}
+  donde entrenamos el modelo minimizando
+  \begin{align}
+  -\sum_{i = 1}^{n} \sum_{m = 0}^9 y_{im} \log(f_m(x_i))\,,
+  \end{align}
+  la cual llamamos ~entropía cruzada~.
+- $y_{im}$ tomará el valor de 1 en la clase que a la que pertenezca la observación $i$ ésima. Todos los demás valores son 0 (~one-hot encoding~).
+  
+** Detalles 
+
+- La pérdida de ~entropía relativa~ corresponde a un modelo multinomial de $K$ clases:
+  \begin{align}
+  \mathbb{P}(y | x) = \prod_{k = 1}^K p_{k}(x)^{y_k}\,.
+  \end{align}
+- Considerando la función de ~softmax~ entonces la función de pérdida (individual) queda
+  \begin{align}
+  \ell(y, \hat y) = - \left[ \sum_{k = 1}^{K} y_k \log \left( \frac{\exp(z_k)}{\sum_{j = 1}^{K} \exp (z_j)} \right)\right]\,.
+  \end{align}
+- La cual se puede simplificar
+  \begin{align}
+  \ell(y, \hat y ) = - \sum_{k = 1}^{K} y_k z_k + \log \left( \sum_{k=1}^{K} \exp(z_k) \right)\,.
+  \end{align}
+- Lo cual es muy útil para métodos iterativos de optimización
+  \begin{align}
+  \frac{\partial \ell}{\partial z_j} = \mathsf{softmax}(z_j) - y_j \,.
+  \end{align}
+  
+
+** Regularización
+
+- Con tantos parámetros en los modelos resulta indispensable /regularizar/ nuestro problema de entrenamiento.
+- Consideremos el problema de clasificar imágenes de perros y gatos.
+- Las imágenes son tomadas con nuestras cámaras (12Mp) lo cual se traduce en $12 \times 10^6$ píxeles.
+- Un modelo de una capa con mil unidades tiene entonces (apróx.) $36 \times 10^9$ parámetros.
+- Según una búsqueda en Google (datos de 2019), tenemos una población de 471M perros y 373M gatos. 
+  - Esto es (apróx) $0.844 \times 10^9$ imágenes.
+- Necesitaríamos  $36/.844 \approx 42.65$ más datos para tener una relación 1 a 1 de parámetros con datos. 
+  
+#+REVEAL: split
+Los métodos usuales de regularización son (mas adelante veremos detalles de esto):
+1. Regularización en coeficientes matrices $W_k$.
+2. Regularización /dropout/.
+
+#+REVEAL: split
+- Resultados en MNIST son:
+  #+DOWNLOADED: screenshot @ 2022-05-02 21:31:45
+  #+caption: Resultados de generalización obtenidos por distintos modelos en el conjunto de datos de ~MNIST~, fuente: citep:James2021.
+  #+attr_html: :width 700 :align center
+  #+ATTR_LATEX: :width 0.65\textwidth
+     [[file:images/20220502-213145_screenshot.png]]
+
+- A la fecha, los mejores resultados reportan un error de generalización de menos del $0.5\%$
+- El error de personas en este conjunto de datos es de $0.2\%$, 
+
+* Modelos convolucionales
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:25:18
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.65\textwidth
+[[file:images/20220503-092518_screenshot.png]]
+
+
+- Historia de éxito para problemas de visión por computadora.
+
+#+REVEAL: split
+- La base de ~ImageNet~ está compuesta de mas de 20,000 categorías con imágenes de $256 \times 256$ 
+- El conjunto de datos son 14M anotadas utilizando ~Amazon Mechanical Turk~.   
+- Cada imagen la podemos pensar como una matriz con tres canales de color $\mathsf{RBG}$.
+- Por lo tanto una imagen es un arreglo tridimensional de $256 \times 256 \times 3$ de números de 8 bits.
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:31:58
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+  [[file:images/20220503-093158_screenshot.png]]
+
+** Ideas generales
+
+- Las CNN construyen una imagen de manera jerárquica.
+- Primero se ~extraen~ características globales (por medio de filtros) y se combinan para crear ~atributos~ específicos de la imagen.
+- La extracción y combinación de atributos se logran con capas de *convolución y /pooling/*, 
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:34:08
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220503-093408_screenshot.png]]
+
+
+** Capas  de convolución
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:39:27
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.65\textwidth
+[[file:images/20220503-093927_screenshot.png]]
+
+- El filtro es una imagen que representa un patrón en la imagen original.
+- El filtro se arrastra a lo largo de la imagen y se registran los /scores/.
+- Los /scores/ no son mas que un producto interior.
+- Los filtros se aprenden durante el ajuste del modelo.
+
+** Ejemplo de un filtro
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:43:14
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.45\textwidth
+[[file:images/20220503-094314_screenshot.png]]
+
+
+#+REVEAL: split
+- Los filtros resaltan características particulares de la imagen.
+- Con los resultados de los filtros se crean /nuevas/ características en capas intermedias.
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:47:12
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.70\textwidth
+[[file:images/20220503-094712_screenshot.png]]
+
+** Capas de resumen (/pooling/)
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:50:47
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.55\textwidth
+[[file:images/20220503-095047_screenshot.png]]
+
+- Las capas de resumen se utilizan para generar representaciones de menor resolución.
+- Ayuda a enfocar y mejorar la identificación de atributos.
+- Permiten que el clasificador sea ~localmente invariante~.
+- Reduce la dimensión de los atributos.
+
+
+#+REVEAL: split
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:54:06
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.70\textwidth
+[[file:images/20220503-095406_screenshot.png]]
+
+
+** Arquitectura de una CNN
+
+#+DOWNLOADED: screenshot @ 2022-05-03 09:56:01
+#+attr_html: :width 1200 :align center
+[[file:images/20220503-095601_screenshot.png]]
+
+- El enfoque es sobre los bloques: capas de convolución o resúmenes.
+- Los filtros usualmente son pequeños $3 \times 3$.
+- Cada filtro crea un nuevo canal en la capa.
+- Por un lado reducimos el tamaño de las representaciones. Por otro,  aumentamos el número de filtros.
+
+** Aplicación de CNN
+
+- El procedimiento de entrenamiento es computacionalmente caro.
+- En la práctica no se tienen los recursos para poder entrenarlos (~FANG~ si).
+- Se ha volcado a una estrategia de compartir los pesos de los modelos entrenados.
+- Amazon y otros proveedores están capitalizando en estas ideas (~Amazon Rekognition~). 
+
+#+DOWNLOADED: screenshot @ 2022-05-03 10:01:34
+#+caption: Modelos disponibles en ~Keras~. 
+#+attr_html: :width 700 :align center
+[[file:images/20220503-100134_screenshot.png]]
+
+
+#+REVEAL: split
+
+Nos permite clasificar imágenes  en el contexto de datos de estos modelos. 
+
+#+DOWNLOADED: screenshot @ 2022-05-03 10:06:01
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.70\textwidth
+[[file:images/20220503-103451_screenshot.png]]
+
+** Comentarios
+
+- Los filtros que se aprenden de manera automática corresponden con filtros que los expertos en visión por computadora han utilizado.
+- No hay garantía de un aprendizaje en sentido generalizable (inteligencia artificial).
+
+#+DOWNLOADED: screenshot @ 2022-05-03 10:08:35
+#+attr_html: :width 700 :align center
+  [[file:images/20220503-100835_screenshot.png]]
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-03 10:09:12
+#+attr_html: :width 700 :align center
+#+ATTR_LATEX: :width 0.50\textwidth
+  [[file:images/20220503-100912_screenshot.png]]
+
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-03 10:10:17
+#+attr_html: :width 1200 :align center
+  [[file:images/20220503-101017_screenshot.png]]
+
+* Modelos recurrentes
+
+- Otro caso de éxito de las redes neuronales.
+- Aplicación en finanzas y análisis de texto.
+
+
+** Motivación
+
+- Supongamos que tenemos las reseñas de algún producto.
+- Por ejemplo, la base de ~IMBD~ que tiene los /ratings/ de películas.
+- El objetivo es poder identificar el sentimiento de la reseña: ~positiva~ o ~negativa~.
+- Esto es un problema de ~clasificación binaria~.
+
+#+DOWNLOADED: screenshot @ 2022-05-03 10:33:08
+#+attr_html: :width 700 :align center
+  [[file:images/20220503-103308_screenshot.png]]
+
+
+** Vectorización de texto 
+
+- Pregunta clave: ¿cómo representamos los textos en vectores de atributos?
+- Se escoge un diccionario de palabras, por ejemplos las $10K$ más frecuentes.
+- Cada reseña se representa con un vector de longitud $10K$ donde tiene un 1 en
+  las posiciones de las palabras que ocurren.
+- Tenemos una matriz de diseño de tamaño $n \times 10K$.
+- citet:James2021 comparan una regresión logística (con regularización) y una
+  red neuronal con dos capas.
+- Se pudo haber escogido /vectorizar/ identificando los pares de palabras mas
+  frecuentes (~bigramas~).
+
+#+REVEAL: split
+#+DOWNLOADED: screenshot @ 2022-05-03 10:29:46
+#+caption: Resultado del experimento. 
+#+attr_html: :width 1200 :align center
+[[file:images/20220503-102946_screenshot.png]]
+
+** Redes neuronal recurrentes (~RNN~)
+
+- A veces tenemos datos que vienen en secuencias.
+- La arquitectura de las RNN toman en cuenta la naturaleza secuencial de los datos.
+- Los atributos de /una observación/ es una ~secuencia~ de vectores:
+  \begin{align}
+  X = \{ X_1, X_2, \ldots, X_L\}\,.
+  \end{align}
+- Las respuestas /pueden/ ser las usuales en problemas de clasificación.
+
+
+** Arquitectura
+
+#+DOWNLOADED: screenshot @ 2022-05-03 15:40:44
+#+attr_html: :width 1200 :align center
+#+ATTR_LATEX: :width 0.65\textwidth
+[[file:images/20220503-154043_screenshot.png]]
+
+
+- Una capa intermedia tiene una sequencia de vectores $A_\ell$, los cuales reciben como entradas los atributos en dicho paso $X_\ell$ y el estado latente de $A_{\ell -1}$ . Cada paso produce resultados intermedios $O_\ell$.
+- Se utilizan los mismos pesos $W$, $U$ y $B$ en cada paso de la secuencia (recurrente).
+- Pensemos en $A_\ell$ como una secuencia de un modelo que cambia su respuesta después de actualizar con cada elemento $X_\ell$.
+
+
+** Detalles de ~RNN~
+
+El cálculo de cada unidad en las capas intermedias $A_\ell$ se puede escribir como sigue. Supongamos que $X_\ell \in \mathbb{R}^p$ y que $A_\ell \in \mathbb{R}^K$. Entonces con las matrices de pesos $W \in \mathbb{R}^{p \times K}$, $U \in \mathbb{R}^{K \times K}$ y los coeficientes $\beta_0 \in \mathbb{R}$ y $\omega_0, \beta \in \mathbb{R}^{K}$ con $\ell = 1, \ldots, L$ las pasos intermedios y las salidas se calcular por medio de
+\begin{gather}
+A_{\ell} = g \left( W^\top x_\ell  + U^\top A_{\ell -1} + \omega_0 \right)\,,\\
+O_\ell = \beta_0 + \beta^\top A_\ell\,.
+\end{gather}
+
+#+REVEAL: split
+Usualmente nos interesa media la salida en la última capa para contrastarla con la predicción
+\begin{align}
+\sum_{i = 1}^{n}(y_i - O_{iL})^2\,.
+\end{align}
+
+** Regresando a las reseñas
+
+- Los documentos son nuestras observaciones como secuencias de palabras $\{\mathcal{W}_\ell\}_{\ell = 1}^L$.
+- Cada palabra $\mathcal{W}_\ell$ esta representada como un vector de binarios $X_\ell$ de longitud $10K$.
+- Se pueden usar /word embeddings/ (representaciones vectoriales de palabras) utilizando una matriz $E\in \mathbb{R}^{m \times 10K}$.
+- Usualmente, $m \ll 10K$.
+
+#+REVEAL: split
+
+#+DOWNLOADED: screenshot @ 2022-05-03 18:36:31
+#+attr_html: :width 1200 :align center
+#+ATTR_LATEX: :width 0.65\textwidth
+[[file:images/20220503-183631_screenshot.png]]
+
+Los /embeddings/ se pueden aprender con algún procedimiento de pre-entrenamiento. Los mas comunes son ~word2vec~ o ~GloVe~ (puedes consultar citep:Zhang2021c para mas detalles). 
+
+** Conclusiones 
+
+- Sólo tocamos el modelo mas sencillo de ~RNN~ hay mas variaciones con arquitecturas mas complejas (~LSTM~ o ~GRU~).
+- Se pueden combinar con ~CNN~ para el ajuste. Aplicando filtros a lo largo de la secuencia.
+- La construcción de modelos mas complejos utilizan la noción de bloques: un bloque de convolución, un bloque de secuencias recurrentes, etc.
+- Se puede extender a secuencias. Los modelos ~seq2seq~ donde se aprenden secuencias como salidas (traducción de textos).
+
+* Casos de uso
+
+- ~CNN~ para visión por computadora.
+- ~RNN~ para modelos de lenguaje o predicciones secuenciales (series de tiempo).
+- ¿Siempre son las mejores soluciones?
+
+  #+BEGIN_NOTES
+    Cuanto tienes un martillo en la mano, a todo le ves cara de clavo.
+    ---Dicho popular. 
+  #+END_NOTES
+
+- Son usualmente exitosas cuando la razón señal - ruido es alta.
+- Para aplicaciones donde debemos de modelar el componente aleatorio, modelos mas sencillos son preferibles. 
+  
+* Ajuste y regularización
+
+El ajuste de una red neuronal se realiza buscando la configuración del modelo que tenga el menor error posible en el conjunto de entrenamiento. Es decir,
+\begin{align}
+\min_\theta \frac12 \sum_{i = 1}^{n} (y_i -  f_\theta(x_i))^2\,,
+\end{align}
+donde $\theta$ son los parámetros a ajustar. Por ejemplo, para una red con una capa intermedia
+\begin{align}
+f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}\right)\,.
+\end{align}
+
+** Descenso en gradiente
+
+- Denotemos por $R(\theta)$ la función de pérdida para el ajuste de una red neuronal.
+- Descenso en gradiente es un algoritmo iterativo que busca el mínimo de la función $R(\theta)$.
+- El procedimiento opera de tal forma que $R(\theta^{t + 1}) < R(\theta^t )$. Buscando actualizar
+  \begin{align}
+  \theta^{t+1} = \theta^{t} - \rho \nabla R(\theta^t)\,.
+  \end{align}
+- El parámetro, $\rho$ es la ~tasa de aprendizaje~.
+
+
+
+** Gradientes y /backpropagation/
+
+- La función $R(\theta) = \sum_{i = 1}^{n} R_i(\theta)$ es una suma. El gradiente, es una suma.
+- Consideremos
+  \begin{align}
+  f_\theta(x_i) = \beta_0 + \sum_{k = 1}^{K} \beta_k \, g \left( \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}\right)\,.
+  \end{align}
+- Denotemos $z_{ik} =  \omega_{k0} + \sum_{j = 1}^{p}\omega_{kj} x_{ij}$.
+#+REVEAL: split
+- Entonces usamos la ~regla de la cadena~
+  \begin{align}
+  \frac{\partial R_i(\theta)}{\partial \beta_k} &= \frac{\partial R_i(\theta)}{\partial f_\theta(x_i)} \cdot \frac{\partial f_\theta(x_i)}{\partial \beta_k} \\
+  &= - (y_i - f_\theta(x_i)) \cdot g(z_{ik})\,,
+  \end{align}
+  y también tendríamos
+  \begin{align}
+  \frac{\partial R_i(\theta)}{\partial \omega_{kj}} &= \frac{\partial R_i(\theta)}{\partial f_\theta(x_i)} \cdot \frac{\partial f_\theta(x_i)}{\partial g(z_{ik})} \cdot \frac{\partial g(z_{ik})}{\partial z_{ik}} \cdot \frac{\partial z_{ik}}{\partial \omega_{kj}}\\
+  &= - (y_i - f_\theta(x_i)) \cdot \beta_k \cdot g'(z_{ik}) \cdot x_{ij}\,,
+  \end{align}
+ 
+** Observaciones
+
+- El procedimiento puede ser ~lento~. Sin embargo, podemos utilizar ~early stopping~ como un mecanismo de regularización.
+- Podemos utilizar ~descenso en gradiente estocástico~ (~SGD~) para acelerar el cómputo y mejorar el avance. Usar /minibatches/ de 128 observaciones.
+- Una época (/epoch/) es el número de iteraciones que se necesitan para usar todos los datos si procesamos los datos en /minibatches/.
+- Podemos usar ~regularización~  en los pesos de la red. Pero también podemos usar ~dropout~ o aumento de datos.
+
+** Regularización: Dropout
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 19:37:54
+#+attr_html: :width 700 :align center
+[[file:images/20220503-193754_screenshot.png]]
+
+- Con regularización con /dropout/ se busca que en cada iteración de descenso en gradiente se desactiven algunas unidades con probabilidad $\phi$.
+- Los pesos de las unidades que quedan se rescalan por $1/(1-\phi)$.
+- En regresión se puede probar que es equivalente a ridge.
+- Los pesos tienden a agruparse.
+- Es equivalente a quitar variables en el curso del entrenamiento (como en bosques aleatorios).
+
+** Regularización: Aumento de datos
+
+
+#+DOWNLOADED: screenshot @ 2022-05-03 19:42:39
+#+attr_html: :width 1200 :align center
+#+ATTR_LATEX: :width 0.85\textwidth
+[[file:images/20220503-194239_screenshot.png]]
+
+- Especialmente útil con ~SGD~ en ~CNN~.
+- Se buscan transformaciones naturales del las imágenes.
+- La categoría no cambia.
+- Mejora la capacidad predictiva. 
+  
+* /Software/
+
+- El avance en /software/ ha sido impresionante con ~Tensorflow~ y ~Pytorch~.
+- El paquete de ~keras~ es una colección de métodos que hacen la definición de una red neuronal mas sencilla.
+- El paquete de ~torch~ de ~R~ es un paquete que permite el ajuste de modelos sin usar la interfase a ~python~. 
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
