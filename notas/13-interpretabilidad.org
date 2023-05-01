@@ -1,0 +1,366 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Interpretabilidad~
+#+STARTUP: showall
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/13-interpretabilidad.pdf
+:END:
+#+PROPERTY: header-args:R :session intepretability :exports both :results output org :tangle ../rscripts/13-interpretability.R :mkdirp yes :dir ../ :eval never
+#+EXCLUDE_TAGS: toc
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Interpretabilidad y explicabilidad.\\
+*Objetivo*: Que veremos.\\
+*Lectura recomendada*: citep:Biecek2021 y citep:Molnar2020.
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  library(tidymodels)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Table of Contents                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#preparación-de-datos][Preparación de datos]]
+  - [[#especificación-del-modelo][Especificación del modelo]]
+- [[#interpretabilidad][Interpretabilidad]]
+:END:
+
+* Introducción
+
+Ejemplo tomado de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random forests for #TidyTuesday IKEA prices]].
+
+#+begin_src R :exports none :results none
+  ## Aplicacion: Precios de IKEA ---------------------------------------------
+  ikea <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-03/ikea.csv")
+#+end_src
+
+#+REVEAL: split
+Los datos que tenemos disponibles son los siguientes. 
+#+begin_src R :exports both :results org 
+  ikea_df <- ikea |>
+    select(price, name, category, depth, height, width) |>
+    mutate(price = log10(price)) |>
+    mutate_if(is.character, factor)
+
+  ikea_df |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 3,694 × 6
+  price name                  category      depth height width
+  <dbl> <fct>                 <fct>         <dbl>  <dbl> <dbl>
+1  2.42 FREKVENS              Bar furniture    NA     99    51
+2  3.00 NORDVIKEN             Bar furniture    NA    105    80
+3  3.32 NORDVIKEN / NORDVIKEN Bar furniture    NA     NA    NA
+4  1.84 STIG                  Bar furniture    50    100    60
+5  2.35 NORBERG               Bar furniture    60     43    74
+# … with 3,689 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+** Preparación de datos
+
+#+begin_src R :exports none :results none
+  ### Preporocesamiento --------------------------------------------------------
+#+end_src
+
+#+begin_src R :exports code :results none 
+  set.seed(123)
+  ikea_split <- initial_split(ikea_df, strata = price)
+  ikea_train <- training(ikea_split)
+  ikea_test <- testing(ikea_split)
+
+  set.seed(234)
+  ikea_folds <- vfold_cv(ikea_train, strata = price)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  library(textrecipes)
+  ranger_recipe <-
+    recipe(formula = price ~ ., data = ikea_train) |>
+    step_other(name, category, threshold = 0.01) |>
+    step_clean_levels(name, category) |>
+    step_impute_knn(depth, height, width)
+#+end_src
+
+\newpage
+
+** Especificación del modelo
+
+#+begin_src R :exports none :results none
+  ### Especificación modelo ----------------------------------------------------
+#+end_src
+
+#+begin_src R :exports code :results none 
+  ranger_spec <-
+    rand_forest(trees = 1000) |>
+    set_mode("regression") |>
+    set_engine("ranger")
+
+  ranger_workflow <-
+    workflow() |>
+    add_recipe(ranger_recipe) |>
+    add_model(ranger_spec)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  all_cores <- parallel::detectCores(logical = TRUE) - 1
+  library(doParallel)
+  cl <- makePSOCKcluster(all_cores)
+  registerDoParallel(cl)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org 
+  ikea_rf <- ranger_workflow |> fit(data = ikea_train)
+  ikea_rf
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+══ Workflow [trained] ═══════════════════════════════════════════════════════════════
+Preprocessor: Recipe
+Model: rand_forest()
+
+── Preprocessor ─────────────────────────────────────────────────────────────────────
+3 Recipe Steps
+
+• step_other()
+• step_clean_levels()
+• step_impute_knn()
+
+── Model ────────────────────────────────────────────────────────────────────────────
+Ranger result
+
+Call:
+ ranger::ranger(x = maybe_data_frame(x), y = y, num.trees = ~1000,      num.threads = 1, verbose = FALSE, seed = sample.int(10^5,          1)) 
+
+Type:                             Regression 
+Number of trees:                  1000 
+Sample size:                      2770 
+Number of independent variables:  5 
+Mtry:                             2 
+Target node size:                 5 
+Variable importance mode:         none 
+Splitrule:                        variance 
+OOB prediction error (MSE):       0.1017 
+R squared (OOB):                  0.7576
+#+end_src
+
+* Interpretabilidad
+
+#+begin_src R :exports code :results none
+  library(DALEXtra)
+#+end_src
+
+#+begin_src R :exports code :results org 
+  explainer_rf <- 
+    explain_tidymodels(
+      ikea_rf, 
+      data = ikea_train |> select(-price), 
+      y    = ikea_train |> pull(price),
+      label = "random forest",
+      verbose = FALSE
+    )
+#+end_src
+
+#+begin_src R :exports code :results org 
+  set.seed(123)
+  mueble <- ikea_test |> sample_n(1)
+  mueble
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 6
+  price name     category                         depth height width
+  <dbl> <fct>    <fct>                            <dbl>  <dbl> <dbl>
+1  2.98 TYSSEDAL Chests of drawers & drawer units    49    102    67
+#+end_src
+
+#+begin_src R :exports code :results org 
+  rf_breakdown <- predict_parts(explainer = explainer_rf, new_observation = mueble)
+  rf_breakdown
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+                            contribution
+random forest: intercept           2.665
+random forest: depth = 49          0.081
+random forest: width = 67         -0.031
+random forest: height = 102        0.110
+random forest: name = 568          0.011
+random forest: category = 7       -0.037
+random forest: prediction          2.799
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/breakdown-ikea-rf.jpeg :exports results :results output graphics file
+  rf_breakdown |>
+  plot()
+#+end_src
+
+#+RESULTS:
+[[file:../images/breakdown-ikea-rf.jpeg]]
+
+
+
+#+begin_src R :exports code :results org 
+  set.seed(1801)
+  shap_mueble <- 
+    predict_parts(
+      explainer = explainer_rf, 
+      new_observation = mueble, 
+      type = "shap",
+      B = 20
+    )
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/shap-ikea-rf.jpeg :exports results :results output graphics file
+  shap_mueble |>
+  plot()
+#+end_src
+
+#+RESULTS:
+[[file:../images/shap-ikea-rf.jpeg]]
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/model-parts-ikea-rf.jpeg :exports results :results output graphics file
+  set.seed(1804)
+  vip_rf <- model_parts(explainer_rf, loss_function = loss_root_mean_square)
+  plot(vip_rf)
+#+end_src
+
+#+RESULTS:
+[[file:../images/model-parts-ikea-rf.jpeg]]
+
+
+#+begin_src R :exports code :results org 
+  set.seed(1805)
+  pdp_width <- model_profile(explainer_rf, N = 500, variables = "width")
+#+end_src
+
+#+begin_src R :exports none :results none
+  ggplot_pdp <- function(obj, x) {
+  
+    p <- 
+      as_tibble(obj$agr_profiles) %>%
+      mutate(`_label_` = stringr::str_remove(`_label_`, "^[^_]*_")) %>%
+      ggplot(aes(`_x_`, `_yhat_`)) +
+      geom_line(data = as_tibble(obj$cp_profiles),
+                aes(x = {{ x }}, group = `_ids_`),
+                linewidth = 0.5, alpha = 0.05, color = "gray50")
+  
+    num_colors <- n_distinct(obj$agr_profiles$`_label_`)
+  
+    if (num_colors > 1) {
+      p <- p + geom_line(aes(color = `_label_`), linewidth = 1.2, alpha = 0.8)
+    } else {
+      p <- p + geom_line(color = "midnightblue", linewidth = 1.2, alpha = 0.8)
+    }
+  
+    p
+  }
+
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/pdp-ikea-forest.jpeg :exports results :results output graphics file
+  pdp_width |> ggplot_pdp(width) +
+  labs(x = "Width", 
+       y = "Price", 
+       color = NULL) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/pdp-ikea-forest.jpeg]]
+
+
+#+begin_src R :exports code :results org 
+  set.seed(1806)
+  pdp_wcat <- model_profile(explainer_rf, N = 1000, 
+                           variables = "width", 
+                           groups = "category")
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+#+end_src
+
+#+HEADER: :width 900 :height 900 :R-dev-args bg="transparent"
+#+begin_src R :file images/pdp-groups-ikea-forest.jpeg :exports results :results output graphics file
+as_tibble(pdp_wcat$agr_profiles) %>%
+  mutate(category = stringr::str_remove(`_label_`, "random forest_")) %>%
+  ggplot(aes(`_x_`, `_yhat_`, color = category)) +
+  geom_line(data = as_tibble(pdp_wcat$cp_profiles),
+            aes(x = width, group = `_ids_`),
+            linewidth = 0.5, alpha = 0.1, color = "gray50") +
+  geom_line(linewidth = 1.2, alpha = 0.8, show.legend = FALSE) +
+  scale_x_log10() +
+  facet_wrap(~category, ncol = 4) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "width", 
+       y = "price", 
+       color = NULL) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/pdp-groups-ikea-forest.jpeg]]
+
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
