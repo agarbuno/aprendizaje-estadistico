@@ -1,0 +1,692 @@
+#+TITLE: EST-25134: Aprendizaje Estadístico
+#+AUTHOR: Prof. Alfredo Garbuno Iñigo
+#+EMAIL:  agarbuno@itam.mx
+#+DATE: ~Interpretabilidad~
+#+STARTUP: showall
+:LATEX_PROPERTIES:
+#+OPTIONS: toc:nil date:nil author:nil tasks:nil
+#+LANGUAGE: sp
+#+LATEX_CLASS: handout
+#+LATEX_HEADER: \usepackage[spanish]{babel}
+#+LATEX_HEADER: \usepackage[sort,numbers]{natbib}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc} 
+#+LATEX_HEADER: \usepackage[capitalize]{cleveref}
+#+LATEX_HEADER: \decimalpoint
+#+LATEX_HEADER:\usepackage{framed}
+#+LaTeX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LaTeX_HEADER: \definecolor{backcolour}{rgb}{.95,0.95,0.92}
+#+LaTeX_HEADER: \definecolor{codegray}{rgb}{0.5,0.5,0.5}
+#+LaTeX_HEADER: \definecolor{codegreen}{rgb}{0,0.6,0} 
+#+LaTeX_HEADER: {}
+#+LaTeX_HEADER: {\lstset{language={R},basicstyle={\ttfamily\footnotesize},frame=single,breaklines=true,fancyvrb=true,literate={"}{{\texttt{"}}}1{<-}{{$\bm\leftarrow$}}1{<<-}{{$\bm\twoheadleftarrow$}}1{~}{{$\bm\sim$}}1{<=}{{$\bm\le$}}1{>=}{{$\bm\ge$}}1{!=}{{$\bm\neq$}}1{^}{{$^{\bm\wedge}$}}1{|>}{{$\rhd$}}1,otherkeywords={!=, ~, $, \&, \%/\%, \%*\%, \%\%, <-, <<-, ::, /},extendedchars=false,commentstyle={\ttfamily \itshape\color{codegreen}},stringstyle={\color{red}}}
+#+LaTeX_HEADER: {}
+#+LATEX_HEADER_EXTRA: \definecolor{shadecolor}{gray}{.95}
+#+LATEX_HEADER_EXTRA: \newenvironment{NOTES}{\begin{lrbox}{\mybox}\begin{minipage}{0.95\textwidth}\begin{shaded}}{\end{shaded}\end{minipage}\end{lrbox}\fbox{\usebox{\mybox}}}
+#+EXPORT_FILE_NAME: ../docs/13-interpretabilidad.pdf
+:END:
+#+PROPERTY: header-args:R :session intepretability :exports both :results output org :tangle ../rscripts/13-interpretability.R :mkdirp yes :dir ../ :eval never
+#+EXCLUDE_TAGS: toc noexport
+
+#+BEGIN_NOTES
+*Profesor*: Alfredo Garbuno Iñigo | Primavera, 2023 | Interpretabilidad y explicabilidad de modelos predictivos.\\
+*Objetivo*: En aplicaciones de modelos predictivos usualmente se consideran modelos con alto poder predictivo. A su vez, estos modelos son altamente complejos y es dificil /explicar/ el cómo una predicción es realizada a consecuencia del vector de atributos en consideración. En esta sección estudiaremos algunas de las nociones de interpretabilidad de modelos.\\
+*Lectura recomendada*: Los libros de citet:Biecek2021 y citet:Molnar2020 son dos publicaciones recientes que tratan temas de interpretabilidad y explicabilidad de modelos.
+#+END_NOTES
+
+#+begin_src R :exports none :results none
+  ## Setup ---------------------------------------------------------------------
+  library(tidyverse)
+  library(patchwork)
+  library(scales)
+  library(tidymodels)
+
+  ## Cambia el default del tamaño de fuente 
+  theme_set(theme_linedraw(base_size = 25))
+
+  ## Cambia el número de decimales para mostrar
+  options(digits = 4)
+  ## Problemas con mi consola en Emacs
+  options(pillar.subtle = FALSE)
+  options(rlang_backtrace_on_error = "none")
+  options(crayon.enabled = FALSE)
+
+  ## Para el tema de ggplot
+  sin_lineas <- theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+  color.itam  <- c("#00362b","#004a3b", "#00503f", "#006953", "#008367", "#009c7b", "#00b68f", NA)
+
+  sin_leyenda <- theme(legend.position = "none")
+  sin_ejes <- theme(axis.ticks = element_blank(), axis.text = element_blank())
+#+end_src
+
+
+* Table of Contents                                                             :toc:
+:PROPERTIES:
+:TOC:      :include all  :ignore this :depth 3
+:END:
+:CONTENTS:
+- [[#introducción][Introducción]]
+  - [[#especificación-del-modelo][Especificación del modelo]]
+- [[#interpretabilidad][Interpretabilidad]]
+- [[#métodos-de-interpretabilidad-local][Métodos de interpretabilidad local]]
+  - [[#para-pensar][Para pensar:]]
+- [[#descomposición-secuencial-aditiva][Descomposición secuencial aditiva]]
+- [[#expansiones-lineales-locales][Expansiones lineales locales]]
+  - [[#construcción-de-lime][Construcción de LIME]]
+  - [[#observaciones][Observaciones]]
+:END:
+
+* Introducción
+
+ En aplicaciones de modelos predictivos usualmente se consideran modelos con
+ alto poder predictivo. A su vez, estos modelos son altamente complejos y es
+ dificil /explicar/ el cómo una predicción es realizada a consecuencia del vector
+ de atributos en consideración. En esta sección estudiaremos algunas de las
+ nociones de interpretabilidad de modelos.
+
+#+REVEAL: split
+Para algunos modelos, como regresión lineal o árboles de decisión, es
+ relativamente sencillo interpretar las relaciones entre atributos y
+ variable respuesta. 
+
+#+REVEAL: split
+Para ilustrar retomaremos el ejemplo de productos de ~Ikea~, el cual es original de:  [[https://juliasilge.com/blog/ikea-prices/][Tune random forests for #TidyTuesday IKEA prices]].
+
+#+begin_src R :exports none :results none
+  ## Aplicacion: Precios de IKEA ---------------------------------------------
+  ikea <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-03/ikea.csv")
+#+end_src
+
+#+REVEAL: split
+Los datos que tenemos disponibles son los siguientes. 
+#+begin_src R :exports both :results org 
+  ikea_df <- ikea |>
+    select(price, name, category, depth, height, width) |>
+    mutate(price = log10(price)) |>
+    mutate_if(is.character, factor)
+
+  ikea_df |> print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 3,694 × 6
+  price name                  category      depth height width
+  <dbl> <fct>                 <fct>         <dbl>  <dbl> <dbl>
+1  2.42 FREKVENS              Bar furniture    NA     99    51
+2  3.00 NORDVIKEN             Bar furniture    NA    105    80
+3  3.32 NORDVIKEN / NORDVIKEN Bar furniture    NA     NA    NA
+4  1.84 STIG                  Bar furniture    50    100    60
+5  2.35 NORBERG               Bar furniture    60     43    74
+# … with 3,689 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+#+REVEAL: split
+Los cuales son sometidos a nuestro típico flujo de trabajo de ajuste de modelos
+predictivos junto con un proceso de separación de muestras para métricas de
+generalización y selección de hiper-parámetros.
+
+\newpage
+
+#+begin_src R :exports none :results none
+  ### Preporocesamiento --------------------------------------------------------
+#+end_src
+
+#+begin_src R :exports code :results none 
+  set.seed(123)
+  ikea_split <- initial_split(ikea_df, strata = price)
+  ikea_train <- training(ikea_split)
+  ikea_test <- testing(ikea_split)
+
+  set.seed(234)
+  ikea_folds <- vfold_cv(ikea_train, strata = price)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  library(textrecipes)
+  ranger_recipe <-
+    recipe(formula = price ~ ., data = ikea_train) |>
+    step_other(name, category, threshold = 0.01) |>
+    step_clean_levels(name, category) |>
+    step_impute_knn(depth, height, width)
+#+end_src
+
+#+begin_src R :exports code :results none 
+  linear_recipe <-
+    recipe(formula = price ~ ., data = ikea_train) |>
+    step_other(name, category, threshold = 0.01) |>
+    step_clean_levels(name, category) |>
+    step_impute_knn(depth, height, width) |>
+    step_dummy(all_nominal_predictors()) |>
+    step_normalize(all_predictors())
+#+end_src
+
+** Especificación del modelo
+
+#+begin_src R :exports none :results none
+  ### Especificación modelo ----------------------------------------------------
+#+end_src
+
+#+begin_src R :exports code :results none 
+  linear_spec <-
+    linear_reg(penalty = 1e-3) |>
+    set_mode("regression") |>
+    set_engine("glmnet")
+
+  linear_workflow <-
+    workflow() |>
+    add_recipe(linear_recipe) |>
+    add_model(linear_spec)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  ranger_spec <-
+    rand_forest(trees = 1000) |>
+    set_mode("regression") |>
+    set_engine("ranger", importance = "impurity")
+
+  ranger_workflow <-
+    workflow() |>
+    add_recipe(ranger_recipe) |>
+    add_model(ranger_spec)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  all_cores <- parallel::detectCores(logical = TRUE) - 1
+  library(doParallel)
+  cl <- makePSOCKcluster(all_cores)
+  registerDoParallel(cl)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none 
+  ikea_lm <- linear_workflow |> fit(data = ikea_train)
+  ikea_rf <- ranger_workflow |> fit(data = ikea_train)
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 900 :height 500 :R-dev-args bg="transparent"
+#+begin_src R :file images/ikea-compare-predictions.jpeg :exports results :results output graphics file
+  augment(ikea_lm, ikea_test) |>
+    mutate(.linear = .pred,
+           .ranger = predict(ikea_rf, ikea_test) |> pull(.pred)) |>
+    select(c(price, 8:9)) |>
+    pivot_longer(cols = 2:3, names_to = "model", values_to = "predictions") |>
+  ggplot(aes(price, predictions)) +
+  geom_point(alpha = .4) +
+  facet_wrap(~model) +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  sin_lineas +
+  coord_equal()
+#+end_src
+
+#+RESULTS:
+[[file:../images/ikea-compare-predictions.jpeg]]
+
+#+begin_src R :exports none :results none
+  ## (cambio a slides)
+#+end_src
+
+* Interpretabilidad
+
+Iremos explorando los conceptos necesarios para interpretabilidad conforme los necesitemos. Primero necesitaremos herramientas de trabajo desde ~R~, y para esta tarea podeos usar ~lime~, ~vip~ y ~DALEXtra~.
+
+#+REVEAL: split
+En general podemos usar:
+- ~vip~ para usar métodos basados en algún modelo en particular para aprovechar la estructura del modelo predictivo.
+- ~DALEX~ para usar métodos que no requieren de una estrcutura en particular (usaremos ~DALEXtra~ para compatibilidad con ~tidymodels~). 
+
+#+begin_src R :exports code :results none
+  library(DALEXtra)
+#+end_src
+
+#+REVEAL: split
+Para poder comenzar lo que tenemos que hacer es crear los objetos de ~DALEX~
+(/moDel Agnostic Language for Exploration and eXplanation/).
+
+#+begin_src R :exports code :results none
+  explainer_lm <- 
+    explain_tidymodels(
+      ikea_lm, 
+      data = ikea_train |> select(-price), 
+      y    = ikea_train |> pull(price),
+      label = "linear model",
+      verbose = FALSE
+    )
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  explainer_rf <- 
+    explain_tidymodels(
+      ikea_rf, 
+      data = ikea_train |> select(-price), 
+      y    = ikea_train |> pull(price),
+      label = "random forest",
+      verbose = FALSE
+    )
+#+end_src
+
+* Métodos de interpretabilidad local
+
+Los siguientes métodos que veremos son ~métodos locales~ es decir, tomamos una
+$x^\star \in \mathcal{X} \subset \mathbb{R}^p$ en particular y exploramos la
+respuesta a partir de este punto. Por ejemplo, consideremos como $x^\star$ la
+observación donde queremos explorar el modelo.
+
+#+begin_src R :exports both :results org 
+  set.seed(123)
+  mueble <- ikea_test |> sample_n(1)
+  mueble
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 1 × 6
+  price name     category                         depth height width
+  <dbl> <fct>    <fct>                            <dbl>  <dbl> <dbl>
+1  2.98 TYSSEDAL Chests of drawers & drawer units    49    102    67
+#+end_src
+
+#+REVEAL: split
+Sabemos de modelos lineales que los coeficientes están asociados a las
+contribuciones de cada predictor a la respuesta. Usualmente, interpretados bajo
+un principio /ceteris paribus/ (interpretado en nuestro contexto: dejando
+constantes los demás predictores constantes).
+
+#+begin_src R :exports both :results org
+  ikea_lm |> extract_fit_parsnip() |>
+    tidy() |>
+    print(n = 5)
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+# A tibble: 35 × 3
+  term        estimate penalty
+  <chr>          <dbl>   <dbl>
+1 (Intercept)  2.67      0.001
+2 depth        0.104     0.001
+3 height       0.155     0.001
+4 width        0.237     0.001
+5 name_bekant  0.00497   0.001
+# … with 30 more rows
+# ℹ Use `print(n = ...)` to see more rows
+#+end_src
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Un profesional de la estadística les recordaría el concepto de /ceteris paribus/ en el contexto de regresión. ¿Es alrededor del vector $x^\star \in \mathcal{X}$ el que usamos para la interpretación o es alrededor del individuo promedio $\bar{x} \in \mathcal{X}$ el que usamos para interpretar el ajuste?
+
+* Descomposición secuencial aditiva
+
+Recordemos que nuestras predicciones (en regresión) se pueden asociar a la función de regresión
+\begin{align}
+\hat{f}(x) = \mathbb{E}[y | x]\,,
+\end{align}
+siempre y cuando utilicemos pérdida cuadrática para realizar el ajuste.
+
+#+REVEAL: split
+Por ejemplo en regresión lineal podemos calcular el valor esperado de la respuesta para una observación  $x^\star$ por medio de 
+\begin{align}
+\mathbb{E}[y | x^\star] = \beta_0 + \beta_1 x^\star_{1} + \cdots + \beta_p x^\star_{p} \,,
+\end{align}
+donde los  coeficientes $\beta$  se ajustan por $\mathsf{MCO}$.
+
+#+REVEAL: split
+En general, podemos calcular cómo cambia el valor esperado de $y$ condicionado en que el atributo $j$ tiene un valor de $X_{j}$ por medio de
+\begin{align}
+\iota(j, x^\star) = \mathbb{E}[Y|x^\star] - \mathbb{E}_{X_{j}}[ \mathbb{E} [y | X_{j}]]\,,
+\end{align}
+donde $\iota(j, x^\star)$ mide la importancia de la variable $j$ evaluada en el punto $x^\star$.
+
+#+REVEAL: split
+Por ejemplo, en regresión lineal tenemos la expresión particular de
+\begin{align}
+\iota(j, x^\star) = \beta_j \left( x^\star_j - \mathbb{E}[X_j] \right)\,,
+\end{align}
+que podemos utilizar para expresar
+\begin{align}
+\hat{f}(x^\star) = (\mathsf{prediccion\,\,media}) + \sum_{j  = 1}^{p} \iota(j , x^\star)\,.
+\end{align}
+
+En general, cuando usamos modelos no lineales podemos pensar en
+\begin{align}
+\iota(j, x^\star) = \mathbb{E}[Y|x^\star_{1:j}] - \mathbb{E} [y | x^\star_{1:j-1}]\,,
+\end{align}
+para preservar una suma telescópica como la anterior. 
+
+#+BEGIN_NOTES
+Nota como el orden de los atributos afecta la descomposición de la predicción en
+términos individuales. Como es de esperarse es un mal resumen cuando hay
+interacción entre atributos.
+#+END_NOTES
+
+#+REVEAL: split
+Una vez que hemos decidido sobre cual individuo (observación o instancia) queremos hacer la expansión podemos usar ~DALEX~ para poder crear métricas de sensibilidad. Para esto utilizamos la función ~predict_parts()~.
+
+#+begin_src R :exports both :results org 
+  lm_breakdown <- predict_parts(
+    explainer = explainer_lm,
+    new_observation = mueble
+  )
+  lm_breakdown
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+                           contribution
+linear model: intercept           2.665
+linear model: width = 67         -0.162
+linear model: category = 7        0.146
+linear model: name = 568         -0.049
+linear model: depth = 49          0.022
+linear model: height = 102       -0.016
+linear model: prediction          2.606
+#+end_src
+
+#+REVEAL: split
+Lo mismo podemos hacer para nuestro modelo de ~random forest~. En este tipo de
+tablas interpretamos cómo cada cambio va alejándonos de nuestro /intercepto/ (la
+respuesta promedio de nuestro modelo predictivo).
+
+#+begin_src R :exports both :results org 
+  rf_breakdown <- predict_parts(
+    explainer = explainer_rf,
+    new_observation = mueble
+  )
+  rf_breakdown
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+                            contribution
+random forest: intercept           2.665
+random forest: depth = 49          0.082
+random forest: width = 67         -0.037
+random forest: height = 102        0.111
+random forest: name = 568          0.008
+random forest: category = 7       -0.033
+random forest: prediction          2.795
+#+end_src
+
+#+REVEAL: split
+La interpretación cambia de acuerdo al orden en como se van presentando los
+cambios en los atributos y para esto podemos usar el modelo lineal como una heuristica de orden.
+
+#+begin_src R :exports both :results org 
+  rfor_breakdown <- predict_parts(
+    explainer = explainer_rf,
+    new_observation = mueble,
+    order = lm_breakdown$variable_name
+  )
+  rfor_breakdown
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+                            contribution
+random forest: intercept           2.665
+random forest: width = 67         -0.063
+random forest: category = 7       -0.050
+random forest: name = 568         -0.028
+random forest: depth = 49          0.183
+random forest: height = 102        0.088
+random forest: prediction          2.795
+#+end_src
+
+#+REVEAL: split
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/breakdown-ikea-rf.jpeg :exports results :results output graphics file
+  g2 <- rf_breakdown |> plot() + sin_lineas
+  g1 <- lm_breakdown |> plot() + sin_lineas
+  g3 <- rfor_breakdown |> plot() + sin_lineas
+  g1 + g2 + g3
+#+end_src
+
+#+RESULTS:
+[[file:../images/breakdown-ikea-rf.jpeg]]
+
+#+REVEAL: split
+Podemos utilizar también la siguiente opción para explorar posibles contribuciones derivadas de interacciones. 
+
+#+begin_src R :exports both :results org 
+  rfin_breakdown <- predict_parts(
+    explainer = explainer_rf,
+    new_observation = mueble,
+    type = "break_down_interactions"
+  )
+  rfin_breakdown
+#+end_src
+
+#+RESULTS:
+#+begin_src org
+                                     contribution
+random forest: intercept                    2.665
+random forest: depth = 49                   0.082
+random forest: width:category = 67:7       -0.033
+random forest: height = 102                 0.090
+random forest: name = 568                  -0.009
+random forest: prediction                   2.795
+#+end_src
+
+* Expansiones lineales locales
+
+Podemos explorar la idea de aproximar un modelo predictivo sumamente complejo por uno altamente transparente. Esta es la idea detras de ~LIME~ (/Local Interpretable Model-agnostic Explanations/).
+
+#+REVEAL: split
+Por ejemplo, podemos utilizar la función ~predict_surrogate()~ de la siguiente manera
+#+begin_src R :exports code :results none 
+  xgb_spec <-
+    boost_tree(trees = 1000) |>
+    set_mode("regression") |>
+    set_engine("xgboost")
+
+  xgb_workflow <-
+    workflow() |>
+    add_recipe(ranger_recipe |> step_dummy(all_nominal_predictors())) |>
+    add_model(xgb_spec)
+#+end_src
+
+#+begin_src R :exports code :results none 
+  ikea_xgb <- xgb_workflow |> fit(data = ikea_train)
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports code :results none
+  explainer_xgb <- 
+    DALEX::explain(
+      ikea_xgb, 
+      data = ikea_train |> select(-price), 
+      y    = ikea_train |> pull(price),
+      label = "boosted trees",
+      verbose = FALSE
+    )
+#+end_src
+
+#+REVEAL: split
+#+begin_src R :exports both :results org
+  library(lime)
+  set.seed(108)
+  model_type.dalex_explainer <- DALEXtra::model_type.dalex_explainer
+  predict_model.dalex_explainer <- DALEXtra::predict_model.dalex_explainer
+
+  lime_mueble <- predict_surrogate(
+    explainer = explainer_xgb,
+    new_observation = mueble,
+    n_features = 3,
+    n_permutations = 500,
+    type = "lime"
+  )
+
+  lime_mueble |> print(width = 85)
+#+end_src
+#+REVEAL: split
+#+RESULTS:
+#+begin_src org
+# A tibble: 3 × 11
+  model_type case  model_r2 model_intercept model_prediction feature 
+  <chr>      <chr>    <dbl>           <dbl>            <dbl> <chr>   
+1 regression 1       0.0401            2.40             2.77 depth   
+2 regression 1       0.0401            2.40             2.77 category
+3 regression 1       0.0401            2.40             2.77 height  
+  feature_value feature_weight feature_desc              data         predi…¹
+          <dbl>          <dbl> <chr>                     <list>         <dbl>
+1            49         0.226  47 < depth <= 60          <named list>    2.70
+2             7         0.215  category = Chests of dra… <named list>    2.70
+3           102        -0.0694 83.5 < height <= 128.0    <named list>    2.70
+# … with abbreviated variable name ¹​prediction
+#+end_src
+
+El modelo lineal descrito arriba realiza predicciones por medio de
+\begin{align}
+\hat{f}(x_{\mathsf{mueble}}) = 2.40 + 0.226 \times  x_1 + 0.215 \times x_2 -0.07 \times x_3\,.
+\end{align}
+
+#+REVEAL: split
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/lime-xboost.jpeg :exports results :results output graphics file
+  lime_mueble |> plot()
+#+end_src
+
+#+RESULTS:
+[[file:../images/lime-xboost.jpeg]]
+
+
+** Construcción de ~LIME~
+
+La idea es sencilla. Tenemos un modelo predictivo $\hat{f}(x)$ que hemos ajustado con un conjunto de datos. Ahora lo que buscamos es un modelo /transparente/ $g$ tal que
+\begin{align}
+\hat{g}(x) = \arg \min_{g \in \mathcal{G}^\star} \|g - \hat{f}\|^2 + \Omega(g)\,,
+\end{align}
+donde $\mathcal{G}^\star = \{g : \mathcal{N}(x^\star) \subset \mathcal{X} \rightarrow \mathcal{Y}| g \text{ es una función sencilla }\}$,
+$\|\cdot\|$ es una norma apropiada para modelos predictivos y $\Omega(\cdot)$ asigna una penalización por
+complejidad de $g$.
+
+#+REVEAL: split
+- Usualmente restringimos $\mathcal{G}^\star$ a ser un espacio de funciones lineales que incluye sólo $d$ entradas (con $d \ll p$).
+- Para generar puntos en $\mathcal{N}(x^\star)$ creamos perturbaciones a partir de $x^\star$ y evaluamos el modelo entrenado $\hat{f}$ en esos puntos.
+- Ajustamos un modelo de regresión lineal para el conjunto de datos sintéticos.
+
+** Observaciones
+
+- No hacemos supuestos sobre el modelo $\hat{f}$.
+- La representación en menores dimensiones nos ayuda a mantener los atributos en un marco manejable.
+- La aproximación sólo es local.
+- Puede y ha sido utilizado en modelos de texto y visión por computadora.
+- Hay que recordar que sólo es una interpretación del modelo ajustado, no de los datos.
+- Nosotros utilizamos sólo las funciones de ~lime~ pero también pueden utilizar ~iml~ o ~localModels~, pueden ver mas [[https://ema.drwhy.ai/LIME.html][aquí]].
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+
+
+* SHAP values                                                      :noexport:
+
+#+begin_src R :exports code :results org 
+  set.seed(1801)
+  shap_mueble <- 
+    predict_parts(
+      explainer = explainer_rf, 
+      new_observation = mueble, 
+      type = "shap",
+      B = 20
+    )
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/shap-ikea-rf.jpeg :exports results :results output graphics file
+  shap_mueble |>
+  plot()
+#+end_src
+
+#+RESULTS:
+[[file:../images/shap-ikea-rf.jpeg]]
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/model-parts-ikea-rf.jpeg :exports results :results output graphics file
+  set.seed(1804)
+  vip_rf <- model_parts(explainer_rf, loss_function = loss_root_mean_square)
+  plot(vip_rf)
+#+end_src
+
+#+RESULTS:
+[[file:../images/model-parts-ikea-rf.jpeg]]
+
+
+#+begin_src R :exports code :results org 
+  set.seed(1805)
+  pdp_width <- model_profile(explainer_rf, N = 500, variables = "width")
+#+end_src
+
+#+begin_src R :exports none :results none
+  ggplot_pdp <- function(obj, x) {
+  
+    p <- 
+      as_tibble(obj$agr_profiles) %>%
+      mutate(`_label_` = stringr::str_remove(`_label_`, "^[^_]*_")) %>%
+      ggplot(aes(`_x_`, `_yhat_`)) +
+      geom_line(data = as_tibble(obj$cp_profiles),
+                aes(x = {{ x }}, group = `_ids_`),
+                linewidth = 0.5, alpha = 0.05, color = "gray50")
+  
+    num_colors <- n_distinct(obj$agr_profiles$`_label_`)
+  
+    if (num_colors > 1) {
+      p <- p + geom_line(aes(color = `_label_`), linewidth = 1.2, alpha = 0.8)
+    } else {
+      p <- p + geom_line(color = "midnightblue", linewidth = 1.2, alpha = 0.8)
+    }
+  
+    p
+  }
+
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/pdp-ikea-forest.jpeg :exports results :results output graphics file
+  pdp_width |> ggplot_pdp(width) +
+  labs(x = "Width", 
+       y = "Price", 
+       color = NULL) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/pdp-ikea-forest.jpeg]]
+
+
+#+begin_src R :exports code :results none
+  set.seed(1806)
+  pdp_wcat <- model_profile(explainer_rf, N = 1000, 
+                           variables = "width", 
+                           groups = "category")
+#+end_src
+
+
+#+HEADER: :width 900 :height 900 :R-dev-args bg="transparent"
+#+begin_src R :file images/pdp-groups-ikea-forest.jpeg :exports results :results output graphics file
+as_tibble(pdp_wcat$agr_profiles) %>%
+  mutate(category = stringr::str_remove(`_label_`, "random forest_")) %>%
+  ggplot(aes(`_x_`, `_yhat_`, color = category)) +
+  geom_line(data = as_tibble(pdp_wcat$cp_profiles),
+            aes(x = width, group = `_ids_`),
+            linewidth = 0.5, alpha = 0.1, color = "gray50") +
+  geom_line(linewidth = 1.2, alpha = 0.8, show.legend = FALSE) +
+  scale_x_log10() +
+  facet_wrap(~category, ncol = 4) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "width", 
+       y = "price", 
+       color = NULL) + sin_lineas
+#+end_src
+
+#+RESULTS:
+[[file:../images/pdp-groups-ikea-forest.jpeg]]
