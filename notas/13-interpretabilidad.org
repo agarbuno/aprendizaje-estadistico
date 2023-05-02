@@ -183,6 +183,7 @@ generalización y selección de hiper-parámetros.
     add_model(linear_spec)
 #+end_src
 
+#+REVEAL: split
 #+begin_src R :exports code :results none 
   ranger_spec <-
     rand_forest(trees = 1000) |>
@@ -236,6 +237,7 @@ generalización y selección de hiper-parámetros.
 
 Iremos explorando los conceptos necesarios para interpretabilidad conforme los necesitemos. Primero necesitaremos herramientas de trabajo desde ~R~, y para esta tarea podeos usar ~lime~, ~vip~ y ~DALEXtra~.
 
+#+REVEAL: split
 En general podemos usar:
 - ~vip~ para usar métodos basados en algún modelo en particular para aprovechar la estructura del modelo predictivo.
 - ~DALEX~ para usar métodos que no requieren de una estrcutura en particular (usaremos ~DALEXtra~ para compatibilidad con ~tidymodels~). 
@@ -276,7 +278,7 @@ Para poder comenzar lo que tenemos que hacer es crear los objetos de ~DALEX~
 Los siguientes métodos que veremos son ~métodos locales~ es decir, tomamos una
 $x^\star \in \mathcal{X} \subset \mathbb{R}^p$ en particular y exploramos la
 respuesta a partir de este punto. Por ejemplo, consideremos como $x^\star$ la
-localidad donde queremos explorar el modelo.
+observación donde queremos explorar el modelo.
 
 #+begin_src R :exports both :results org 
   set.seed(123)
@@ -322,7 +324,7 @@ constantes los demás predictores constantes).
 :PROPERTIES:
 :reveal_background: #00468b
 :END:
-Un profesional de la estadística les recordaría el concepto de /ceteris paribus/ en el contexto de regresión. Es alrededor del vector $x^\star \in \mathcal{X}$ el que usamos para la interpretación o es alrededor del individuo promedio $\bar{x} \in \mathcal{X}$ el que usamos para interpretar el ajuste?
+Un profesional de la estadística les recordaría el concepto de /ceteris paribus/ en el contexto de regresión. ¿Es alrededor del vector $x^\star \in \mathcal{X}$ el que usamos para la interpretación o es alrededor del individuo promedio $\bar{x} \in \mathcal{X}$ el que usamos para interpretar el ajuste?
 
 * Descomposición secuencial aditiva
 
@@ -371,7 +373,7 @@ interacción entre atributos.
 #+REVEAL: split
 Una vez que hemos decidido sobre cual individuo (observación o instancia) queremos hacer la expansión podemos usar ~DALEX~ para poder crear métricas de sensibilidad. Para esto utilizamos la función ~predict_parts()~.
 
-#+begin_src R :exports code :results org 
+#+begin_src R :exports both :results org 
   lm_breakdown <- predict_parts(
     explainer = explainer_lm,
     new_observation = mueble
@@ -396,7 +398,7 @@ Lo mismo podemos hacer para nuestro modelo de ~random forest~. En este tipo de
 tablas interpretamos cómo cada cambio va alejándonos de nuestro /intercepto/ (la
 respuesta promedio de nuestro modelo predictivo).
 
-#+begin_src R :exports code :results org 
+#+begin_src R :exports both :results org 
   rf_breakdown <- predict_parts(
     explainer = explainer_rf,
     new_observation = mueble
@@ -565,8 +567,8 @@ La idea es sencilla. Tenemos un modelo predictivo $\hat{f}(x)$ que hemos ajustad
 \begin{align}
 \hat{g}(x) = \arg \min_{g \in \mathcal{G}^\star} \|g - \hat{f}\|^2 + \Omega(g)\,,
 \end{align}
-donde $\mathcal{G}^\star = \{g : \mathcal{N}(x^\star) \subset \mathcal{X} \rightarrow \mathcal{Y}\}$,
-$\|\cdot\|$ es una norma apropiada y $\Omega(\cdot)$ asigna una penalización por
+donde $\mathcal{G}^\star = \{g : \mathcal{N}(x^\star) \subset \mathcal{X} \rightarrow \mathcal{Y}| g \text{ es una función sencilla }\}$,
+$\|\cdot\|$ es una norma apropiada para modelos predictivos y $\Omega(\cdot)$ asigna una penalización por
 complejidad de $g$.
 
 #+REVEAL: split
