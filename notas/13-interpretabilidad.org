@@ -73,6 +73,14 @@
 - [[#métodos-de-interpretabilidad-local][Métodos de interpretabilidad local]]
   - [[#para-pensar][Para pensar:]]
 - [[#descomposición-secuencial-aditiva][Descomposición secuencial aditiva]]
+- [[#valores-shap][Valores SHAP]]
+  - [[#método][Método]]
+    - [[#definición][Definición:]]
+    - [[#para-pensar][Para pensar:]]
+    - [[#para-pensar][Para pensar:]]
+    - [[#definición][Definición:]]
+    - [[#propiedades][Propiedades:]]
+  - [[#shap-en-ikea][SHAP en IKEA.]]
 - [[#expansiones-lineales-locales][Expansiones lineales locales]]
   - [[#construcción-de-lime][Construcción de LIME]]
   - [[#observaciones][Observaciones]]
@@ -478,6 +486,142 @@ random forest: name = 568                  -0.009
 random forest: prediction                   2.795
 #+end_src
 
+* Valores SHAP
+
+La descomposición aditiva que hemos utilizado es sensible al orden en que
+hacemos la expansión de las atribuciones. Un problema latente si existen
+interacciones entre los predictores. Lo que haremos en esta sección es promediar
+bajo distintos órdenes las contribuciones individuales de los atributos.
+
+#+REVEAL: split
+Distintos órdenes, pueden presentar distintos resúmenes. Consideremos las
+siguientes gráficas de atribución tomadas de citep:Biecek2021. ¿Qué sucede con
+las variables de clase y tarifa?
+
+#+DOWNLOADED: screenshot @ 2023-05-03 12:00:43
+#+caption: Imagen tomada citep:Biecek2021.
+#+attr_html: :width 1200 :align center
+[[file:images/20230503-120043_screenshot.png]]
+
+#+REVEAL: split
+Tomar promedios puede ayudar eliminar esta dependencia en el orden. Las barras
+(colores rojo y verde) muestran las contribuciones promedio, mientras que los
+gráficos de caja y brazos muestran la variabilidad a lo largo de los distintos
+órdenes.
+
+#+DOWNLOADED: screenshot @ 2023-05-03 12:04:43
+#+attr_html: :width 1200 :align center
+#+attr_latex: :width .65\linewidth
+[[file:images/20230503-120443_screenshot.png]]
+
+
+** Método
+
+Usaremos los valores de Shapley como mecanismo explicativo de modelos. El nombre
+es por /SHapley Additive exPlanations/ (~SHAP~) el cual usa teoría de juegos y el
+cual fue desarrollado para juegos cooperativos.
+
+#+REVEAL: split
+Lo que queremos es diagnosticar la magnitud de las contribuciones individuales
+a una tarea cooperativa.
+
+*** ~Definición~:
+Consideremos la predicción para $x^\star \in \mathbb{R}^p$ por parte del modelo
+predictivo $\hat{f}$. Consideremos que para un conjunto de índices $J$ dejamos
+fijos los valores de acuerdo a las entradas de $x^\star$. Los índices que se
+encuentran en $J^c = \{1, \ldots, p\} \setminus J$ son variables
+aleatorias. Entonces denotamos por $\Delta^{\ell | J}(x^\star)$ el cambio en el
+valor esperado de las predicciones por incluir la $\ell\text{-ésima}$ variable
+en el conjunto fijo de valores.
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Con la definición de arriba, argumenta que tenemos la siguiente igualdad
+\begin{align}
+\Delta^{\ell | \emptyset }(x^\star) = \mathbb{E}[\hat{f}(X) | X_\ell = x^\star_\ell] - \mathbb{E}[\hat{f}(X)]\,.
+\end{align}
+
+*** Para pensar:
+:PROPERTIES:
+:reveal_background: #00468b
+:END:
+Con la notación de arriba, ¿cómo escribirías nuestro término $\iota(j, x^\star)$?
+
+*** ~Definición~:
+El valor de Shapley está definido como
+\begin{align}
+\phi(x^\star, j) = \frac{1}{p!} \sum_{J}^{} \Delta ^{j | \mathcal{I}(J, j)} (x^\star)\,,
+\end{align}
+donde $\mathcal{I}(J, j)$ denota todos los índices en $J$ que se encuentran antes de $j$.
+
+*** Propiedades:
+Los valores de Shapley gozan de las siguientes propiedades.
+1. /Simetría/: si dos atributos satisfacen que bajo $S \subseteq \{1, \ldots, p\} \setminus \{j,k\}$
+   \begin{align}
+   \Delta^{j | S}(x^\star) = \Delta^{k | S}(x^\star)\,,
+   \end{align}
+   entonces
+   \begin{align}
+   \phi(x^\star, j ) = \phi(x^\star, k)\,.
+   \end{align}  
+2. /Dummies/: si alguna variable no contribuye en predicciones entonces su valor de Shapley es 0.
+3. /Aditividad/: Si $\hat{f} = \hat{f}_1 + \hat{f}_2$ entonces el valor de Shapley es la suma de los valores de Shapley para cada $\hat{f}_i$.
+4. /Capacidad local/: La suma de los valores de Shapley es igual a las predicciones del modelo
+   \begin{align}
+   \hat{f}(x^\star) - \mathbb{E}[\hat{f}(X)] = \sum_{j = 1}^{p} \phi(x^\star, j)\,.
+   \end{align}
+   
+** SHAP en ~IKEA~. 
+
+#+begin_src R :exports code :results none
+  set.seed(1801)
+  shap_mueble_rf <- 
+    predict_parts(
+      explainer = explainer_rf, 
+      new_observation = mueble, 
+      type = "shap",
+      B = 20
+    )
+#+end_src
+
+#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/shap-ikea-rf.jpeg :exports results :results output graphics file
+  shap_mueble_rf |>
+  plot()
+#+end_src
+
+#+RESULTS:
+[[file:../images/shap-ikea-rf.jpeg]]
+
+#+REVEAL: split
+Podemos comparar para cada modelo para diagnosticar en cada uno cómo cambian las predicciones.
+
+#+begin_src R :exports code :results none
+  set.seed(1801)
+  shap_mueble_lm <- 
+    predict_parts(
+      explainer = explainer_lm, 
+      new_observation = mueble, 
+      type = "shap",
+      B = 20
+    )
+#+end_src
+
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
+#+begin_src R :file images/shap-ikea-rf-lm.jpeg :exports results :results output graphics file
+  g.lm <- shap_mueble_lm |>
+    plot()
+  g.rf <- shap_mueble_rf |>
+    plot()
+
+  g.lm + g.rf
+#+end_src
+
+#+RESULTS:
+[[file:../images/shap-ikea-rf-lm.jpeg]]
+
 * Expansiones lineales locales
 
 Podemos explorar la idea de aproximar un modelo predictivo sumamente complejo por uno altamente transparente. Esta es la idea detras de ~LIME~ (/Local Interpretable Model-agnostic Explanations/).
@@ -588,28 +732,7 @@ complejidad de $g$.
 bibliographystyle:abbrvnat
 bibliography:references.bib
 
-
-* SHAP values                                                      :noexport:
-
-#+begin_src R :exports code :results org 
-  set.seed(1801)
-  shap_mueble <- 
-    predict_parts(
-      explainer = explainer_rf, 
-      new_observation = mueble, 
-      type = "shap",
-      B = 20
-    )
-#+end_src
-
-#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
-#+begin_src R :file images/shap-ikea-rf.jpeg :exports results :results output graphics file
-  shap_mueble |>
-  plot()
-#+end_src
-
-#+RESULTS:
-[[file:../images/shap-ikea-rf.jpeg]]
+*                                                                  :noexport:
 
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/model-parts-ikea-rf.jpeg :exports results :results output graphics file
@@ -690,3 +813,7 @@ as_tibble(pdp_wcat$agr_profiles) %>%
 
 #+RESULTS:
 [[file:../images/pdp-groups-ikea-forest.jpeg]]
+
+bibliographystyle:abbrvnat
+bibliography:references.bib
+

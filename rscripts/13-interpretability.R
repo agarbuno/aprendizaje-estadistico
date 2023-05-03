@@ -160,6 +160,34 @@ rfin_breakdown <- predict_parts(
 )
 rfin_breakdown
 
+set.seed(1801)
+shap_mueble_rf <- 
+  predict_parts(
+    explainer = explainer_rf, 
+    new_observation = mueble, 
+    type = "shap",
+    B = 20
+  )
+
+shap_mueble_rf |>
+plot()
+
+set.seed(1801)
+shap_mueble_lm <- 
+  predict_parts(
+    explainer = explainer_lm, 
+    new_observation = mueble, 
+    type = "shap",
+    B = 20
+  )
+
+g.lm <- shap_mueble_lm |>
+  plot()
+g.rf <- shap_mueble_rf |>
+  plot()
+
+g.lm + g.rf
+
 xgb_spec <-
   boost_tree(trees = 1000) |>
   set_mode("regression") |>
@@ -197,18 +225,6 @@ lime_mueble <- predict_surrogate(
 lime_mueble |> print(width = 85)
 
 lime_mueble |> plot()
-
-set.seed(1801)
-shap_mueble <- 
-  predict_parts(
-    explainer = explainer_rf, 
-    new_observation = mueble, 
-    type = "shap",
-    B = 20
-  )
-
-shap_mueble |>
-plot()
 
 set.seed(1804)
 vip_rf <- model_parts(explainer_rf, loss_function = loss_root_mean_square)
