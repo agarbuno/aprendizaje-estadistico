@@ -84,6 +84,9 @@
 - [[#expansiones-lineales-locales][Expansiones lineales locales]]
   - [[#construcción-de-lime][Construcción de LIME]]
   - [[#observaciones][Observaciones]]
+- [[#exploración-global-de-modelos][Exploración global de modelos]]
+  - [[#perfiles-de-dependencia-parcial][Perfiles de dependencia parcial]]
+- [[#conclusiones][Conclusiones]]
 :END:
 
 * Introducción
@@ -627,7 +630,9 @@ Podemos comparar para cada modelo para diagnosticar en cada uno cómo cambian la
 Podemos explorar la idea de aproximar un modelo predictivo sumamente complejo por uno altamente transparente. Esta es la idea detras de ~LIME~ (/Local Interpretable Model-agnostic Explanations/).
 
 #+REVEAL: split
-Por ejemplo, podemos utilizar la función ~predict_surrogate()~ de la siguiente manera
+Por ejemplo, podemos utilizar la función ~predict_surrogate()~ de la siguiente
+manera. Para esto consideraremos otro modelo predictivo.
+
 #+begin_src R :exports code :results none 
   xgb_spec <-
     boost_tree(trees = 1000) |>
@@ -645,9 +650,11 @@ Por ejemplo, podemos utilizar la función ~predict_surrogate()~ de la siguiente 
 #+end_src
 
 #+REVEAL: split
+Con la función de ~explain_tidymodels()~ construimos como antes el objeto
+necesario para interactuar.
 #+begin_src R :exports code :results none
   explainer_xgb <- 
-    DALEX::explain(
+    explain_tidymodels(
       ikea_xgb, 
       data = ikea_train |> select(-price), 
       y    = ikea_train |> pull(price),
@@ -657,12 +664,20 @@ Por ejemplo, podemos utilizar la función ~predict_surrogate()~ de la siguiente 
 #+end_src
 
 #+REVEAL: split
-#+begin_src R :exports both :results org
+Es importante definir unas opciones para interactuar con los modelos predictivos.
+
+#+begin_src R :exports code :results none 
   library(lime)
-  set.seed(108)
   model_type.dalex_explainer <- DALEXtra::model_type.dalex_explainer
   predict_model.dalex_explainer <- DALEXtra::predict_model.dalex_explainer
+#+end_src
 
+
+#+REVEAL: split
+Con esto podemos ya usar la función ~predict_surrogate()~ que usaremos para crear
+nuestra aproximación local del modelo predictivo.
+#+begin_src R :exports both :results org
+  set.seed(108)
   lime_mueble <- predict_surrogate(
     explainer = explainer_xgb,
     new_observation = mueble,
@@ -729,25 +744,70 @@ complejidad de $g$.
 - Hay que recordar que sólo es una interpretación del modelo ajustado, no de los datos.
 - Nosotros utilizamos sólo las funciones de ~lime~ pero también pueden utilizar ~iml~ o ~localModels~, pueden ver mas [[https://ema.drwhy.ai/LIME.html][aquí]].
 
-bibliographystyle:abbrvnat
-bibliography:references.bib
+* Exploración global de modelos
 
-*                                                                  :noexport:
+Los diagnósticos globales de los modelos los hemos presentado en secciones anteriores. Por ejemplo, para
+modelos basados en árboles, podemos usar los resúmenes de importancia de las variables (usando la librería ~vip~). En ~DALEX~ también podemos usar la función ~model_parts()~ y definir la métrica que nos interesa. 
+
+#+begin_src R :exports code :results none 
+  set.seed(1804)
+  vip_rf <- model_parts(explainer_rf, loss_function = loss_root_mean_square)
+#+end_src
+
+
+#+REVEAL: split
+De esta manera tenemos un gráfico familiar para nosotros que nos muestra la cómo
+afecta una variable la salida promedio del modelo $\hat{f}$.
 
 #+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/model-parts-ikea-rf.jpeg :exports results :results output graphics file
-  set.seed(1804)
-  vip_rf <- model_parts(explainer_rf, loss_function = loss_root_mean_square)
   plot(vip_rf)
 #+end_src
 
 #+RESULTS:
 [[file:../images/model-parts-ikea-rf.jpeg]]
 
+** Perfiles de dependencia parcial
 
-#+begin_src R :exports code :results org 
+Los resumenes anteriores son dependientes de la estructura del modelo
+mismo. Pero en muchas situaciones es de interés poder entender cómo afecta un
+atributo la salida esperada de las predicciones. Para esto, utilizaremos
+perfiles de dependencia parcial (~PDP~ por sus siglas en inglés).
+
+#+REVEAL: split
+Este tipo de mecanismos nos ayudan a comparar grupos de
+datos bajo un mismo modelo predictivo, o incluso bajo distintos modelos.
+
+- Si dos modelos, con distinto grado de complejidad, tienen el mismo
+  comportamiento entonces puede indicar que el riesgo de sobreajuste es
+  reducido.
+- Podemos utilizar las relaciones encontradas bajo un modelo mas complejo para
+  hacer transformaciones que ayuden la capacidad predictiva de un modelo
+  interpretable.
+- Nos puede ayudar a entender las capacidades predictivas y comportamiento del
+  modelo en regiones de pocas observaciones.
+
+
+#+REVEAL: split
+Alternativamente, podemos construir un gráfico que perfile el cambio de la
+salida del modelo predictivo utilizando un conjunto de observaciones. Es decir,
+construimos un diagnóstico global a partir de diagnósticos locales.
+
+Este es el concepto de utilizar valores esperados individuales condicionados
+(~ICE~) o perfiles /ceteris paribus/ (~CP~).
+
+
+#+REVEAL: split
+Para esto construiremos perfiles para 500 observaciones distintas en nuestro
+conjunto de entrenamiento y agregaremos los resultados por medio de la función
+~model_profile()~. En esta ocasión nos concentraremos en cómo se comporta la
+predicción como función parcial del ancho de los empaques (~width~).
+
+#+begin_src R :exports code :results none
   set.seed(1805)
-  pdp_width <- model_profile(explainer_rf, N = 500, variables = "width")
+  pdp_width_lm <- model_profile(explainer_lm, N = 500, variables = "width")
+  pdp_width_xgb <- model_profile(explainer_xgb, N = 500, variables = "width")
+  pdp_width_rf <- model_profile(explainer_rf, N = 500, variables = "width")
 #+end_src
 
 #+begin_src R :exports none :results none
@@ -774,18 +834,31 @@ bibliography:references.bib
 
 #+end_src
 
-#+HEADER: :width 900 :height 400 :R-dev-args bg="transparent"
+#+HEADER: :width 1200 :height 400 :R-dev-args bg="transparent"
 #+begin_src R :file images/pdp-ikea-forest.jpeg :exports results :results output graphics file
-  pdp_width |> ggplot_pdp(width) +
-  labs(x = "Width", 
-       y = "Price", 
-       color = NULL) + sin_lineas
+  gpd.lm <- pdp_width_lm |> ggplot_pdp(width) +
+    labs(x = "Width", title = "linear model",
+         y = "Price", 
+         color = NULL) + sin_lineas
+  gpd.rf <- pdp_width_rf |> ggplot_pdp(width) +
+    labs(x = "Width", 
+         y = "Price", title = "random forest",
+         color = NULL) + sin_lineas
+  gpd.xgb <- pdp_width_xgb |> ggplot_pdp(width) +
+    labs(x = "Width", 
+         y = "Price", title = "xboost",
+         color = NULL) + sin_lineas
+
+  gpd.lm + gpd.rf + gpd.xgb
 #+end_src
 
 #+RESULTS:
 [[file:../images/pdp-ikea-forest.jpeg]]
 
-
+#+REVEAL: split
+Adicionalmente, podemos utilizar la interacción de variables categóricas y
+continuas para explorar cómo afecta el cambio de un atributo en la salida del
+modelo en conjunto de datos.
 #+begin_src R :exports code :results none
   set.seed(1806)
   pdp_wcat <- model_profile(explainer_rf, N = 1000, 
@@ -794,7 +867,7 @@ bibliography:references.bib
 #+end_src
 
 
-#+HEADER: :width 900 :height 900 :R-dev-args bg="transparent"
+#+HEADER: :width 1200 :height 800 :R-dev-args bg="transparent"
 #+begin_src R :file images/pdp-groups-ikea-forest.jpeg :exports results :results output graphics file
 as_tibble(pdp_wcat$agr_profiles) %>%
   mutate(category = stringr::str_remove(`_label_`, "random forest_")) %>%
@@ -804,15 +877,40 @@ as_tibble(pdp_wcat$agr_profiles) %>%
             linewidth = 0.5, alpha = 0.1, color = "gray50") +
   geom_line(linewidth = 1.2, alpha = 0.8, show.legend = FALSE) +
   scale_x_log10() +
-  facet_wrap(~category, ncol = 4) +
+  facet_wrap(~category, ncol = 6) +
   scale_color_brewer(palette = "Dark2") +
   labs(x = "width", 
        y = "price", 
        color = NULL) + sin_lineas
 #+end_src
-
+#+REVEAL: split
 #+RESULTS:
 [[file:../images/pdp-groups-ikea-forest.jpeg]]
+
+* Conclusiones
+
+Las herramientas que presentamos en esta sección es un resumen muy breve de mas
+temas que se pueden explorar para entender lo que se puede explicar de un
+modelo.
+
+#+REVEAL: split
+La notación de esta sección ha sido consistente con la idea: una vez que tengo
+entrenado un modelo $\hat{f}$ entonces qué puedo decir sobre la relación entre
+los atributos y la respuesta. *No* es una relación de causalidad real entre
+atributos y respuesta dado que es una herramienta de post-procesamiento.
+
+#+REVEAL: split
+Los mecanismo estudiados en esta sección nos pueden ayudar a mejorar nuestro
+ciclo de modelado para incorporar mayor conocimiento en éste.
+
+
+#+DOWNLOADED: screenshot @ 2023-05-03 19:36:44
+#+attr_html: :width 1200 :align center
+#+caption: Imagen tomada de citep:Biecek2021.
+[[file:images/20230503-193920_screenshot.png]]
+
+
+
 
 bibliographystyle:abbrvnat
 bibliography:references.bib
