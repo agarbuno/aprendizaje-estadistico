@@ -12,8 +12,10 @@ identifiers:
     value: 10.5281/zenodo.8266091
 version: v1.0.0
 preferred-citation: 
-  type: article
+  type: report
   title: "Notas del curso: Aprendizaje Estadístico"
   authors: 
     - given-names: Alfredo
       family-names: Garbuno-Inigo
+  year: 2023
+  
